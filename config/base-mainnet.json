@@ -15,8 +15,117 @@
     "usdcSpcxcTickSpacing": 10,
     "wethUsdcPool": "0x4e392fBfE4D0557C82D2F97F02ec39daA31516dd",
     "wethUsdcTickSpacing": 1,
+    "swapRoute": [
+      "WETH",
+      "USDC",
+      "SPCXc"
+    ],
+    "directWethSpcxcPool": "0xb0ffB2A01AbbDD54c0b227543260aa65e2b84909",
+    "directWethSpcxcTickSpacing": 200,
+    "routeRationale": "Two-hop WETH->USDC->SPCXc is the selected swap path. The only direct WETH/SPCXc pool (tick spacing 200, 0.3%) is shallow and quotes worse; it is recorded here to document the rejected alternative, not for use. Re-quote both options before deployment.",
     "routeEvidence": "config/route-candidates.json",
     "warning": "Re-quote at a finalized block and verify the router/factory generation before deployment."
   },
-  "verifiedAt": "artifacts/base-inspection.json"
+  "verifiedAt": "artifacts/base-inspection.json",
+  "rewardsPool": {
+    "factory": "0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef",
+    "manager": "0xe1f8cd9AC4e4A65F54f38a5CdAfCA44f6dD68b53",
+    "pool": null,
+    "tokenId": null,
+    "tickSpacing": 200,
+    "swapFee": 3000,
+    "fullRange": true,
+    "staking": "unstaked",
+    "routingIntent": "USDC -> SPCXc -> DICKBUTT; routing depends on execution price and liquidity, not guaranteed"
+  },
+  "deployment": {
+    "kcGreen": "0x331BB8664d032544327E61753485d06d663995B6",
+    "cdbVault": "0xB58f2Ce04bd5d397F34ba319316CfaB471E16cF3",
+    "burnAddress": "0x000000000000000000000000000000000000dEaD",
+    "owner": null,
+    "keeper": "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+    "recipientVerification": {
+      "block": 51223839,
+      "kcGreen": {
+        "type": "EOA",
+        "baseNonce": 0,
+        "dickbuttBalance": "1000000000000000000000000",
+        "note": "Holds 1,000,000 DICKBUTT. Never sent a Base transaction."
+      },
+      "cdbVault": {
+        "type": "EOA",
+        "baseNonce": 0,
+        "dickbuttBalance": "0",
+        "ethBalanceBase": "0",
+        "ethereumNonce": 0,
+        "cryptoDickbuttsHeld": 0,
+        "note": "Unused on both Base and Ethereum. Needs gas and proven key control before the immutable Split is deployed."
+      },
+      "warning": "Both are recipients of an IMMUTABLE Split. Prove key control on Base before deployment; there is no setter.",
+      "keeper": {
+        "type": "EOA",
+        "baseNonce": 0,
+        "ethBalanceBase": "0",
+        "note": "Fresh wallet. Needs ETH on Base for gas before any fee cycle or payout run."
+      }
+    },
+    "ownerRoles": {
+      "note": "Every contract takes its own owner_ constructor argument; they do not have to be the same address. deployment.owner is the high-stakes one.",
+      "distributor": "Commits reward roots via proposeRound. Decides who gets paid. Use the multisig.",
+      "lockerHarvester/aerodromeHarvester": "Timelocked destination changes, LP NFT custody and lock extension. Use the multisig.",
+      "swapExecutor": "Refreshes a price floor that expires within 1 day, so it signs daily. A separate lower-stakes ops signer avoids a daily multisig ceremony; it cannot move funds, only halt swaps or set a bad floor.",
+      "keeper": "Not an owner. Hot signer that calls processWeth and distributeBatch only. Cannot choose recipients or amounts, weaken the floor, or redirect funds.",
+      "keyIsolation": "The keeper key signs processWeth and distributeBatch. The ops key signs setPriceFloor and must NOT be an approved keeper: operations/floor.js refuses such a signer, and run-floor.mjs refuses OPS_PRIVATE_KEY equal to KEEPER_PRIVATE_KEY. Run them on separate hosts; they take separate lock namespaces."
+    }
+  },
+  "calculatorExclusions": {
+    "note": "EXCLUDED_ADDRESSES for the production calculator. It rejects an empty list but cannot know which addresses matter. Every address that receives DICKBUTT from the pipeline must be here, or it earns SPCXc rewards on fee income.",
+    "required": [
+      {
+        "role": "burnAddress",
+        "address": "0x000000000000000000000000000000000000dEaD",
+        "reason": "Receives 90% of DICKBUTT fees."
+      },
+      {
+        "role": "kcGreen",
+        "address": "0x331BB8664d032544327E61753485d06d663995B6",
+        "reason": "Receives 10% of DICKBUTT fees and already holds 1,000,000 DICKBUTT; would cross the 6.9M threshold from fee income alone."
+      },
+      {
+        "role": "cdbVault",
+        "address": "0xB58f2Ce04bd5d397F34ba319316CfaB471E16cF3",
+        "reason": "Treasury; receives WETH, not DICKBUTT, but must never qualify as a holder."
+      },
+      {
+        "role": "clankerLocker",
+        "address": "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
+        "reason": "Protocol locker holding LP."
+      },
+      {
+        "role": "legacyFeeSafes",
+        "address": [
+          "0x1eaf444ebDf6495C57aD52A04C61521bBf564ace",
+          "0x04F6ef12a8B6c2346C8505eE4Cff71C43D2dd825"
+        ],
+        "reason": "Clanker fee Safes that accumulate the 60% deduction."
+      },
+      {
+        "role": "keeper",
+        "address": "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+        "reason": "Operational signer; must never qualify as a holder."
+      }
+    ],
+    "addAtDeployment": [
+      "SplitsFeeRouter",
+      "the DICKBUTT Split",
+      "the WETH Split",
+      "SpcxcSwapExecutor",
+      "DickbuttRewardsDistributor",
+      "LockerHarvester",
+      "AerodromeFeeHarvester",
+      "LegacyFeeHarvester",
+      "the DICKBUTT/SPCXc rewards pool",
+      "owner and keeper addresses"
+    ]
+  }
 }

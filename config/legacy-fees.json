@@ -1,0 +1,36 @@
+{
+  "chainId": 8453,
+  "block": 51223062,
+  "blockHash": "0x9a906018f91c3cd1b603d3530b73b78019387049bb8a900b46c749141de4c99c",
+  "timestamp": 1789235471,
+  "token": "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+  "feeModule": "0x10F4485d6f90239B72c6A5eaD2F2320993D285E4",
+  "moduleCodeHash": "0x78996290c64477cc0cbf72b53a0447d8454ed2b8969a288a90e8a558d59fa290",
+  "tokenCreator": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
+  "tokenCreatorRoot": "0xa7dcc91a2136ef1b3c708dbab901cbeb075f6df5cf5987494fedc340c57f7025",
+  "teamGranted": false,
+  "moduleOwner": "0xEea96d959963EaB488A3d4B7d5d347785cf1Eab8",
+  "locker": "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
+  "lockerOwner": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
+  "lockerFeePercent": "60",
+  "currentFeeSink": "0x1eaf444ebDf6495C57aD52A04C61521bBf564ace",
+  "safes": [
+    {
+      "address": "0x1eaf444ebDf6495C57aD52A04C61521bBf564ace",
+      "moduleEnabled": true,
+      "tokenBalance": "0"
+    },
+    {
+      "address": "0x04F6ef12a8B6c2346C8505eE4Cff71C43D2dd825",
+      "moduleEnabled": true,
+      "tokenBalance": "0"
+    }
+  ],
+  "sources": {
+    "sdkCommit": "4f4d2bbf41c7f10543559dc043c85f443a6d452e",
+    "sdk": "https://github.com/clanker-devco/clanker-sdk/blob/4f4d2bbf41c7f10543559dc043c85f443a6d452e/src/legacyFeeClaims/index.ts",
+    "deployedSource": "https://base.blockscout.com/address/0x10F4485d6f90239B72c6A5eaD2F2320993D285E4?tab=contract",
+    "historicalSafeClaim": "https://basescan.org/tx/0x7a5d764da96a870b387d7b49a3b094da32dbcdb41ca9f184140240d3622ea7ce"
+  },
+  "warning": "Read-only snapshot. Revalidate before deployment; no claim or authority change is performed."
+}

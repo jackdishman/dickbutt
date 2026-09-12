@@ -1,0 +1,178 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { ethers } from 'ethers';
+import { Journal, hash, stringify } from '../calculator/journal.js';
+import { buildPlan, normalize } from '../calculator/core.js';
+
+export const KEEPER_ABI = [
+ 'function rewardToken() view returns(address)',
+ 'function nextRoundId() view returns(uint256)',
+ 'function roundInfo(uint256) view returns(bytes32 root,uint256 total,uint256 distributed,bool active,bool closed)',
+ 'function pending(uint256) view returns(bytes32 root,uint256 total,uint256 readyAt)',
+ 'function paid(uint256,address) view returns(bool)',
+ 'function isKeeper(address) view returns(bool)',
+ 'function owner() view returns(address)',
+ 'function proposeRound(bytes32,uint256) returns(uint256)',
+ 'function activateRound(uint256)',
+ 'function distributeBatch(uint256,address[],uint256[],bytes32[][])',
+ 'function closeRound(uint256)',
+ 'event PaymentFailed(uint256 indexed roundId,address indexed account,uint256 amount)',
+];
+
+export function acquireExecutionLock(chainId, address) {
+ const location=path.join(os.tmpdir(),`dickbutt-keeper-${chainId}-${normalize(address)}.lock`);
+ try { fs.mkdirSync(location, {mode:0o700}); }
+ catch { throw Error(`keeper lock exists: ${location}; verify its owner and pending transactions before manual recovery`); }
+ fs.writeFileSync(path.join(location,'owner.json'),stringify({pid:process.pid,host:os.hostname(),started:new Date().toISOString()}),{mode:0o600});
+ return ()=>fs.rmSync(location,{recursive:true});
+}
+
+function verifyPlan(record, config) {
+ const plan=record.plan;
+ if (!plan) return null;
+ if (BigInt(plan.roundId)<1n || String(plan.roundId)!==String(record.roundId)) throw Error('invalid plan round id');
+ const rebuilt=buildPlan(plan.roundId,plan.payouts,config.batchSize);
+ if (!rebuilt || rebuilt.root!==record.root || rebuilt.root!==plan.root || rebuilt.total!==String(plan.total)
+     || hash(rebuilt.batches)!==hash(plan.batches) || hash(rebuilt.tree)!==hash(plan.tree)
+     || hash(record.payouts)!==hash(plan.payouts)) throw Error(`Merkle plan or batch mismatch for round ${plan.roundId}`);
+ if (Object.values(plan.payouts).some(value=>BigInt(value)<=0n)) throw Error('plan contains nonpositive payout');
+ return rebuilt;
+}
+
+async function inspect(distributor,plan) {
+ const [round,pending,next]=await Promise.all([distributor.roundInfo(plan.roundId),distributor.pending(plan.roundId),distributor.nextRoundId()]);
+ const [root,total,distributed,active,closed]=round;
+ const [pendingRoot,pendingTotal,readyAt]=pending;
+ const exists=root!==ethers.ZeroHash || BigInt(total)!==0n || active || closed;
+ const waiting=pendingRoot!==ethers.ZeroHash || BigInt(pendingTotal)!==0n;
+ if (exists && (root.toLowerCase()!==plan.root.toLowerCase() || BigInt(total)!==BigInt(plan.total))) throw Error(`round ${plan.roundId} commitment mismatch`);
+ if (waiting && (pendingRoot.toLowerCase()!==plan.root.toLowerCase() || BigInt(pendingTotal)!==BigInt(plan.total))) throw Error(`pending round ${plan.roundId} commitment mismatch`);
+ if ((active&&closed)||(exists&&waiting)||(exists&&!active&&!closed)||BigInt(distributed)>BigInt(total)) throw Error(`invalid round ${plan.roundId} status`);
+ if ((exists||waiting) && BigInt(next)<=BigInt(plan.roundId)) throw Error('next round id inconsistent with commitment');
+ if (!exists&&!waiting && BigInt(next)!==BigInt(plan.roundId)) throw Error(`local round id ${plan.roundId} differs from next round id ${next}`);
+ return {exists,waiting,active,closed,distributed:BigInt(distributed),readyAt:BigInt(readyAt)};
+}
+
+/** Consume authentic calculator Journal records; all transaction dependencies are injected. */
+export async function runKeeper({dir,provider,distributor,config,execute=false,propose=false,signerAddress,
+ ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,onEvent=()=>{}}) {
+ if (!Number.isSafeInteger(confirmations)||confirmations<1) throw Error('confirmations must be a positive integer');
+ const chainId=(await provider.getNetwork()).chainId.toString();
+ if (execute&&!['31337','84532'].includes(chainId)) throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');
+ if (chainId!==String(config.chainId)) throw Error('RPC chain does not match calculator config');
+ if (normalize(await distributor.getAddress())!==normalize(config.distributor)) throw Error('distributor does not match calculator config');
+ if (execute&&!signerAddress) throw Error('execute requires signerAddress');
+ const locks=[],journal=new Journal(dir);
+ const result={mode:execute?'execute':'dry-run',chainId,rounds:[],transactions:[]};
+ const emit=event=>onEvent({...event,chainId});
+ try {
+  if (execute) for (const address of [...new Set([signerAddress,...(propose?[ownerAddress]:[])].map(normalize))].sort()) locks.push(acquireExecutionLock(chainId,address));
+  journal.lock();
+  const rows=journal.entries();
+  if (!rows.length) throw Error('no calculator journal records');
+  const expectedHash=hash(config), rewardToken=normalize(await distributor.rewardToken());
+  const plans=[],seen=new Set();
+  for (const {record} of rows) {
+   if (record.version!==1 || hash(record.config)!==expectedHash || record.configHash!==expectedHash || record.state.configHash!==expectedHash) throw Error('journal configuration identity mismatch');
+   if (normalize(record.rewardToken)!==rewardToken) throw Error('journal reward token mismatch');
+   const block=await provider.getBlock(record.block.number);
+   if (!block || block.hash!==record.block.hash) throw Error('journal snapshot hash changed');
+   const plan=verifyPlan(record,config);
+   if (plan) { if(seen.has(plan.roundId))throw Error('duplicate journal plan round id');seen.add(plan.roundId);plans.push(plan); }
+  }
+  // Check every commitment before the first mutation, including older closed rounds.
+  for (const plan of plans) await inspect(distributor,plan);
+  if (execute && propose && normalize(await ownerDistributor.getAddress())!==normalize(config.distributor)) throw Error('owner distributor does not match config');
+  const marker=path.join(journal.dir,'keeper-pending-transaction.json');
+  if (execute&&fs.existsSync(marker)) {
+   const pending=JSON.parse(fs.readFileSync(marker,'utf8'));
+   const receipt=await provider.getTransactionReceipt(pending.hash);
+   if (!receipt || await receipt.confirmations()<confirmations) throw Error(`unresolved transaction ${pending.hash}; inspect receipt before rerun`);
+   fs.unlinkSync(marker);
+   emit({type:'recovered-transaction',hash:pending.hash,status:Number(receipt.status)});
+  }
+  async function send(action,roundId,submit) {
+   const tx=await submit();
+   const markerFd=fs.openSync(marker,'wx',0o600);
+   try { fs.writeFileSync(markerFd,stringify({chainId,distributor:config.distributor,action,roundId,hash:tx.hash}));fs.fsyncSync(markerFd); }
+   finally { fs.closeSync(markerFd); }
+   const dirFd=fs.openSync(journal.dir,'r');
+   try { fs.fsyncSync(dirFd); } finally { fs.closeSync(dirFd); }
+   emit({type:'transaction-submitted',action,roundId,hash:tx.hash});
+   let receipt;
+   try { receipt=await tx.wait(confirmations); }
+   catch (error) {
+    // A mined revert is terminal. An unknown/replaced/pending transaction remains a recovery barrier.
+    if (error.receipt && Number(error.receipt.status)===0) fs.unlinkSync(marker);
+    throw Error(`${action} transaction failed; inspect ${tx.hash} before rerun`);
+   }
+   if (!receipt) throw Error(`missing receipt for transaction ${tx.hash}`);
+   fs.unlinkSync(marker);
+   if (Number(receipt.status)!==1) throw Error(`${action} transaction receipt failed: ${tx.hash}`);
+   result.transactions.push({action,roundId,hash:tx.hash});
+   emit({type:'transaction-confirmed',action,roundId,hash:tx.hash});
+   return receipt;
+  }
+  async function unpaid(plan) {
+   const accounts=Object.keys(plan.payouts).sort();
+   const flags=await Promise.all(accounts.map(account=>distributor.paid(plan.roundId,account)));
+   return accounts.filter((_account,index)=>!flags[index]);
+  }
+  for (const plan of plans) {
+   let state=await inspect(distributor,plan);
+   const report={roundId:plan.roundId,root:plan.root,total:plan.total,status:'proposal-required',unpaid:[],failed:[]};
+   result.rounds.push(report);
+   if (!state.exists&&!state.waiting) {
+    if (!execute||!propose) continue;
+    if (normalize(await ownerDistributor.owner())!==normalize(ownerAddress)) throw Error('proposal signer is not distributor owner');
+    await send('propose',plan.roundId,()=>ownerDistributor.proposeRound(plan.root,plan.total));
+    state=await inspect(distributor,plan);
+   }
+   if (state.waiting) {
+    const block=await provider.getBlock('latest');
+    report.readyAt=state.readyAt.toString();
+    if (BigInt(block.timestamp)<state.readyAt) {report.status='timelocked';continue;}
+    if (!execute) {report.status='activation-ready';continue;}
+    await send('activate',plan.roundId,()=>distributor.activateRound(plan.roundId));
+    state=await inspect(distributor,plan);
+   }
+   report.unpaid=await unpaid(plan);
+   if (state.closed) {report.status=report.unpaid.length?'closed-unpaid':'closed';continue;}
+   if (!state.active) throw Error('round failed to activate');
+   if (!execute) {report.status=report.unpaid.length?'distribution-ready':'close-ready';continue;}
+   if (report.unpaid.length && !await distributor.isKeeper(signerAddress)) throw Error('signer is not an approved keeper');
+   for (const batch of plan.batches) {
+    // Reread flags before each batch, so crash recovery and other keepers remain idempotent.
+    state=await inspect(distributor,plan);
+    if (!state.active) break;
+    const flags=await Promise.all(batch.accounts.map(account=>distributor.paid(plan.roundId,account)));
+    const indices=flags.flatMap((paid,index)=>paid?[]:[index]);
+    if (!indices.length) continue;
+    const receipt=await send('batch',plan.roundId,()=>distributor.distributeBatch(plan.roundId,indices.map(i=>batch.accounts[i]),indices.map(i=>batch.amounts[i]),indices.map(i=>batch.proofs[i])));
+    for (const log of receipt.logs) {
+     if (normalize(log.address)!==normalize(config.distributor)) continue;
+     let event;try{event=distributor.interface.parseLog(log);}catch{continue;}
+     if (event?.name==='PaymentFailed'&&String(event.args.roundId)===plan.roundId) {
+      const failure={account:normalize(event.args.account),amount:event.args.amount.toString()};
+      report.failed.push(failure);emit({type:'payment-failed',roundId:plan.roundId,...failure});
+     }
+    }
+   }
+   report.unpaid=await unpaid(plan);
+   state=await inspect(distributor,plan);
+   if (state.closed) report.status=report.unpaid.length?'closed-unpaid':'closed';
+   else if (!report.unpaid.length && state.distributed===BigInt(plan.total)) {
+    await send('close',plan.roundId,()=>distributor.closeRound(plan.roundId));
+    state=await inspect(distributor,plan);
+    if (!state.closed) throw Error('close receipt did not close round');
+    report.status='closed';
+   } else report.status='partial';
+  }
+  emit({type:'keeper-complete',rounds:result.rounds});
+  return result;
+ } finally {
+  journal.unlock();
+  for (const release of locks.reverse()) release();
+ }
+}

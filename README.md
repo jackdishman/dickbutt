@@ -1,249 +1,105 @@
-# Dickbutt holder rewards — v2
+# DICKBUTT holder rewards
 
-Pays DICKBUTT holders in SPCXc, funded by trading fees from both pools.
-No new token, no change to the DICKBUTT contract (which is immutable and
-has no tax hook — everything here works around that, not through it).
+Trading fees fund SPCXc rewards for DICKBUTT holders. Holders receive payments in their wallets; they do not claim or sign. The repository contains contracts, a time-weighted reward calculator, execution tools and a disposable deployment rehearsal.
 
-## The three moving parts
+The current design uses **actual Splits PushSplit V2.2 contracts** for fee allocations and a **0.3% concentrated, full-range DICKBUTT/SPCXc position**. It includes returned legacy Clanker DICKBUTT fees. Mainnet ownership and creator authority have not been transferred by this project work.
 
-| Piece | What it is | Where it runs |
-|---|---|---|
-| `LockerHarvester.sol` | Owns the Clanker locker; makes WETH-pool fee collection permissionless with a fixed destination | Base |
-| `AerodromeFeeHarvester.sol` | Holds the Aerodrome LP NFT; claims its fees and splits DICKBUTT→burn, SPCXc→distributor | Base |
-| `DickbuttRewardsDistributor.sol` | Holds SPCXc and pushes it to holders in batches, against a timelocked plan | Base |
-| `FeeSplitter.sol` | Splits the WETH-pool fees: DICKBUTT→KC Green+burn, WETH→KC Green+CDB vault+SPCXc | Base |
-| `calculator/` | Works out who is owed what, builds the Merkle tree | Your machine / a small VM |
+## Fee flow
 
-## How money actually flows
-
-1. **Automatic:** anyone (your bot, or literally anyone) calls `harvest()`
-   on `LockerHarvester`. It collects LP fees from the Clanker locker and
-   sends them to the splitter.
-   *Why this needed a contract:* the locker's `collectFees` is gated on
-   `require(owner() == msg.sender)` and lets the caller pick the recipient.
-   A bot holding that key could be compromised and silently redirect every
-   future fee collection. Instead the locker is owned by `LockerHarvester`,
-   which has no recipient parameter — the destination is fixed in storage
-   and can be frozen permanently. So `harvest()` is safe to leave open to
-   anyone, and there is no privileged key in the path at all.
-2. **Automatic:** anyone calls `splitDickbutt()` on `FeeSplitter` (10% to KC
-   Green, 90% burned), then a keeper calls `processWeth(minOut, deadline)`
-   (10% KC Green, 10% CDB vault, 80% swapped to SPCXc → distributor).
-3. **Automatic, separately:** anyone calls `harvest()` on
-   `AerodromeFeeHarvester`. It claims that pool's fees, burns the DICKBUTT
-   side and sends the SPCXc side to the distributor. No conversion needed.
-   *Aerodrome does not push fees anywhere on its own* — they sit unclaimed
-   in the position until someone collects them, and `collect()` lets the
-   caller choose the recipient. Hence the same owns-the-position pattern as
-   the Clanker locker.
-4. **Scheduled (every ~6h):** the calculator runs, computes everyone's share
-   for the period, and writes out a Merkle root plus ready-to-send batches.
-5. **Multisig:** `proposeRound(root, total)` → 6h timelock → `activateRound()`.
-6. **Automatic:** the keeper sends each batch to `distributeBatch()`. SPCXc
-   lands in holders' wallets. They do nothing and sign nothing.
-7. **Automatic:** `closeRound()` once every batch has landed.
-
-The only genuinely manual step left is buying CryptoDickbutts NFTs, which
-requires bridging to mainnet and is deliberately kept out of the automated
-path.
-
-## Who gets paid, and how much
-
-**Eligibility: 6,900,000 DICKBUTT minimum.** Measured as a time-weighted
-average across the period, not a snapshot — a wallet that holds 6.9M for
-half the period and nothing for the other half has a TWAB of ~3.45M and does
-not qualify. A wallet that buys 50M one minute before the round ends has a
-TWAB near zero and earns nothing. This is what makes the distribution
-schedule safe to publish: there is no moment worth timing a buy around.
-
-**Share size is an explicit configuration choice.** `WEIGHTING=linear` is the
-recommended Sybil-neutral policy. `WEIGHTING=sqrt` preserves the original
-diminishing-returns proposal but is Sybilable: splitting one balance across
-wallets raises aggregate weight. The calculator refuses to run without an
-explicit setting and includes it in the journal configuration hash.
-
-The legacy example below uses sqrt(TWAB). Whales still earn the most,
-but with diminishing returns. Concretely, on a 1000 SPCXc pot with three
-qualifying wallets holding 7M, 70M and 700M:
-
-| Wallet | Straight proportional | sqrt curve (what this uses) |
-|---|---|---|
-| 7M | 9 SPCXc | 71 SPCXc |
-| 70M | 90 SPCXc | 223 SPCXc |
-| 700M | 901 SPCXc | 706 SPCXc |
-
-The whale still takes the largest share. It just stops being 90% of
-everything, which is the difference between holders feeling rewarded and
-holders feeling like an afterthought.
-
-**Never paid, regardless of balance:** the Uniswap V3 pool, the Aerodrome
-pool, the burn address (`0x…dEaD`), the zero address, the Clanker LpLocker,
-the distributor and forwarder themselves, and any team/treasury wallets you
-list. These hold enormous balances and would otherwise take most of every
-round. They are configured in `EXCLUDED_ADDRESSES` and the calculator
-refuses to run if that list is empty.
-
-Because the script cannot tell whether your exclusion list is *complete*, it
-prints the top ten earners every run with their addresses and TWAB. Read
-that list. If you do not recognise a top earner, check it on BaseScan before
-submitting the root.
-
-**Accrual:** qualifying wallets below the payout threshold do not get a
-transfer that round — their share accumulates and is paid once it is worth
-more than the gas to deliver it. Nothing is ever lost.
-
-
-
-**Push (automatic delivery), with a committed plan.** Holders never claim;
-SPCXc simply appears in their wallet. The usual objection to push airdrops is
-that a naive one has no undo, jams on a single failing transfer, and needs a
-hot wallet with authority over the whole pool. All three are handled here:
-the payout plan is committed as a Merkle root and timelocked before any token
-moves (so a bad round can be cancelled); batches are idempotent and re-runnable
-(so a partial failure is just re-sent); individual transfer failures are caught
-and skipped rather than reverting the batch; and the keeper can only pay
-amounts matching the committed root, so a stolen keeper key cannot steal or
-redirect anything.
-
-The cost of push versus claim: the project pays the gas (cheap on Base, but
-not zero), and rounds must be calculated and distributed in sequence rather
-than holders pulling whenever they like.
-
-**TWAB, not snapshots.** Balance is weighted by how long it was held, using
-real block timestamps. A wallet that buys one minute before a run earns one
-minute of credit. Snapshot systems hand that wallet a full period's reward.
-
-**sqrt(balance), not balance.** Mars Coin pays strictly proportionally, so a
-wallet holding 250x the median takes 250x the rewards and small holders get
-dust. The square-root curve still pays whales the most — just with
-diminishing returns, so rewards actually reach the community.
-
-**Distributable is derived from the distributor's real balance**
-(`availableForNextRound()`), not from summing swap events. This is a
-correctness fix, not a preference: the Aerodrome fee side arrives at the
-distributor without passing through the splitter, so an event-counting
-design would strand that entire income stream. Balance-derived is
-source-agnostic, rolls dust and undelivered amounts forward automatically,
-and makes over-promising structurally impossible — `activateRound()` refuses
-to start a round the contract cannot fully cover.
-
-**No loyalty multiplier.** It was in the earlier draft. Cut deliberately:
-TWAB already rewards sustained holding, and the multiplier added a second
-gameable dimension plus more state to get wrong, for little marginal
-benefit. Can be added later if you want it.
-
-**CDB NFT buying stays fully manual.** It requires bridging WETH from Base
-to Ethereum mainnet. Bridges are among the most-exploited components in
-crypto, and an automated bridge + NFT-buying bot would be a bigger attack
-surface than everything else here combined — to save you a few minutes a
-month. Do it by hand.
-
-See `AERODROME-SETUP.md` for the one-time, mostly-by-hand steps to create
-that pool and lock its position.
-
-## Deployment order
-
-1. Deploy `DickbuttRewardsDistributor(spcxcAddress, minPayout,
-   multisigAddress)`. `minPayout` should be set so dust payments whose gas
-   exceeds their value are skipped.
-2. Deploy `FeeSplitter(weth, dickbutt, spcxc, router, kcGreen, burnAddress,
-   cdbVault, distributorAddress, intermediate, firstTickSpacing,
-   secondTickSpacing, maxSwapPerCall, minSwapInterval, multisigAddress)`.
-   The router must be the same-factory Slipstream deployment as the two-hop
-   WETH → USDC → SPCXc path. The current candidate and quote evidence are in
-   `config/route-candidates.json`; refresh it at a finalized block before
-   deployment. The 10/10/80 splits are fixed in the contract.
-3. `setKeeper(botWallet, true)` on **both** the splitter and the
-   distributor.
-   Fund the keeper separately. The splitter has no reward-funded gas entry
-   point, so repeatedly emptying a keeper wallet cannot drain WETH.
-4. Deploy `LockerHarvester(lockerAddress, tokenId, feeSplitterAddress,
-   minInterval, multisigAddress)`.
-   - `lockerAddress` is `0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4`
-   - `tokenId` is the LP NFT id from the `TokenCreated` event
-   - verify both against the chain before deploying
-5. **The irreversible step.** From the wallet that currently owns the
-   locker, call `transferOwnership(lockerHarvesterAddress)` on the locker.
-   Then call `ownsLocker()` on the harvester and confirm it returns true.
-   - Do this on testnet first with a mock locker.
-   - The Clanker locker uses single-step OpenZeppelin `Ownable` — there is
-     no acceptance handshake and **no undo**. If you transfer to a wrong or
-     non-functional address, fee collection is dead permanently.
-   - Verify the harvester's `destination` reads as the splitter *before*
-     transferring, not after.
-6. Run `harvest()` once and confirm WETH lands in the splitter.
-6a. Set up the Aerodrome pool and its harvester — see `AERODROME-SETUP.md`.
-    That is a separate one-time sequence ending in another irreversible
-    step (transferring the LP NFT into the harvester).
-7. Fill in `calculator/.env`, especially `EXCLUDED_ADDRESSES`.
-8. **Run the whole cycle on Base Sepolia first.** Fake token, fake SPCXc,
-   fake pool, mock locker. Run several rounds, including overlapping ones,
-   and deliberately include an address that reverts on receive to confirm
-   the batch survives it. Confirm the numbers.
-9. Only then repeat on mainnet, starting with a small amount of real SPCXc.
-10. Once the splitter has run correctly for a few cycles, call
-    `lockDestinationForever()` on the harvester. After that, no key
-    anywhere can redirect the fee stream.
-
-## Operating it
-
-Everything below can be a cron job except step 6's multisig call:
-
-```
-# 1a. harvest() on LockerHarvester          (permissionless, any wallet)
-# 1b. harvest() on AerodromeFeeHarvester     (permissionless, any wallet)
-# 2.  splitDickbutt() on FeeSplitter         (permissionless)
-# 3.  processWeth(minOut, deadline)          (keeper wallet)
-# 4.  cd calculator && WEIGHTING=linear npm run calculate
-# 5.  multisig: proposeRound(root, total)  -> note the roundId returned
-# 6.  after the timelock, anyone calls activateRound(roundId)
-# 7.  keeper sends each batch from the journal to distributeBatch(roundId, ...)
-# 8.  keeper calls closeRound(roundId) once delivered
+```mermaid
+flowchart TD
+    L[Clanker DICKBUTT/WETH locker] -->|40% of collected DICKBUTT and WETH| R[Token-specific fee router]
+    L -->|60% of both tokens| S[Clanker fee Safe]
+    S -->|Returned DICKBUTT via legacy module| H[LegacyFeeHarvester]
+    H --> R
+    R --> DS[Immutable DICKBUTT Split]
+    DS -->|10%| KC[KC Green]
+    DS -->|90%| B[Burn address]
+    R --> WS[Immutable WETH Split]
+    WS -->|10%| KC
+    WS -->|10%| CDB[CDB treasury]
+    WS -->|80%| X[SPCXc swap executor]
+    X -->|WETH → USDC → SPCXc| V[Rewards distributor]
+    A[0.3% DICKBUTT/SPCXc concentrated position] --> AH[AerodromeFeeHarvester]
+    AH -->|DICKBUTT fees| B
+    AH -->|SPCXc fees| V
+    V -->|Committed, verified batches| P[Eligible holders]
 ```
 
-Step 3 goes before step 4 on purpose: the gas slice comes off the top of the
-WETH, before the 10/10/80 split and the SPCXc swap.
+The Clanker locker deducts 60% of both token sides, but its **separate legacy fee module returns DICKBUTT to the creator**. With both paths operational, the pipeline can receive effectively all collected DICKBUTT and 40% of collected WETH. This corrects the earlier assessment that treated the locker deduction as the final creator entitlement. Upstream Safe/module controls and successful collection remain dependencies. [Legacy source, addresses and authority](docs/LEGACY-FEES.md).
 
-Rounds do not block each other. Step 5 can run for round 8 while round 7 is
-still mid-delivery, and the queue drains on its own if the keeper was down.
+Allocations apply to amounts reaching the pipeline. Ten percent of each of two different fee tokens is not a 20% share of their combined value. Splits retains tiny raw-unit balances and rounds recipient allocations down; dust stays at the Split and rolls into future distributions. Transferring DICKBUTT to the burn address does not call the token's supply-burn function. [Exact Splits behavior](docs/SPLITS-INTEGRATION.md).
 
-Steps 1, 2, 6 and 7 need a wallet with a little ETH for gas, nothing more.
-Step 1's wallet is not privileged at all; the keeper in steps 2/6 can only
-trigger a capped swap to a fixed destination, or pay amounts that match an
-already-committed root.
+The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs remain manual.
 
-Only step 4 needs a human, and only because someone should look at the
-numbers before a round goes out. If you later decide that check is not
-worth the friction, the multisig could be replaced by an automated
-proposer — but then nothing is reviewing the calculator's output before
-money moves, which is a real loss.
+## Components
 
-Separately and manually: bridge the CDB vault's share to mainnet and buy
-CryptoDickbutts off the floor.
+| Component | Responsibility |
+| --- | --- |
+| `src/LockerHarvester.sol` | Permissionless collection from the owned Clanker locker to a configured receiver; timelocked destination changes and optional permanent freeze. |
+| `src/LegacyFeeHarvester.sol` | Permissionless DICKBUTT recovery from both verified current/historical fee Safes to the fixed receiver. Requires a separate legacy creator-authority handoff. |
+| `src/SplitsFeeRouter.sol` | Creates two immutable upstream PushSplits through the official factory and forwards each token to its correct Split. No custom percentage-transfer implementation. |
+| `src/SpcxcSwapExecutor.sol` | Swaps the WETH allocation to SPCXc using a fixed two-hop route, capped size, deadline, owner floor and approved keeper. |
+| `src/AerodromeFeeHarvester.sol` | Holds the concentrated LP NFT; burns its DICKBUTT fees and forwards its SPCXc fees. |
+| `src/DickbuttRewardsDistributor.sol` | Reserves proposed/active obligations and pushes proof-verified rewards, allowing failed recipients to be retried. |
+| `calculator/` | Finalized time-weighted balances, eligibility, accrual, Merkle plans and immutable journal. |
+| `keeper/` and `script/run-keeper.mjs` | Verifies journal/configuration/commitments, handles proposals and timelocks, submits unpaid batches and closes completed rounds. |
+| `operations/` | Fee-cycle orchestration, price-floor refresh/monitor and read-only pool/configuration preflight. |
 
-## Things that will break it if you get them wrong
+`FeeSplitter.sol` is the earlier custom splitter, retained for regression tests. New deployments use `SplitsFeeRouter` plus `SpcxcSwapExecutor`. Foundry builds `src/`; old root-level Solidity copies are not the deployment source.
 
-- **Losing `calculator/state.json`.** It holds every wallet's DICKBUTT
-  balance as of the last processed block, and `lastProcessedBlock` itself.
-  Lose it and the next run either re-scans from deployment (slow but
-  recoverable) or, worse, starts from a wrong block and mis-weights a round.
-  The `rounds/` directory is the audit trail of what was actually paid.
-  Commit both to a private repo after every run.
-- **An incomplete `EXCLUDED_ADDRESSES`.** The pools hold enormous DICKBUTT
-  balances. Left in, they out-earn every real holder combined. The script
-  refuses to start on an empty list, but it cannot tell whether your list is
-  *complete* — that is on you.
-- **Submitting a root without reading the output.** The script prints the
-  distributable amount, the qualifying wallet count, and a hard refusal if
-  the tree would promise more than the vault holds. Read it every time.
+## Pool and aggregator intent
 
-## What is NOT built
+Use a **0.3% concentrated full-range** position, with around $30k initial TVL as the stated liquidity target. The intended alternative route is USDC → SPCXc → DICKBUTT. Aggregators choose based on executable price, depth, fees, gas and supported routes; pool creation cannot force their routing. Additional liquidity may improve competitiveness against the deeper WETH route.
 
-- The keeper bot itself: the script that reads `batches-N.json` and submits
-  each batch, waits for confirmation, retries failures, and calls
-  `closeRound()`. Straightforward ethers.js, but it does not exist yet.
-- Any monitoring or alerting (e.g. "a round has been active for 12 hours
-  and still has undelivered batches").
-- A public page showing what was distributed each round. Optional, but it is
-  the thing that makes the system visibly trustworthy.
-- Automated bridging / NFT purchasing — deliberately, see above.
+The selected factory maps tick spacing 200 to a 3000-unit base swap fee (0.3%). Its fee module can change the effective fee. Verify the pool's actual fee, factory generation and any unstaked fee rather than assuming spacing permanently fixes the rate. [Setup and inspection](AERODROME-SETUP.md).
+
+That rewards pool is **not** the swap route. Converting the WETH allocation uses the existing two-hop **WETH → USDC → SPCXc** path, because the only direct WETH/SPCXc pool is shallow and quotes worse at the same size. The executor encodes tick spacings rather than pool addresses, so `npm run preflight` confirms both hops still resolve to the intended pools and hold liquidity. [Route evidence and re-quoting](docs/REHEARSAL.md#swap-route).
+
+## Reward policy and authority
+
+The calculator defaults to a 6.9M DICKBUTT time-weighted minimum. `WEIGHTING` must explicitly choose `linear` or `sqrt`; rehearsal uses linear. Square-root weighting increases the aggregate reward weight of balances split among qualifying wallets. Pools, burn addresses, treasury and operational contracts need explicit exclusions. Small allocations accrue until they reach the payout threshold. [Calculator configuration and recovery](calculator/README.md).
+
+Harvesting, token routing and activation after the timelock are permissionless. **Swaps and payouts require an approved keeper; each payout root requires the owner.** Default round delay is six hours. The owner must also refresh the swap price floor, which expires within one day. The floor is an administrative limit, not a live oracle. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders.
+
+Gas is funded externally. No WETH gas deduction exists. Freezing fee destinations does not remove downstream proposer, price-floor or issuer dependencies.
+
+## Rehearse locally
+
+Prerequisites: Node 18+, `npm ci`, and Foundry binaries. `FORGE_BIN` and `ANVIL_BIN` override the default `~/.foundry/bin` paths.
+
+```sh
+npm ci
+npm test
+forge test
+BASE_RPC_URL=https://mainnet.base.org npm run rehearse
+```
+
+The runner starts its own loopback Anvil fork with chain ID 31337, builds/deploys the architecture, uses the **genuine Splits factory/implementation/Warehouse**, and mocks fee-source contracts and assets. It harvests all sources, routes fees, swaps, runs the real calculator, proposes a round, tests the timelock and a blocked recipient, retries, closes and reconciles. It saves addresses, transaction hashes, journal and results in a unique `.context/rehearsal-run-*` directory and stops its node afterward. No signing wallet connects to mainnet. [Scope, evidence and public-testnet preparation](docs/REHEARSAL.md).
+
+Actual Clanker, legacy module and native SPCXc/real-route checks are separate fork tests. Native SPCXc is a **Base B20 precompile**, so use Base's compatible Foundry for those tests; changing ordinary Foundry's EVM version does not add B20 support. [Base tooling](https://github.com/base/base-anvil/tree/base-anvil-fork).
+
+## Operate a rehearsal deployment
+
+Build artifacts first. Use a reviewed deployment manifest for fees and the exact calculator configuration JSON for the keeper. Commands are read-only unless `--execute` is supplied; transaction execution is restricted to local chain 31337 or Base Sepolia 84532.
+
+```sh
+npm run preflight -- --config config/base-mainnet.json
+npm run inspect:legacy
+npm run floor -- --config deployment.json --monitor
+npm run fees -- --config deployment.json
+npm run keeper -- --config calculator-config.json --journal ./data
+# Only on an explicitly configured rehearsal chain:
+npm run fees -- --config deployment.json --execute
+npm run keeper -- --config calculator-config.json --journal ./data --execute --propose
+# Rerun after the timelock to deliver/retry and close:
+npm run keeper -- --config calculator-config.json --journal ./data --execute
+```
+
+The swap price floor expires within one day. `npm run floor` refreshes it with an **ops key that is not a keeper**, on separate infrastructure, and its `--monitor` mode alerts before expiry without loading any key. [Price-floor bot](docs/PRICE-FLOOR.md).
+
+Set `RPC_URL`, `KEEPER_PRIVATE_KEY` and, when separate, `OWNER_PRIVATE_KEY` in the environment. Keep fee cycles and keeper runs sequential for a signer. The CLI enforces a shared process lock and checks pending transactions; unresolved transaction markers require receipt reconciliation. Use scheduler alerts for nonzero exit status, unpaid recipients and stale price floors. [Keeper behavior](docs/KEEPER.md).
+
+## Before production
+
+Complete recipient/multisig/keeper configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. A successful local rehearsal does not create a public-testnet deployment or approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).

@@ -1,13 +1,19 @@
 {
   "name": "dickbutt-rewards-calculator",
   "version": "2.0.0",
-  "description": "Computes TWAB-weighted, sqrt-curved DICKBUTT holder rewards and builds the Merkle tree the vault verifies against.",
+  "description": "DICKBUTT fee harvesting, Splits protocol routing, TWAB rewards and deployment rehearsal",
   "type": "module",
   "main": "calculate-rewards.js",
   "scripts": {
     "calculate": "node calculate-rewards.js",
     "rebuild-state": "node calculate-rewards.js rebuild-state",
-    "test": "node --test calculator/test/*.test.js test/golden.test.mjs"
+    "test": "node --test calculator/test/*.test.js test/golden.test.mjs keeper/test/*.test.js operations/test/*.test.js",
+    "rehearse": "node script/rehearse.mjs",
+    "keeper": "node script/run-keeper.mjs",
+    "fees": "node script/run-fees.mjs",
+    "floor": "node script/run-floor.mjs",
+    "preflight": "node script/preflight.mjs",
+    "inspect:legacy": "node script/inspect-legacy.mjs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.0.2",
