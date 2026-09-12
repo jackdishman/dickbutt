@@ -1,0 +1,21 @@
+{
+  "name": "dickbutt-rewards-calculator",
+  "version": "2.0.0",
+  "description": "Computes TWAB-weighted, sqrt-curved DICKBUTT holder rewards and builds the Merkle tree the vault verifies against.",
+  "type": "module",
+  "main": "calculate-rewards.js",
+  "scripts": {
+    "calculate": "node calculate-rewards.js",
+    "rebuild-state": "node calculate-rewards.js rebuild-state",
+    "test": "node --test calculator/test/*.test.js test/golden.test.mjs"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.0.2",
+    "@openzeppelin/merkle-tree": "1.0.7",
+    "dotenv": "16.4.5",
+    "ethers": "6.13.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

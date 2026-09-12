@@ -1,0 +1,12 @@
+node_modules/
+cache/
+out/
+artifacts/**/*.json
+!artifacts/base-inspection.json
+!artifacts/clanker-source.json
+.env
+.env.*
+state.json
+periods/
+.writer-lock/
+*.tmp

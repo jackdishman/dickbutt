@@ -1,0 +1,22 @@
+{
+  "chainId": 8453,
+  "dickbutt": "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+  "spcxc": "0xb2000000000000000000007b9fcbd005511aCBd5",
+  "weth": "0x4200000000000000000000000000000000000006",
+  "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "clankerLocker": "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
+  "clankerPositionManager": "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
+  "clankerTokenId": "1391176",
+  "clankerUnlockTime": "4132317178",
+  "aerodrome": {
+    "router": "0x698Cb2b6dd822994581fEa6eA4Fc755d1363A92F",
+    "factory": "0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef",
+    "usdcSpcxcPool": "0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E",
+    "usdcSpcxcTickSpacing": 10,
+    "wethUsdcPool": "0x4e392fBfE4D0557C82D2F97F02ec39daA31516dd",
+    "wethUsdcTickSpacing": 1,
+    "routeEvidence": "config/route-candidates.json",
+    "warning": "Re-quote at a finalized block and verify the router/factory generation before deployment."
+  },
+  "verifiedAt": "artifacts/base-inspection.json"
+}

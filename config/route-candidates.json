@@ -1,0 +1,374 @@
+{
+  "chainId": 8453,
+  "block": 51218846,
+  "blockHash": "0x1567cdb410c8ecbbe2ac685800978c9fff9689673a92d76c1ffef6736469037e",
+  "timestamp": 1789227039,
+  "blockPolicy": "latest discovery snapshot",
+  "sources": [
+    "https://github.com/aerodrome-finance/slipstream/blob/main/README.md",
+    "https://github.com/aerodrome-finance/slipstream/blob/main/contracts/periphery/interfaces/IQuoterV2.sol"
+  ],
+  "tokens": {
+    "WETH": "0x4200000000000000000000000000000000000006",
+    "USDC": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "SPCXc": "0xb2000000000000000000007b9fcbd005511acbd5"
+  },
+  "deployments": [
+    {
+      "generation": "initial",
+      "factory": "0x5e7bb104d84c7cb9b682aac2f3d509f5f406809a",
+      "router": "0xbe6d8f0d05cc4be24d5167a3ef062215be6d18a5",
+      "quoter": "0x254cf9e1e6e233aa1ac962cb9b05b2cfeaae15b0",
+      "tickSpacings": [
+        1,
+        50,
+        100,
+        200,
+        2000,
+        10
+      ],
+      "routerFactory": "0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A"
+    },
+    {
+      "generation": "gauge-caps",
+      "factory": "0xade65c38cd4849adba595a4323a8c7ddfe89716a",
+      "router": "0xcbbb8035cac7d4b3ca7abb74cf7bdf900215ce0d",
+      "quoter": "0x3d4c22254f86f64b7ec90ab8f7aec1fbfd271c6c",
+      "tickSpacings": [
+        1,
+        50,
+        100,
+        200,
+        2000,
+        10,
+        500
+      ],
+      "routerFactory": "0xaDe65c38CD4849aDBA595a4323a8C7DdfE89716a"
+    },
+    {
+      "generation": "gauges-v3",
+      "factory": "0xf8f2eb4940cfe7d13603dddd87f123820fc061ef",
+      "router": "0x698cb2b6dd822994581fea6ea4fc755d1363a92f",
+      "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+      "tickSpacings": [
+        1,
+        50,
+        100,
+        200,
+        2000,
+        500,
+        10
+      ],
+      "routerFactory": "0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef"
+    }
+  ],
+  "pools": [
+    {
+      "generation": "initial",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 1,
+      "address": "0xdbc6998296caA1652A810dc8D3BaF4A8294330f1",
+      "activeLiquidity": "1901457308424001",
+      "tokenBalances": {
+        "WETH": "51786960441856138230",
+        "USDC": "17898765724"
+      }
+    },
+    {
+      "generation": "initial",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 50,
+      "address": "0xAaD23a67F2AC693ABBe543489aeB3F24F561D517",
+      "activeLiquidity": "2204402641159537",
+      "tokenBalances": {
+        "WETH": "492066844866440030",
+        "USDC": "4233031176"
+      }
+    },
+    {
+      "generation": "initial",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 100,
+      "address": "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59",
+      "activeLiquidity": "20149011662941584595",
+      "tokenBalances": {
+        "WETH": "1641046294221700347099",
+        "USDC": "8070635258459"
+      }
+    },
+    {
+      "generation": "initial",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 200,
+      "address": "0x148BC43946a902258916e580B0e6D92Aaa74746F",
+      "activeLiquidity": "84146678310057",
+      "tokenBalances": {
+        "WETH": "79581515301491637",
+        "USDC": "484067718"
+      }
+    },
+    {
+      "generation": "initial",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 2000,
+      "address": "0x0652202C4b2D09CB93aEDeFAdc14B36869483a98",
+      "activeLiquidity": "650858412994109",
+      "tokenBalances": {
+        "WETH": "3004052398618877613",
+        "USDC": "4162316696"
+      }
+    },
+    {
+      "generation": "initial",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 10,
+      "address": "0xb150768CF55d1625E2337a08FBd1b0f02ff94bdB",
+      "activeLiquidity": "9372004880289",
+      "tokenBalances": {
+        "WETH": "295961610573006066",
+        "USDC": "366624091"
+      }
+    },
+    {
+      "generation": "gauge-caps",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 50,
+      "address": "0xc758d81B9b81A6FCDAd075bD471874A2c46B54e0",
+      "activeLiquidity": "375305639556608",
+      "tokenBalances": {
+        "WETH": "529524783596992732",
+        "USDC": "6053784172"
+      }
+    },
+    {
+      "generation": "gauge-caps",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 500,
+      "address": "0x56AeaF4af2DF4bdFD9D865830Fefdd278b25E7Ef",
+      "activeLiquidity": "80497689945990967",
+      "tokenBalances": {
+        "WETH": "56996194570719911899",
+        "USDC": "114826472393"
+      }
+    },
+    {
+      "generation": "gauges-v3",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 1,
+      "address": "0x4e392fBfE4D0557C82D2F97F02ec39daA31516dd",
+      "activeLiquidity": "53286618252178704",
+      "tokenBalances": {
+        "WETH": "12543131892970520948",
+        "USDC": "114760694973"
+      }
+    },
+    {
+      "generation": "gauges-v3",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 50,
+      "address": "0x3FE04A59Ebd38cF06080a6F60a98D124eb59392A",
+      "activeLiquidity": "9492005090339102266",
+      "tokenBalances": {
+        "WETH": "1051084000250570444289",
+        "USDC": "4769542701561"
+      }
+    },
+    {
+      "generation": "gauges-v3",
+      "pair": [
+        "WETH",
+        "USDC"
+      ],
+      "tickSpacing": 10,
+      "address": "0x493E74Eda2720e127BAcCC1A19B2D567Bc14aB43",
+      "activeLiquidity": "868630686346763",
+      "tokenBalances": {
+        "WETH": "443602783361995064",
+        "USDC": "1124939054"
+      }
+    },
+    {
+      "generation": "gauges-v3",
+      "pair": [
+        "USDC",
+        "SPCXc"
+      ],
+      "tickSpacing": 10,
+      "address": "0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E",
+      "activeLiquidity": "35851610303871",
+      "tokenBalances": {
+        "USDC": "442193286329",
+        "SPCXc": "271962137050"
+      }
+    },
+    {
+      "generation": "gauges-v3",
+      "pair": [
+        "WETH",
+        "SPCXc"
+      ],
+      "tickSpacing": 200,
+      "address": "0xb0ffB2A01AbbDD54c0b227543260aa65e2b84909",
+      "activeLiquidity": "329469355312691",
+      "tokenBalances": {
+        "WETH": "159267430308729035",
+        "SPCXc": "287097142"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "generation": "gauges-v3",
+      "router": "0x698cb2b6dd822994581fea6ea4fc755d1363a92f",
+      "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+      "pools": [
+        "0x4e392fBfE4D0557C82D2F97F02ec39daA31516dd",
+        "0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E"
+      ],
+      "spacings": [
+        1,
+        10
+      ],
+      "path": "0x4200000000000000000000000000000000000006000001833589fcd6edb6e08f4c7c32d4f71b54bda0291300000ab2000000000000000000007b9fcbd005511acbd5",
+      "quotes": [
+        {
+          "wethIn": "0.001",
+          "spcxcRawOut": "1689695",
+          "estimatedSwapGas": "393455"
+        },
+        {
+          "wethIn": "0.01",
+          "spcxcRawOut": "16896809",
+          "estimatedSwapGas": "438799"
+        },
+        {
+          "wethIn": "0.1",
+          "spcxcRawOut": "168953543",
+          "estimatedSwapGas": "438772"
+        }
+      ]
+    },
+    {
+      "generation": "gauges-v3",
+      "router": "0x698cb2b6dd822994581fea6ea4fc755d1363a92f",
+      "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+      "pools": [
+        "0x3FE04A59Ebd38cF06080a6F60a98D124eb59392A",
+        "0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E"
+      ],
+      "spacings": [
+        50,
+        10
+      ],
+      "path": "0x4200000000000000000000000000000000000006000032833589fcd6edb6e08f4c7c32d4f71b54bda0291300000ab2000000000000000000007b9fcbd005511acbd5",
+      "quotes": [
+        {
+          "wethIn": "0.001",
+          "spcxcRawOut": "1689611",
+          "estimatedSwapGas": "382762"
+        },
+        {
+          "wethIn": "0.01",
+          "spcxcRawOut": "16896103",
+          "estimatedSwapGas": "374262"
+        },
+        {
+          "wethIn": "0.1",
+          "spcxcRawOut": "168960082",
+          "estimatedSwapGas": "374231"
+        }
+      ]
+    },
+    {
+      "generation": "gauges-v3",
+      "router": "0x698cb2b6dd822994581fea6ea4fc755d1363a92f",
+      "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+      "pools": [
+        "0x493E74Eda2720e127BAcCC1A19B2D567Bc14aB43",
+        "0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E"
+      ],
+      "spacings": [
+        10,
+        10
+      ],
+      "path": "0x420000000000000000000000000000000000000600000a833589fcd6edb6e08f4c7c32d4f71b54bda0291300000ab2000000000000000000007b9fcbd005511acbd5",
+      "quotes": [
+        {
+          "wethIn": "0.001",
+          "spcxcRawOut": "1689036",
+          "estimatedSwapGas": "411302"
+        },
+        {
+          "wethIn": "0.01",
+          "spcxcRawOut": "16881634",
+          "estimatedSwapGas": "454028"
+        },
+        {
+          "wethIn": "0.1",
+          "spcxcRawOut": "168001424",
+          "estimatedSwapGas": "511620"
+        }
+      ]
+    },
+    {
+      "generation": "gauges-v3",
+      "router": "0x698cb2b6dd822994581fea6ea4fc755d1363a92f",
+      "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+      "pools": [
+        "0xb0ffB2A01AbbDD54c0b227543260aa65e2b84909"
+      ],
+      "spacings": [
+        200
+      ],
+      "path": "0x42000000000000000000000000000000000000060000c8b2000000000000000000007b9fcbd005511acbd5",
+      "quotes": [
+        {
+          "wethIn": "0.001",
+          "spcxcRawOut": "1685898",
+          "estimatedSwapGas": "132345"
+        },
+        {
+          "wethIn": "0.01",
+          "spcxcRawOut": "16840123",
+          "estimatedSwapGas": "134869"
+        },
+        {
+          "wethIn": "0.1",
+          "spcxcRawOut": "166538320",
+          "estimatedSwapGas": "123917"
+        }
+      ]
+    }
+  ],
+  "limitations": "Snapshot quotes only; no transaction broadcasts. Token balances are not concentrated-liquidity reserves or executable depth. Zero-current-liquidity pools excluded from route quoting. Only same-factory routes supported by this splitter. Re-run at finalized block and fork-test before deployment."
+}
