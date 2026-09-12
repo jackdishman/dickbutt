@@ -12,6 +12,7 @@
     "keeper": "node script/run-keeper.mjs",
     "fees": "node script/run-fees.mjs",
     "floor": "node script/run-floor.mjs",
+    "deploy:sepolia": "node script/deploy-sepolia.mjs",
     "preflight": "node script/preflight.mjs",
     "inspect:legacy": "node script/inspect-legacy.mjs"
   },

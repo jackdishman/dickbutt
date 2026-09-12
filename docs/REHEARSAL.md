@@ -48,7 +48,7 @@ These are distinct and must not be merged when reporting status. Results below a
 
 | Category | Command | Result |
 | --- | --- | --- |
-| Deterministic JS units | `npm test` | 65 passed, 0 failed |
+| Deterministic JS units | `npm test` | 72 passed, 0 failed |
 | Deterministic Solidity units | `forge test` | 85 passed, 0 failed, 4 fork suites skipped |
 | Genuine protocol/state forks | `BASE_RPC_URL=… forge test` | 12 passed, 0 failed; native-only tests skipped |
 | Native B20 + real route | Base Foundry, see below | 13 passed, 0 failed, 1 skipped |
@@ -91,7 +91,7 @@ This swap route is separate from the **rewards pool** — the 0.3% full-range DI
 
 The operating CLIs permit transaction execution only on chain **31337** or Base Sepolia **84532**; mainnet writes are rejected. Base Sepolia has no DICKBUTT, SPCXc, Clanker locker or legacy module, so a testnet rehearsal needs stand-in tokens and sources and proves orchestration only — the same limit the local run already has, at higher cost. Run it when you want a durable multi-day record with real block times and a real scheduler, not to add protocol evidence.
 
-Deploy from reviewed manifests, then:
+`npm run deploy:sepolia` handles the deployment and emits both manifests; see [docs/SEPOLIA.md](SEPOLIA.md). Splits V2.2 is live on Base Sepolia at the mainnet addresses, so the fee fan-out is the genuine protocol there too. Then:
 
 ```sh
 npm run fees -- --config deployment.json                     # read-only plan
