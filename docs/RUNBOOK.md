@@ -125,6 +125,16 @@ A crashed process left its lock. Verify the recorded PID and host in `owner.json
 
 Theft of holder rewards requires the proposer key **and** the keeper key **and** the calculator journal. No single key loses funds.
 
+## Timing you cannot tune away
+
+`finalityTag: finalized` means the calculator only ever sees state that Base has finalized. On Base Sepolia that measured **~22 minutes behind head**, and mainnet is comparable. Consequences worth knowing before someone reports a bug:
+
+- A fee cycle does not show up in a reward plan until finality passes it. A calculator run right after a harvest legitimately reports `No new finalized period.`
+- A freshly funded holder needs a full period *after* finality catches up before their time-weighted balance qualifies. `roundId: null` on a first run is normal.
+- Total latency from fee collection to payout is finality lag, plus the calculator period, plus the 24-hour timelock. Budget a day, not an hour.
+
+This is deliberate. An unfinalized snapshot could be reorged out from under a committed Merkle root, and the root is what the contract pays against.
+
 ## Routine checks
 
 - `npm run monitor -- --config deployment.json --journal ./data` on the monitor host; page on exit 2

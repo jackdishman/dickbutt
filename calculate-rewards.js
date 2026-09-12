@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {ethers} from 'ethers';import {runCalculator} from './calculator/engine.js';import {Journal,stringify} from './calculator/journal.js';import {normalize} from './calculator/core.js';import {ERC20_ABI,DISTRIBUTOR_ABI} from './calculator/chain.js';
+import {ethers} from 'ethers';import {runCalculator} from './calculator/engine.js';import {Journal,stringify} from './calculator/journal.js';import {normalize} from './calculator/core.js';import {ERC20_ABI,DISTRIBUTOR_ABI} from './calculator/chain.js';import {closeProvider} from './operations/provider.js';
 function integer(value,name,min=1){const n=Number(value);if(!Number.isSafeInteger(n)||n<min)throw Error(`invalid ${name}`);return n;}
 export async function main(){
  const dir=path.resolve(process.env.CALCULATOR_DATA_DIR||'.');
@@ -32,6 +32,6 @@ export async function main(){
  const record=await runCalculator({dir,provider,token:new ethers.Contract(config.token,ERC20_ABI,provider),distributor:new ethers.Contract(config.distributor,DISTRIBUTOR_ABI,provider),config});
  console.log(record.unchanged?'No new finalized period.':stringify({block:record.block,curve:config.curve,roundId:record.roundId,root:record.root,total:record.plan?.total??'0',batches:record.plan?.batches.length??0,journal:path.join(dir,'periods')}));
  console.log('Nothing submitted on-chain. Review the committed period plan before proposing.');
- }finally{provider.destroy();}
+ }finally{closeProvider(provider);}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(err=>{console.error(`FAILED: ${err.message}`);process.exitCode=1;});

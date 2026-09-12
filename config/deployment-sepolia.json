@@ -1,0 +1,49 @@
+{
+  "chainId": 84532,
+  "network": "base-sepolia",
+  "deployedAtBlock": 46738942,
+  "tokenDeployBlock": 46738878,
+  "quoter": "0xE8fdA586829CeaDdCfd0f51f2cB730cC9D81bF9a",
+  "contracts": {
+    "weth": "0xD3FDa1D625cd541a2F38c4f3C541509362203643",
+    "usdc": "0x3bE7C3663D97b8da2691bdD7D189Dcc65eeC66A8",
+    "dickbutt": "0xA91bD570403E4C44c4234139b315B18Fad03193D",
+    "spcxc": "0xDd3D55B5D1B27Ed250e0EB23C66cE03F56a2D909",
+    "distributor": "0xb341eaFA036738ed0d4763019C7539E92741A8CA",
+    "executor": "0x6F3e354C4bF5C9AE23994d923F3441ba2c347968",
+    "feeRouter": "0x7faB864aCb452A93a3857c743241C7a99d6b8dfD",
+    "clanker": "0x43FDa3bABA449a51041D2aC83823a4c64aea3337",
+    "aero": "0x96D40C4B971606298F9345C5F82D844f27297bba",
+    "legacy": "0x2074992bD1C9c45D30e056eF53C710B1745D67D3"
+  },
+  "splits": {
+    "dickSplit": "0x23AB25F8d56262eAb17caA88e2f1e11d7A99eaeC",
+    "wethSplit": "0x783f6f84CB489a243bAa9C2Ea3F2B12c534be64d"
+  },
+  "sources": {
+    "locker": "0x695E4A37538142DFF1bcE976a866aaa970Bb12bF",
+    "positionManager": "0x0c9bb00e75fa993A7DA92B4c3cba31B2752C58b2",
+    "legacySafes": [
+      "0x20C4306a27C7c362214fDAFE2D1438200A2ca4eB",
+      "0x3F4c4aa9B1B418ffD4E2a08b9700C3C9986Dd156"
+    ]
+  },
+  "roles": {
+    "owner": "0x1d179bEed174E5Eb0Fd65816797245F385C2c1F6",
+    "guardian": "0x1d179bEed174E5Eb0Fd65816797245F385C2c1F6",
+    "proposer": "0x3b7Cd9bAf012b53ecC5b35dBCD2a8ef1D7c355A4",
+    "keeper": "0xf993f625375a2e1cF9bEedc79CeBfE766A0eb6f3",
+    "kcGreen": "0x733E3a377416Bb418E6cad5f850D9F4714dB4A22",
+    "cdbVault": "0xec5BbF9EAfB88cb1EA611eBcce72D199cbfb1871",
+    "burnAddress": "0x000000000000000000000000000000000000dEaD"
+  },
+  "notes": [
+    "LIVE Base Sepolia deployment, recorded for reference. Throwaway keys; no value at stake.",
+    "Splits factory, implementation and Warehouse are the GENUINE protocol contracts.",
+    "Swap router, quoter, tokens, Clanker locker, Aerodrome manager and legacy module are stand-ins.",
+    "Tokens are open faucets: anyone can mint, so balances prove nothing about the pipeline economics.",
+    "roundDelay was lowered from 86400 to 3600 for this run so a round completes in observable time.",
+    "kcGreen and cdbVault here are throwaway testnet addresses, NOT the real mainnet recipients.",
+    "Ownership remains with the deploying key; the multisig handoff is a separate step."
+  ]
+}

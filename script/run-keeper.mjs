@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { runKeeper, KEEPER_ABI } from '../keeper/engine.js';
+import { closeProvider } from '../operations/provider.js';
 import { stringify } from '../calculator/journal.js';
 
 export function parseKeeperArgs(args) {
@@ -75,7 +76,7 @@ export async function main(args=process.argv.slice(2),env=process.env) {
   console.log(stringify(result));
   if(result.rounds.some(round=>['partial','closed-unpaid','proposal-rate-limited'].includes(round.status)))process.exitCode=2;
   return result;
- } finally { provider.destroy(); }
+ } finally { closeProvider(provider); }
 }
 
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {

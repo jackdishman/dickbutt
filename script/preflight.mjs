@@ -3,6 +3,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import {Contract,JsonRpcProvider,ZeroAddress} from 'ethers';
 import {validatePoolFacts,validateDeployment,validateSwapRoute} from '../operations/preflight.js';
+import { closeProvider } from '../operations/provider.js';
 const args=process.argv.slice(2),configPath=args.includes('--config')?args[args.indexOf('--config')+1]:'config/base-mainnet.json';
 const config=JSON.parse(fs.readFileSync(configPath));
 const provider=new JsonRpcProvider(process.env.BASE_RPC_URL||'https://mainnet.base.org',undefined,{batchMaxCount:1,cacheTimeout:-1});
@@ -44,4 +45,4 @@ try {
   if(end?.hash!==block.hash) throw Error('Snapshot hash changed');
   console.log(JSON.stringify(output,(_,v)=>typeof v==='bigint'?v.toString():v,2));
   if(args.includes('--strict')&&errors.length) process.exitCode=1;
-} catch(e) {console.error(`Preflight failed: ${e.message}`);process.exitCode=1;} finally {provider.destroy();}
+} catch(e) {console.error(`Preflight failed: ${e.message}`);process.exitCode=1;} finally {closeProvider(provider);}
