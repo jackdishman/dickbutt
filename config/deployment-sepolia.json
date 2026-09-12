@@ -1,49 +1,51 @@
 {
   "chainId": 84532,
   "network": "base-sepolia",
-  "deployedAtBlock": 46738942,
-  "tokenDeployBlock": 46738878,
-  "quoter": "0xE8fdA586829CeaDdCfd0f51f2cB730cC9D81bF9a",
+  "deployedAtBlock": 46743220,
+  "tokenDeployBlock": 46743148,
+  "quoter": "0x2754E536A7096DFa5099252aCCe70ea95E5DC200",
   "contracts": {
-    "weth": "0xD3FDa1D625cd541a2F38c4f3C541509362203643",
-    "usdc": "0x3bE7C3663D97b8da2691bdD7D189Dcc65eeC66A8",
-    "dickbutt": "0xA91bD570403E4C44c4234139b315B18Fad03193D",
-    "spcxc": "0xDd3D55B5D1B27Ed250e0EB23C66cE03F56a2D909",
-    "distributor": "0xb341eaFA036738ed0d4763019C7539E92741A8CA",
-    "executor": "0x6F3e354C4bF5C9AE23994d923F3441ba2c347968",
-    "feeRouter": "0x7faB864aCb452A93a3857c743241C7a99d6b8dfD",
-    "clanker": "0x43FDa3bABA449a51041D2aC83823a4c64aea3337",
-    "aero": "0x96D40C4B971606298F9345C5F82D844f27297bba",
-    "legacy": "0x2074992bD1C9c45D30e056eF53C710B1745D67D3"
+    "weth": "0x3E6850b2A0a757b73BEc8f2E5b2BF9c4c0741287",
+    "usdc": "0xd07dfe2d98cf2385116FA11055d1b60F13C2E6B5",
+    "dickbutt": "0x212A5D974C5e492ffeF293337f47FC6E657Ce700",
+    "spcxc": "0x3BF34aa823B00B56c6c3c2EB39D46b6D7d5D07a4",
+    "distributor": "0x5E81E5B19d20E4a543393c0DF166E5ADB19e6668",
+    "executor": "0x1B8EFfd2D2C1D996e85834435F89BEfE195e9d4c",
+    "feeRouter": "0x482713437b4973863bAcC66Af4D980F22315Cb3a",
+    "clanker": "0xB664A46598cf6FF32aB2A1066E63B742aD43ebA5",
+    "aero": "0xf24df3BA0185184eeA30a40e0A1CDc2A9e5ccB9f",
+    "legacy": "0x9A2680E05A93ac5fE30226E987aFcb8afF73E1c7"
   },
   "splits": {
-    "dickSplit": "0x23AB25F8d56262eAb17caA88e2f1e11d7A99eaeC",
-    "wethSplit": "0x783f6f84CB489a243bAa9C2Ea3F2B12c534be64d"
+    "dickSplit": "0xC4Cd56f85a003C0a66F065245FF1c4e869B351fB",
+    "wethSplit": "0xd2f1AfB84F1144C719879ee2fac9E8C8f342135A"
   },
   "sources": {
-    "locker": "0x695E4A37538142DFF1bcE976a866aaa970Bb12bF",
-    "positionManager": "0x0c9bb00e75fa993A7DA92B4c3cba31B2752C58b2",
+    "locker": "0x6bCA269B283781C415AB82844023B6997BAd045F",
+    "positionManager": "0x4319fAe9a0542d50Df37Ebaf1434a22a24499f54",
     "legacySafes": [
-      "0x20C4306a27C7c362214fDAFE2D1438200A2ca4eB",
-      "0x3F4c4aa9B1B418ffD4E2a08b9700C3C9986Dd156"
+      "0xEC31D802Ac9aD41Bd09879B5Dcabc33d9e5aDBdE",
+      "0x13a0399Ec75cB4Ea1Bf2eF46fA3b725f26a8E141"
     ]
   },
   "roles": {
     "owner": "0x1d179bEed174E5Eb0Fd65816797245F385C2c1F6",
     "guardian": "0x1d179bEed174E5Eb0Fd65816797245F385C2c1F6",
-    "proposer": "0x3b7Cd9bAf012b53ecC5b35dBCD2a8ef1D7c355A4",
-    "keeper": "0xf993f625375a2e1cF9bEedc79CeBfE766A0eb6f3",
+    "proposer": "0xf0745835F26DdddB598BF071E7D7ec84a92699F8",
+    "keeper": "0x8731B51fC0e1e75437Cd41512aF5A143AeFb6494",
+    "ops": "0xf99148D7523fd0754acB6fa262C6c5953B02FC49",
     "kcGreen": "0x733E3a377416Bb418E6cad5f850D9F4714dB4A22",
     "cdbVault": "0xec5BbF9EAfB88cb1EA611eBcce72D199cbfb1871",
     "burnAddress": "0x000000000000000000000000000000000000dEaD"
   },
   "notes": [
-    "LIVE Base Sepolia deployment, recorded for reference. Throwaway keys; no value at stake.",
+    "LIVE Base Sepolia deployment from block 46743220, recorded for reference. Throwaway keys; no value at stake.",
+    "Second deployment: carries the executor floor-setter role and floorLowerBound, the guardian-follows-owner fix and the fee cycle's handoff checks. The first deployment (block 46738942) is superseded; its manifest is in git history.",
     "Splits factory, implementation and Warehouse are the GENUINE protocol contracts.",
     "Swap router, quoter, tokens, Clanker locker, Aerodrome manager and legacy module are stand-ins.",
     "Tokens are open faucets: anyone can mint, so balances prove nothing about the pipeline economics.",
-    "roundDelay was lowered from 86400 to 3600 for this run so a round completes in observable time.",
+    "roundDelay was lowered from 86400 to 3600 for this run so rounds complete in observable time.",
     "kcGreen and cdbVault here are throwaway testnet addresses, NOT the real mainnet recipients.",
-    "Ownership remains with the deploying key; the multisig handoff is a separate step."
+    "Ownership remains with the deploying key; the multisig handoff is a separate step. The guardian would follow it."
   ]
 }

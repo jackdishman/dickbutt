@@ -108,20 +108,28 @@ A full run against a local fork of Base Sepolia (chain ID 84532, genuine Splits 
 
 ## Live deployment
 
-The scripts have now been run against **public Base Sepolia**. Addresses are recorded in [config/deployment-sepolia.json](../config/deployment-sepolia.json); throwaway keys, nothing of value at stake.
+The scripts have been run twice against **public Base Sepolia**. The current deployment, from block 46743220, carries the executor's floor-setter role and `floorLowerBound`, the guardian-follows-owner fix and the fee cycle's handoff checks. Addresses are in [config/deployment-sepolia.json](../config/deployment-sepolia.json); throwaway keys, nothing of value at stake.
 
 | | |
 | --- | --- |
 | Deployer / owner / guardian | `0x1d179bEed174E5Eb0Fd65816797245F385C2c1F6` |
-| SplitsFeeRouter | `0x7faB864aCb452A93a3857c743241C7a99d6b8dfD` |
-| DICKBUTT Split (genuine PushSplit) | `0x23AB25F8d56262eAb17caA88e2f1e11d7A99eaeC` |
-| WETH Split (genuine PushSplit) | `0x783f6f84CB489a243bAa9C2Ea3F2B12c534be64d` |
-| SpcxcSwapExecutor | `0x6F3e354C4bF5C9AE23994d923F3441ba2c347968` |
+| SplitsFeeRouter | `0x482713437b4973863bAcC66Af4D980F22315Cb3a` |
+| DICKBUTT Split (genuine PushSplit) | `0xC4Cd56f85a003C0a66F065245FF1c4e869B351fB` |
+| WETH Split (genuine PushSplit) | `0xd2f1AfB84F1144C719879ee2fac9E8C8f342135A` |
+| SpcxcSwapExecutor | `0x1B8EFfd2D2C1D996e85834435F89BEfE195e9d4c` |
+| DickbuttRewardsDistributor | `0x5E81E5B19d20E4a543393c0DF166E5ADB19e6668` |
 
-Both Splits report `FACTORY() = 0x8E8eB0cC…` and `owner() = 0x0`, so they are real immutable clones of the genuine protocol, not stand-ins. The whole deployment cost about **0.00008 ETH**.
+Both Splits report `FACTORY() = 0x8E8eB0cC…` and `owner() = 0x0`: real immutable clones of the genuine protocol. `floorLowerBound` is `1e8`, half the stand-in swap rate, and the ops key is the approved floor setter.
 
-`roundDelay` was lowered from 24h to the contract minimum of 1h for this run so a round completes in observable time. Restore it before drawing any conclusion about mainnet timelock behaviour.
+Verified live on this deployment, with real transactions wherever a write was involved:
 
-The earlier fork run proved the scripts and wiring. This one is a real public-testnet deployment receipt. [Evidence boundaries](REHEARSAL.md#evidence-categories), [roles and bounds](GOVERNANCE.md).
+- **Roles.** Every administrative call from the floor-setter key reverts (`setKeeper`, `setSwapLimits`, `setFloorLowerBound`). The owner cannot approve the keeper as a setter, nor the setter as a keeper. A setter floor below the bound reverts; the keeper and the proposer cannot set the floor at all. The setter can set the floor at the bound and the owner below it.
+- **Floor bot.** `npm run floor --execute` refused the keeper key, refused the proposer key as neither a floor setter nor the owner, and refreshed with the ops key. `--monitor` went from `expired`, exit 2, to `fresh`, exit 0.
+- **Fee cycle.** From the keeper key: locker, Aerodrome position, both legacy Safes, both Splits and the swap, `awaitingHandoff: []`. KC Green 210 DICKBUTT and 0.001 WETH, burn 1,895 DICKBUTT, CDB vault 0.001 WETH, rewards distributor 1.016 SPCXc. Identical to the first deployment's cycle.
+- **Monitor.** `npm run monitor` reports `ok`, including the new `floor-lower-bound` check.
 
-**This recorded deployment predates the executor's floor-setter role**, the guardian-follows-owner fix and the fee cycle's handoff checks. Its executor has no `floorLowerBound`, which `npm run monitor` reports as `failed`, and its price floor can only be refreshed by the deployer key. Redeploy with the current contracts (`--force`, after reading the old manifest) before using it as evidence for anything but the Splits integration.
+`roundDelay` was lowered from 24h to the contract minimum of 1h for this run so rounds complete in observable time. Restore it before drawing any conclusion about mainnet timelock behaviour.
+
+The first deployment, from block 46738942, completed its own round 1 in full: 2.03 SPCXc paid to two holders exactly as planned, reserve back to zero. It is superseded. Its executor has no `floorLowerBound`, which `npm run monitor` reports as `failed`, the intended signal for a stale deployment.
+
+[Evidence boundaries](REHEARSAL.md#evidence-categories), [roles and bounds](GOVERNANCE.md).

@@ -34,7 +34,7 @@ export function validatePath(value, label) {
 }
 
 const manifest = { name: 'config', label: 'Deployment manifest', type: 'path', default: 'config/deployment-sepolia.json' };
-const calculator = { name: 'calculator', label: 'Calculator config', type: 'path', default: '.context/calculator-config.json' };
+const calculator = { name: 'calculator', label: 'Calculator config', type: 'path', default: 'config/deployment-sepolia-calculator.json' };
 const journal = { name: 'journal', label: 'Journal directory', type: 'path', default: '.context/journal' };
 
 export const COMMANDS = [
