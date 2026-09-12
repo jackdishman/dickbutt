@@ -65,7 +65,7 @@ The local rehearsal runs owner, keeper, proposer and guardian as four distinct s
 2. `setProposer(bot, true)` and `setKeeper(bot, true)` with **different** addresses.
 3. Confirm or change `setRoundLimits(maxRoundBps, minRoundInterval)` against the payout schedule above. Defaults are 5000 and 12 hours.
 4. Fund every bot key with ETH on Base. An unfunded key fails exactly like a compromised one is stopped — silently, until something alerts.
-5. Alert on keeper exit 2 (`partial`, `closed-unpaid`, `proposal-rate-limited`), on floor-bot exit 2, and on any `RoundProposed` the calculator journal did not produce.
+5. Alert on keeper exit 2 (`partial`, `closed-unpaid`, `proposal-rate-limited`), on floor-bot exit 2, and on any `RoundProposed` the calculator journal did not produce. `npm run monitor` checks the last of these directly; see the [runbook](RUNBOOK.md).
 6. Rehearse the guardian path — pause, cancel, unpause — before relying on it.
 
 ## Why Splits handles the fan-out but not the swap

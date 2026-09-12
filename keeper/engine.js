@@ -59,8 +59,11 @@ async function inspect(distributor,plan) {
 }
 
 /** Consume authentic calculator Journal records; all transaction dependencies are injected. */
-export async function runKeeper({dir,provider,distributor,config,execute=false,propose=false,signerAddress,
+export async function runKeeper({dir,provider,distributor,config,execute=false,propose=false,proposeOnly=false,signerAddress,
  ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,onEvent=()=>{}}) {
+ // proposeOnly lets the proposer bot run without the keeper key on its host. It commits roots and
+ // stops; activation is permissionless and payment belongs to the keeper.
+ if (proposeOnly&&!propose) throw Error('proposeOnly requires propose');
  if (!Number.isSafeInteger(confirmations)||confirmations<1) throw Error('confirmations must be a positive integer');
  const chainId=(await provider.getNetwork()).chainId.toString();
  if (execute&&!['31337','84532'].includes(chainId)) throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');
@@ -145,11 +148,13 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
    if (state.waiting) {
     const block=await provider.getBlock('latest');
     report.readyAt=state.readyAt.toString();
+    if (proposeOnly) {report.status=BigInt(block.timestamp)<state.readyAt?'timelocked':'activation-ready';continue;}
     if (BigInt(block.timestamp)<state.readyAt) {report.status='timelocked';continue;}
     if (!execute) {report.status='activation-ready';continue;}
     await send('activate',plan.roundId,()=>distributor.activateRound(plan.roundId));
     state=await inspect(distributor,plan);
    }
+   if (proposeOnly) {report.status=state.closed?'closed':state.active?'distribution-ready':'proposal-required';continue;}
    report.unpaid=await unpaid(plan);
    if (state.closed) {report.status=report.unpaid.length?'closed-unpaid':'closed';continue;}
    if (!state.active) throw Error('round failed to activate');
