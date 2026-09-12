@@ -36,11 +36,17 @@ The fee sources, assets and swap router are mocks with fixed amounts; the Splits
 
 **5. The real calculator produces a committed plan.** Two holders qualify against the 6.9M time-weighted threshold (7M and 14M DICKBUTT) under `linear` weighting, with every contract, treasury and burn address excluded. Shares split exactly 1:2 by time-weighted balance, and unallocated raw units are booked as dust for a later period. Integer flooring, not loss.
 
+**5a. A bootstrap period first.** The calculator's first run uses `--bootstrap`: balances are committed with a zero pot, no plan is produced, and the 1,615 is untouched. The first real period measures from that boundary. [Why](GOVERNANCE.md#round-1-measures-from-a-bootstrap-period).
+
 **5b. The share cap bites.** The distributor admits at most 50% of the unreserved balance per round, so the plan commits 807 of the 1,615 and the rest rolls into the next period. The guardian then pauses proposals, the keeper refuses to propose while paused, and the guardian unpauses — all without the owner key. [Roles and bounds](GOVERNANCE.md).
 
 **6. The real keeper delivers it.** With `--propose` the owner commits the root; the six-hour timelock is reported as `timelocked`; after the delay the round activates and pays in `batchSize: 1` batches. One recipient is deliberately blocked mid-round, producing a `payment-failed` event and `partial` status with one unpaid account. The block is lifted, a rerun pays only that account, and the round closes at `closed` — the already-paid recipient's balance is asserted unchanged.
 
-**7. Repetition is safe.** A fourth keeper invocation submits **zero transactions**. `totalReserved` returns to 0 and a second calculator pass marks the plan `settled`.
+**7. Repetition is safe.** A fourth keeper invocation submits **zero transactions**. `totalReserved` returns to 0 and a second calculator pass marks the plan `settled` and plans the remaining half as round 2.
+
+**8. A foreign root at our round id.** The owner proposes a root the journal never produced at round 2, standing in for a stolen proposer key. The keeper reports round 2 as `foreign-commitment`, signs nothing, and still reports round 1 as `closed`; the calculator refuses to run while the foreign round is pending. The guardian cancels it, the keeper reports `superseded`, and the next calculator run recredits the abandoned plan exactly once and re-plans it as round 3, which then proposes, times out and pays both holders their planned amounts. The cap is lifted for that one recovery round, as the runbook prescribes.
+
+**Roles.** Signer 0 owns everything; signer 5 is the keeper; signer 6 the proposer; signer 7 the guardian; signer 8 the floor setter, which the contract holds above the owner's bound and refuses as a keeper.
 
 ## Evidence categories
 
@@ -48,11 +54,11 @@ These are distinct and must not be merged when reporting status. Results below a
 
 | Category | Command | Result |
 | --- | --- | --- |
-| Deterministic JS units | `npm test` | 86 passed, 0 failed |
-| Deterministic Solidity units | `forge test` | 92 passed, 0 failed, 4 fork suites skipped |
+| Deterministic JS units | `npm test` | 149 passed, 0 failed |
+| Deterministic Solidity units | `forge test` | 94 passed, 0 failed, 4 fork suites skipped |
 | Genuine protocol/state forks | `BASE_RPC_URL=… forge test` | 12 passed, 0 failed; native-only tests skipped |
 | Native B20 + real route | Base Foundry, see below | 13 passed, 0 failed, 1 skipped |
-| Full local rehearsal | `npm run rehearse` | success; five checks recorded |
+| Full local rehearsal | `npm run rehearse` | success; seven checks recorded |
 | Read-only production preflight | `npm run preflight -- --config config/base-mainnet.json` | 2 configuration errors, all external prerequisites |
 
 The fork suites cover the real Clanker locker and its 60% deduction, the real legacy module against both actual Safes, and the real Splits factory/implementation/Warehouse including dust, Warehouse-only balances, recipient-failure rollback and fuzzed conservation.
@@ -107,11 +113,11 @@ Set `RPC_URL`, `KEEPER_PRIVATE_KEY`, and `OWNER_PRIVATE_KEY` when the proposer i
 
 Preflight reports these as errors until they are resolved. Every one needs a decision or an asset from the owner — none can be closed by code in this repository.
 
-1. **Governance addresses.** `kcGreen` and `cdbVault` are recorded. `owner` and `keeper` are still `null` in [config/base-mainnet.json](../config/base-mainnet.json); `owner` should be a multisig.
+1. **Governance addresses.** `kcGreen`, `cdbVault` and `keeper` are recorded. `owner`, `proposer` and `floorSetter` are still `null` in [config/base-mainnet.json](../config/base-mainnet.json); `owner` should be a multisig, and the floor setter must be a different key from the keeper.
 
    Both recipients are EOAs that have never sent a Base transaction, and the CDB vault is unused on Base and Ethereum with no gas on either. They become recipients of an **immutable** Split with no setter, so prove key control on Base — a signed message or a dust transaction — before deploying `SplitsFeeRouter`. Correcting a recipient afterwards means redeploying the router and re-pointing every harvester.
 
-   `EXCLUDED_ADDRESSES` must list both, every pipeline contract and the rewards pool. KC Green already holds 1,000,000 DICKBUTT and receives 10% of all DICKBUTT fees, so without exclusion it eventually crosses the 6.9M threshold and earns holder rewards on its own fee income. The calculator rejects an empty list but cannot tell which addresses matter; [config/base-mainnet.json](../config/base-mainnet.json) records the required set under `calculatorExclusions`.
+   `EXCLUDED_ADDRESSES` must list both, every pipeline contract, the Clanker locker, the DICKBUTT/WETH pool behind it and the rewards pool. KC Green already holds 1,000,000 DICKBUTT and receives 10% of all DICKBUTT fees, so without exclusion it eventually crosses the 6.9M threshold and earns holder rewards on its own fee income. The calculator rejects an empty list but cannot tell which addresses matter; [config/base-mainnet.json](../config/base-mainnet.json) records the required set under `calculatorExclusions`, and `npm run preflight` fails if any recorded address is missing from it.
 2. **The rewards pool.** Create and seed the 0.3% full-range DICKBUTT/SPCXc position, record `rewardsPool.pool` and `rewardsPool.tokenId`, then verify the real pool's fee collection. Only then can `testForkOptionalAeroCollect` stop skipping — it is the one remaining skipped fork test.
 3. **Legacy creator handoff.** DICKBUTT's existing `tokenCreator` must call `updateTokenCreator`. Assignment to this adapter is **permanent**; settle the migration policy first. [Legacy authority](LEGACY-FEES.md).
 4. **Locker ownership handoff.** Separate from the above and from NFT custody. Rehearse all three before performing any.

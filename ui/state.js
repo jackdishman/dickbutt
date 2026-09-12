@@ -169,7 +169,7 @@ export function saveOverrides(root, overrides) {
 }
 
 const ADDRESS_FIELDS = new Set([
-  'deployment.owner', 'deployment.proposer', 'deployment.guardian', 'deployment.keeper',
+  'deployment.owner', 'deployment.proposer', 'deployment.guardian', 'deployment.keeper', 'deployment.floorSetter',
   'deployment.kcGreen', 'deployment.cdbVault', 'deployment.burnAddress',
   'rewardsPool.pool',
 ]);

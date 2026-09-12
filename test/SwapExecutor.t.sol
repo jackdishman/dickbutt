@@ -23,9 +23,12 @@ contract ExecutorRouterMock {
 
 contract SwapExecutorTest is Support {
     RewardMock w; RewardMock s; RewardMock u; ExecutorRouterMock r; SpcxcSwapExecutor e;
-    address constant DIST=address(104);
+    // The distributor must be a contract; any contract stands in for it here.
+    address DIST;
+    address constant OPS=address(0x0B5);
+    address constant KEEPER2=address(0x4EE9);
     function setUp() public {
-        w=new RewardMock(); s=new RewardMock(); u=new RewardMock(); r=new ExecutorRouterMock(w,s);
+        w=new RewardMock(); s=new RewardMock(); u=new RewardMock(); r=new ExecutorRouterMock(w,s); DIST=address(new RewardMock());
         e=new SpcxcSwapExecutor(address(w),address(s),address(r),DIST,address(u),100,200,1000,60,address(this));
         e.setKeeper(address(this),true); vm.warp(1000); e.setPriceFloor(1e18,2000);
     }
@@ -66,6 +69,35 @@ contract SwapExecutorTest is Support {
         vm.expectRevert(); new SpcxcSwapExecutor(address(w),address(s),address(r),DIST,address(w),100,200,1000,0,address(this));
         vm.expectRevert(); new SpcxcSwapExecutor(address(w),address(s),address(r),DIST,address(u),-1,200,1000,0,address(this));
         vm.expectRevert(); new SpcxcSwapExecutor(address(w),address(s),address(r),address(0),address(u),100,200,1000,0,address(this));
+        // An EOA distributor would strand every swap's output.
+        vm.expectRevert(bytes("distributor not contract")); new SpcxcSwapExecutor(address(w),address(s),address(r),address(104),address(u),100,200,1000,0,address(this));
+    }
+    /// The floor setter is a hot key that can set the floor and nothing else, above the owner's bound.
+    function testFloorSetterIsNarrowAndBoundedAndExclusiveWithKeeper() public {
+        vm.prank(OPS); vm.expectRevert(bytes("not a floor setter")); e.setPriceFloor(1e18,1500);
+        vm.expectRevert(bytes("bad floor setter")); e.setFloorSetter(address(0),true);
+        // No setter may be approved while the bound is zero: an unbounded hot key cannot exist by omission.
+        vm.expectRevert(bytes("set floor lower bound first")); e.setFloorSetter(OPS,true);
+        e.setFloorLowerBound(1); e.setFloorSetter(OPS,true);
+        vm.prank(OPS); e.setPriceFloor(15e17,1500); eq(e.minSpcxcPerWeth(),15e17);
+        // Nothing administrative is reachable from the floor-setter key.
+        vm.prank(OPS); vm.expectRevert(); e.setKeeper(OPS,true);
+        vm.prank(OPS); vm.expectRevert(); e.setSwapLimits(1e30,0);
+        vm.prank(OPS); vm.expectRevert(); e.setFloorSetter(OPS,false);
+        vm.prank(OPS); vm.expectRevert(); e.setFloorLowerBound(0);
+        vm.prank(OPS); vm.expectRevert(); e.rescueToken(address(u),OPS,0);
+        vm.prank(OPS); vm.expectRevert(); e.transferOwnership(OPS);
+        // The owner bound holds the setter above a deliberate minimum; the owner itself is not bound.
+        e.setFloorLowerBound(1e18);
+        vm.prank(OPS); vm.expectRevert(bytes("floor below owner bound")); e.setPriceFloor(1e18-1,1500);
+        vm.prank(OPS); e.setPriceFloor(1e18,1500); eq(e.minSpcxcPerWeth(),1e18);
+        e.setPriceFloor(1,1500); eq(e.minSpcxcPerWeth(),1);
+        // One key must never both set the price and swap at it.
+        vm.expectRevert(bytes("floor setter cannot be a keeper")); e.setFloorSetter(address(this),true);
+        vm.expectRevert(bytes("keeper cannot be a floor setter")); e.setKeeper(OPS,true);
+        e.setFloorSetter(OPS,false); e.setKeeper(OPS,true); vm.expectRevert(bytes("floor setter cannot be a keeper")); e.setFloorSetter(OPS,true);
+        e.setKeeper(OPS,false); e.setKeeper(KEEPER2,false); e.setFloorSetter(KEEPER2,true); require(e.isFloorSetter(KEEPER2),"revoked keeper may become setter");
+        vm.prank(OPS); vm.expectRevert(bytes("not a floor setter")); e.setPriceFloor(1e18,1500);
     }
     function testFuzzWholeAllocation(uint128 raw) public {
         uint256 amount=uint256(raw)+1; e.setSwapLimits(amount,0); w.mint(address(e),amount);

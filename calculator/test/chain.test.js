@@ -11,3 +11,17 @@ test('partial closed round credits unpaid recipients, validating aggregate payme
 test('RPC failure after one round leaves all rounds and accrual unchanged',async()=>{const s=state();s.plans[2]={...structuredClone(plan),roundId:'2'};const before=structuredClone(s);const d={roundInfo:async id=>{if(id==='2')throw Error('RPC down');return [root,10n,0n,false,true];},filters:{Paid:()=>1},queryFilter:async()=>[]};await assert.rejects(reconcile(d,s,100),/RPC/);assert.deepEqual(s,before);});
 test('duplicate, unknown, and out-of-bound payment logs fail closed',async()=>{for(const events of [[{blockNumber:101,args:{account:a,amount:10n}}],[{blockNumber:99,args:{account:a,amount:10n}},{blockNumber:99,args:{account:a,amount:10n}}],[{blockNumber:99,args:{account:'0x00000000000000000000000000000000000000bb',amount:10n}}]]){const s=state(),d={roundInfo:async()=>[root,10n,10n,false,true],filters:{Paid:()=>1},queryFilter:async()=>events};await assert.rejects(reconcile(d,s,100));assert.deepEqual(s.accrued,{});}});
 test('pending mapping reserves on chain exactly once even when roundInfo is zero',async()=>{const s=state();const d={roundInfo:async()=>[zero,0n,0n,false,false],pending:async(_id,{blockTag})=>{assert.equal(blockTag,100);return [root,10n,123n];}};assert.equal((await reconcile(d,s,100)).localReserved,0n);d.pending=async()=>[root,11n,123n];await assert.rejects(reconcile(d,s,100),/commitment/);});
+
+test('a foreign root closed at our round id supersedes the plan and recredits exactly once',async()=>{
+ const foreign='0x'+'f0'.repeat(32),s=state();
+ // Pending or active foreign commitments cannot be concluded and stop the run loudly, unchanged state.
+ for(const active of [false,true]){const before=structuredClone(s);await assert.rejects(reconcile({roundInfo:async()=>[foreign,1n,0n,active,false]},s,100),active?/foreign root is active/:/commitment mismatch/);assert.deepEqual(s,before);}
+ const pendingForeign={roundInfo:async()=>[zero,0n,0n,false,false],pending:async()=>[foreign,1n,123n]};
+ await assert.rejects(reconcile(pendingForeign,s,100),/commitment mismatch/);
+ // Once the guardian has cancelled it, ours never landed: every payout returns to accrual for re-planning.
+ const d={roundInfo:async()=>[foreign,1n,0n,false,true],filters:{Paid:()=>1},queryFilter:async()=>[]};
+ const r=await reconcile(d,s,100);
+ assert.equal(s.accrued[a],10n);assert.deepEqual(r.recredits,{[a]:10n});assert.equal(r.localReserved,0n);
+ assert.equal(s.plans[1].superseded,true);assert.equal(s.plans[1].settled,true);assert.equal(s.plans[1].foreignRoot,foreign);
+ await reconcile(d,s,101);assert.equal(s.accrued[a],10n,'a settled plan is never recredited twice');
+});

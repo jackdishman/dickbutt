@@ -7,18 +7,21 @@ It is **a separate operational role from the keeper** and is built to run on sep
 | | Keeper | Floor bot |
 | --- | --- | --- |
 | Key | `KEEPER_PRIVATE_KEY` | `OPS_PRIVATE_KEY` |
-| On-chain role | approved keeper | executor owner |
+| On-chain role | approved keeper | approved floor setter, bounded by `floorLowerBound` |
 | Writes | `processWeth`, `distributeBatch` | `setPriceFloor` |
 | Lock namespace | `dickbutt-keeper-<chain>-<signer>` | `dickbutt-floor-<chain>-<signer>` |
 | Needs the calculator journal | yes | no |
 
-Three independent checks keep the keys apart, so a single compromised host cannot both move funds and set the price they move at:
+Four independent checks keep the keys apart, so a single compromised host cannot both move funds and set the price they move at:
 
-1. `operations/floor.js` reads `executor.isKeeper(signer)` and **refuses to run** if the ops signer is an approved keeper — in dry-run as well as execute.
-2. `script/run-floor.mjs` refuses when `OPS_PRIVATE_KEY` equals `KEEPER_PRIVATE_KEY`.
-3. The lock names differ, so the two roles never serialise against each other and nothing implies they share a host.
+1. **On-chain.** `setFloorSetter` rejects an approved keeper, rejects any setter while `floorLowerBound` is zero, and `setKeeper` rejects an approved floor setter. A floor setter can call `setPriceFloor` and nothing else, and not below the owner's `floorLowerBound`. The executor's owner is the multisig; no bot key owns it.
+2. `operations/floor.js` reads `executor.isKeeper(signer)` and **refuses to run** if the ops signer is an approved keeper — in dry-run as well as execute. In execute mode it also refuses a signer that is neither a floor setter nor the owner, fresh floor or not, so a misconfigured host is found on its first scheduled run.
+3. `script/run-floor.mjs` refuses when `OPS_PRIVATE_KEY` equals `KEEPER_PRIVATE_KEY`.
+4. The lock names differ, so the two roles never serialise against each other and nothing implies they share a host.
 
-The local rehearsal exercises all of this: signer 0 owns the contracts and refreshes the floor, signer 5 is the hot keeper, and the run asserts the bot rejects the keeper key.
+The bound is what makes a hot floor key survivable. Without it, a stolen key sets a one-unit floor and the next swap executes at whatever price the thief just moved the pool to. With it, the worst a stolen key can do is drop the floor to the owner's line. Set `floorLowerBound` conservatively below market and revisit it rarely; if the market falls through it, swaps halt until the owner lowers it, and the bot says so rather than routing around it.
+
+The local rehearsal exercises all of this: signer 0 owns the contracts, signer 8 is the floor setter that refreshes the floor, signer 5 is the hot keeper, and the run asserts the contract rejects the keeper as a setter, rejects a setter floor below the bound, rejects the setter calling `setKeeper`, and that the bot refuses a keeper key and an unknown key.
 
 ## Run
 
@@ -26,7 +29,7 @@ The local rehearsal exercises all of this: signer 0 owns the contracts and refre
 # Read-only: report the active floor, time remaining and the floor a refresh would set.
 npm run floor -- --config deployment.json
 
-# Refresh. Requires OPS_PRIVATE_KEY and chain 31337 or 84532.
+# Refresh. Requires OPS_PRIVATE_KEY (an approved floor setter, or the owner) and chain 31337 or 84532.
 npm run floor -- --config deployment.json --execute
 
 # Alerting role. No key is ever loaded. Exit 2 means someone should look.
@@ -49,7 +52,7 @@ The bot quotes the route at `maxSwapPerCall` — the largest swap the executor c
 
 **The floor is a coarse backstop, not an oracle and not the per-transaction slippage limit.** The keeper still computes a tight `minOut` from a fresh quote at the actual swap size; the executor enforces `max(keeperMin, ownerFloor)`, so a keeper can tighten the limit but never weaken it. A stale-but-unexpired floor is possible by design.
 
-If the newly quoted floor deviates from the active floor by more than `--max-deviation-bps` (default 5000), the bot **refuses and exits nonzero** rather than writing a backstop derived from a possibly manipulated quote. Review the quote, then rerun with `--force`.
+If the newly quoted floor deviates from the active floor by more than `--max-deviation-bps` (default 5000), the bot **refuses and exits nonzero** rather than writing a backstop derived from a possibly manipulated quote. Review the quote, then rerun with `--force`. A quote that lands below `floorLowerBound` is refused for every signer, including the owner, and `--force` does not override it; the output reports `floorLowerBound` and `lowerBoundUnset` so the monitor can flag a bound that was never set.
 
 ## Limits
 

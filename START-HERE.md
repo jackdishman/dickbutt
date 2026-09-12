@@ -2,6 +2,8 @@
 
 This project turns DICKBUTT trading fees into SPCXc holder rewards. The contract and calculator foundation now has Splits protocol routing, legacy Clanker fee recovery, a keeper executor, fee-cycle tools and a local deployment rehearsal.
 
+Kevin: read [docs/HANDOFF.md](docs/HANDOFF.md) first. It lists what is built, what only you can unblock, the launch order, and the security findings that should change before mainnet.
+
 Read [README.md](README.md) for the current flow, then [docs/REHEARSAL.md](docs/REHEARSAL.md) to run it. [docs/GOVERNANCE.md](docs/GOVERNANCE.md) covers the role split, the bounds on a bot proposer, and the payout-schedule tradeoff the share cap introduces. [docs/SEPOLIA.md](docs/SEPOLIA.md) covers the public-testnet deployment and [docs/RUNBOOK.md](docs/RUNBOOK.md) covers operating it. [AERODROME-SETUP.md](AERODROME-SETUP.md) describes the selected 0.3% concentrated full-range pool. [AUDITOR-BRIEF.md](AUDITOR-BRIEF.md) identifies governance, custody and external dependencies that still need review.
 
 Two corrections from the initial prototype matter:

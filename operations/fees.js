@@ -3,7 +3,7 @@ export async function runFeeCycle({provider,signerAddress,locker,aero,legacy,fee
   const chainId=(await provider.getNetwork()).chainId;
   if(execute&&![31337n,84532n].includes(chainId)) throw Error('production fee execution is disabled');
   if(!Number.isInteger(slippageBps)||slippageBps<0||slippageBps>1000) throw Error('slippage must be 0..1000 basis points');
-  const result={mode:execute?'execute':'dry-run',actions:[],swapStatus:'not-evaluated'};
+  const result={mode:execute?'execute':'dry-run',actions:[],awaitingHandoff:[],swapStatus:'not-evaluated'};
   const now=async()=>BigInt((await provider.getBlock('latest')).timestamp);
   async function send(action,call) {
     const entry={action,status:execute?'submitted':'planned'}; result.actions.push(entry);
@@ -13,16 +13,24 @@ export async function runFeeCycle({provider,signerAddress,locker,aero,legacy,fee
     if(!receipt||Number(receipt.status)!==1) throw Error(`${action}: failed transaction receipt ${tx.hash}`);
     entry.status='confirmed';onEvent({...entry});
   }
-  for(const [name,contract] of [['locker',locker],['aero',aero]]) {
+  // Each source needs its own custody handoff before it can collect. Until then it is skipped and
+  // reported, so the rest of the cycle still routes and swaps whatever has already arrived. Failing
+  // the whole cycle here would force every handoff, including the permanent one, before any fee moves.
+  const skip=(name,reason)=>{result.actions.push({action:name,status:'awaiting-handoff',reason});result.awaitingHandoff.push(name);};
+  for(const [name,contract,ready,reason] of [['locker',locker,c=>c.ownsLocker(),'LockerHarvester does not own the locker'],['aero',aero,c=>c.holdsPosition(),'AerodromeFeeHarvester does not hold the position NFT']]) {
     if(!contract) continue;
+    if(!await ready(contract)) {skip(name,reason);continue;}
     const last=BigInt(await contract.lastHarvestAt()),interval=BigInt(await contract.minInterval());
     if(last===0n||await now()>=last+interval) await send(name,()=>contract.harvest());
     else result.actions.push({action:name,status:'cooldown'});
   }
   if(legacy) {
-    const count=Number(await legacy.safeCount());
-    if(!Number.isInteger(count)||count<1||count>8) throw Error('invalid legacy safe count');
-    for(let i=0;i<count;i++) await send(`legacy${i}`,()=>legacy.harvestFrom(i));
+    if(!await legacy.isTokenCreator()) skip('legacy','LegacyFeeHarvester is not the legacy tokenCreator');
+    else {
+      const count=Number(await legacy.safeCount());
+      if(!Number.isInteger(count)||count<1||count>8) throw Error('invalid legacy safe count');
+      for(let i=0;i<count;i++) await send(`legacy${i}`,()=>legacy.harvestFrom(i));
+    }
   }
   await send('split-dickbutt',()=>feeRouter.splitDickbutt());
   await send('split-weth',()=>feeRouter.splitWeth());

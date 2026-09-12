@@ -62,7 +62,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
       provider, distributor, executor,
       journalRoots: roots ?? [],
       gasAccounts: manifest.roles ? {
-        keeper: manifest.roles.keeper, proposer: manifest.roles.proposer, owner: manifest.roles.owner,
+        keeper: manifest.roles.keeper, proposer: manifest.roles.proposer, ops: manifest.roles.ops, owner: manifest.roles.owner,
       } : {},
       minGasWei: ethers.parseEther(String(o.minGasEth)),
     });

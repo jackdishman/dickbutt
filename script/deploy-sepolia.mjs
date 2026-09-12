@@ -22,8 +22,9 @@ const USAGE = `Usage: npm run deploy:sepolia -- --roles roles.json [--out deploy
 
 Deploys to Base Sepolia only. Requires RPC_URL and DEPLOYER_PRIVATE_KEY.
 
-  --roles   JSON with owner, keeper, proposer, guardian, kcGreen, cdbVault, burnAddress.
-            The keeper must be a separate key from every administrative role.
+  --roles   JSON with owner, keeper, proposer, guardian, ops, kcGreen, cdbVault, burnAddress.
+            The keeper must be a separate key from every administrative role. ops is the
+            executor's floor setter and must not be the keeper.
   --out     Manifest path. Refuses to overwrite an existing file without --force, because
             a second deploy would orphan the first deployment's contracts and funds.
   --force   Allow overwriting the manifest. Read the old one first.`;
@@ -161,6 +162,10 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     await send('set-proposer', distributor.setProposer(roles.proposer, true));
     await send('set-guardian', distributor.setGuardian(roles.guardian));
     await send('set-swap-keeper', executor.setKeeper(roles.keeper, true));
+    // The floor bot signs with a narrow role, never the owner key. The bound is set first so no
+    // floor setter is ever approved unbounded; half the stand-in rate leaves the 5% discount room.
+    await send('set-floor-lower-bound', executor.setFloorLowerBound(10n ** 8n));
+    await send('set-floor-setter', executor.setFloorSetter(roles.ops, true));
 
     const deployedAtBlock = await provider.getBlockNumber();
     const manifest = buildManifest({

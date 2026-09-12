@@ -8,7 +8,7 @@ const ROGUE = '0x' + 'cd'.repeat(32);
 const NOW = 1_700_000_000n;
 
 function harness({ floor = 1n, remaining = 20n * 3600n, paused = false, balances = {},
-  rounds = [], next = 1n } = {}) {
+  rounds = [], next = 1n, lowerBound = 1n } = {}) {
   const provider = {
     getNetwork: async () => ({ chainId: 8453n }),
     getBlock: async () => ({ timestamp: Number(NOW) }),
@@ -17,6 +17,7 @@ function harness({ floor = 1n, remaining = 20n * 3600n, paused = false, balances
   const executor = {
     minSpcxcPerWeth: async () => floor,
     priceFloorExpiresAt: async () => (remaining > 0n ? NOW + remaining : NOW - 1n),
+    floorLowerBound: async () => lowerBound,
   };
   const byId = new Map(rounds.map(r => [String(r.id), r]));
   const distributor = {
@@ -105,4 +106,28 @@ test('a round left sitting past its timelock is flagged and outstanding value is
     ...harness({ next: 2n, rounds: [{ id: 1, root: KNOWN, total: 1000n, distributed: 400n, active: true }] }),
   });
   assert.equal(active.outstandingRewards, '600');
+});
+
+test('an unbounded floor setter is flagged, and an executor predating the role reads as failed', async () => {
+  const unbounded = await runMonitor({ ...harness({ lowerBound: 0n }) });
+  assert.equal(unbounded.exitCode, 2);
+  assert.ok(unbounded.attention.some(c => c.name === 'floor-lower-bound' && /any floor/.test(c.detail)));
+
+  const h = harness();
+  delete h.executor.floorLowerBound;
+  h.executor.floorLowerBound = async () => { throw Error('call revert exception'); };
+  const stale = await runMonitor({ ...h });
+  assert.equal(stale.severity, 'failed');
+  assert.ok(stale.attention.some(c => c.name === 'floor-lower-bound' && /redeploy/.test(c.detail)));
+});
+
+test('a foreign round the guardian cancelled unpaid stops alarming; one that paid does not', async () => {
+  const cancelled = await runMonitor({
+    ...harness({ next: 3n, rounds: [{ id: 2, root: ROGUE, total: 500n, distributed: 0n, closed: true }, { id: 1, root: KNOWN, total: 100n, distributed: 100n, closed: true }] }),
+  });
+  assert.ok(!cancelled.attention.some(c => c.name === 'unknown-commitment'), 'the incident is resolved once the round is closed unpaid');
+  const drained = await runMonitor({
+    ...harness({ next: 3n, rounds: [{ id: 2, root: ROGUE, total: 500n, distributed: 500n, closed: true }] }),
+  });
+  assert.ok(drained.attention.some(c => c.name === 'unknown-commitment'), 'a foreign round that paid out is theft evidence and keeps alarming');
 });

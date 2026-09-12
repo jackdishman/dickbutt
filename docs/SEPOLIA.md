@@ -45,7 +45,7 @@ RPC_URL=https://sepolia.base.org DEPLOYER_PRIVATE_KEY=0x… \
   npm run deploy:sepolia -- --roles roles.json
 ```
 
-Role validation runs **before the first transaction**. The keeper must be a separate key from the owner, proposer, guardian and the deploying key; the guardian may share the owner multisig. KC Green, the CDB vault and the burn address must be distinct and must not be bot keys.
+Role validation runs **before the first transaction**. The keeper must be a separate key from the owner, proposer, guardian, ops and the deploying key; the guardian may share the owner multisig. `ops` becomes the executor's floor setter, after the script sets `floorLowerBound`; the executor itself refuses a keeper in that role. KC Green, the CDB vault and the burn address must be distinct and must not be bot keys.
 
 The deployer needs at least 0.02 ETH. Each deployed address is written to `<manifest>.partial` as it happens, so a mid-run failure leaves a record instead of orphaning contracts nobody can find. The script refuses to overwrite an existing manifest without `--force`, for the same reason.
 
@@ -61,8 +61,11 @@ Pass the second one straight through with `--config`. Rebuilding it from environ
 ```sh
 export RPC_URL=https://sepolia.base.org
 
-# Ops host: set the price floor, then leave it on a schedule.
+# Ops host: set the price floor with the floor-setter key, then leave it on a schedule.
 OPS_PRIVATE_KEY=0x… npm run floor -- --config deployment-sepolia.json --execute
+
+# Once, before the first scheduled calculator run, if round 1 should measure from launch:
+CALCULATOR_DATA_DIR=./data node calculate-rewards.js --config deployment-sepolia-calculator.json --bootstrap
 
 # Keeper host: harvest, split, swap.
 KEEPER_PRIVATE_KEY=0x… npm run fees -- --config deployment-sepolia.json --execute
@@ -86,9 +89,9 @@ Base finalizes roughly 22 minutes behind head, and the calculator reads only fin
 
 ## Ownership stays with the deployer
 
-The script leaves `owner` on every contract as the deploying key and prints `ownershipStillHeldBy`. Handing ownership to the multisig is a separate, deliberate step, because `Ownable2Step` needs the new owner to accept and because rehearsing the handoff is part of the point.
+The script leaves `owner` on every contract as the deploying key and prints `ownershipStillHeldBy`. Handing ownership to the multisig is a separate, deliberate step, because `Ownable2Step` needs the new owner to accept and because rehearsing the handoff is part of the point. The distributor's guardian follows that transfer unless it was split out first.
 
-Until that happens the **ops/floor key must be the deployer key**, since `setPriceFloor` is owner-gated. The keeper, proposer and guardian roles are wired to the configured addresses immediately and work from the start.
+The keeper, proposer, guardian and floor-setter roles are wired to the configured addresses immediately and work from the start; the ops host never needs the deployer key.
 
 ## Verified end to end
 
@@ -120,3 +123,5 @@ Both Splits report `FACTORY() = 0x8E8eB0cC…` and `owner() = 0x0`, so they are 
 `roundDelay` was lowered from 24h to the contract minimum of 1h for this run so a round completes in observable time. Restore it before drawing any conclusion about mainnet timelock behaviour.
 
 The earlier fork run proved the scripts and wiring. This one is a real public-testnet deployment receipt. [Evidence boundaries](REHEARSAL.md#evidence-categories), [roles and bounds](GOVERNANCE.md).
+
+**This recorded deployment predates the executor's floor-setter role**, the guardian-follows-owner fix and the fee cycle's handoff checks. Its executor has no `floorLowerBound`, which `npm run monitor` reports as `failed`, and its price floor can only be refreshed by the deployer key. Redeploy with the current contracts (`--force`, after reading the old manifest) before using it as evidence for anything but the Splits integration.

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { ethers } from 'ethers';
 import { runCalculator } from '../../calculator/engine.js';
 import { hash, stringify } from '../../calculator/journal.js';
-import { runKeeper } from '../engine.js';
+import { runKeeper, acquireExecutionLock } from '../engine.js';
 const a='0x00000000000000000000000000000000000000aa', b='0x00000000000000000000000000000000000000bb';
 const tokenAddress='0x0000000000000000000000000000000000000011', rewardAddress='0x0000000000000000000000000000000000000022', distributorAddress='0x0000000000000000000000000000000000000033';
 const blockHash='0x'+'ab'.repeat(32);
@@ -70,4 +70,32 @@ test('rate limited proposal reports instead of reverting and proceeds once elaps
  const proceeds=await runKeeper({...f,execute:true,propose:true});
  assert.equal(proceeds.rounds[0].status,'timelocked');
  assert.deepEqual(f.chain.calls,['propose']);
+});
+
+test('a foreign root at a planned round id is reported, never paid, and does not halt the run',async t=>{
+ const foreign='0x'+'f0'.repeat(32);
+ // Pending: someone else committed round 1 before our proposer did.
+ const f=await fixture(t);f.chain.next=2n;f.chain.pending=[foreign,5n,BigInt(f.chain.now+3600)];
+ const events=[];const r=await runKeeper({...f,execute:true,propose:true,onEvent:e=>events.push(e)});
+ assert.equal(r.rounds[0].status,'foreign-commitment');assert.equal(r.rounds[0].foreignRoot,foreign);
+ assert.deepEqual(f.chain.calls,[],'nothing is proposed, activated or paid against a foreign root');
+ assert.ok(events.some(e=>e.type==='foreign-commitment'&&e.foreignRoot===foreign));
+ // Cancelled by the guardian: the plan is superseded and left to the calculator to recredit.
+ f.chain.pending=[ethers.ZeroHash,0n,0n];f.chain.round=[foreign,5n,0n,false,true];
+ const after=await runKeeper({...f,execute:true,propose:true});
+ assert.equal(after.rounds[0].status,'superseded');assert.deepEqual(f.chain.calls,[]);
+ // Activated by a third party: still foreign, still untouched.
+ f.chain.round=[foreign,5n,0n,true,false];
+ const active=await runKeeper({...f,execute:true});
+ assert.equal(active.rounds[0].status,'foreign-commitment');assert.deepEqual(f.chain.calls,[]);
+});
+test('the execution lock waits a bounded time for a peer and then fails with the holder named',()=>{
+ const release=acquireExecutionLock('31337',a);
+ try {
+  const started=Date.now();
+  assert.throws(()=>acquireExecutionLock('31337',a,{waitMs:150,pollMs:30}),/lock exists.*held by.*pid/s);
+  assert.ok(Date.now()-started>=140,'waited for the lock before giving up');
+  assert.throws(()=>acquireExecutionLock('31337',a),/lock exists/);
+ } finally { release(); }
+ acquireExecutionLock('31337',a,{waitMs:100})();
 });

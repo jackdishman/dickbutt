@@ -21,9 +21,17 @@ interface ISpcxcSwapRouter {
 }
 
 /// @notice Swaps the WETH allocation received from Splits to the fixed rewards distributor.
-/// @dev The expiring owner floor is an administrative limit, not an oracle. Only
+/// @dev The expiring price floor is an administrative limit, not an oracle. Only
 /// standard, non-rebasing, non-fee-on-transfer tokens are supported. No percentages
 /// are computed here. Gas must be funded externally.
+///
+/// ROLES. The owner (a multisig) administers keepers, limits and the floor lower bound.
+/// A `floorSetter` is a hot bot key that may call setPriceFloor and nothing else, and
+/// may not set a floor below `floorLowerBound`. Keeper and floor setter are mutually
+/// exclusive on-chain: one host must never be able to both set the price and swap at it.
+/// Without this split the daily floor refresh would need the owner key on a bot, and a
+/// stolen owner key can approve itself as keeper, zero the floor and swap the whole WETH
+/// balance at a manipulated price.
 contract SpcxcSwapExecutor is Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
     uint256 public constant MAX_FLOOR_LIFETIME = 1 days;
@@ -39,12 +47,24 @@ contract SpcxcSwapExecutor is Ownable2Step, ReentrancyGuard {
     uint256 public minSpcxcPerWeth;
     uint256 public priceFloorExpiresAt;
     mapping(address => bool) public isKeeper;
+    /// @notice Bot keys allowed to refresh the price floor, bounded by floorLowerBound.
+    mapping(address => bool) public isFloorSetter;
+    /// @notice Lowest floor a floor setter may set, in raw SPCXc per 1e18 raw WETH. The
+    /// owner sets it conservatively below market and revisits it rarely. If the market falls
+    /// through it, swaps halt until the owner lowers it, which is the safe failure mode.
+    uint256 public floorLowerBound;
     event WethProcessed(uint256 swapped, uint256 spcxcOut);
     event KeeperUpdated(address indexed keeper, bool allowed);
+    event FloorSetterUpdated(address indexed setter, bool allowed);
+    event FloorLowerBoundUpdated(uint256 lowerBound);
     event SwapLimitsUpdated(uint256 maxSwapPerCall, uint256 minSwapInterval);
     event PriceFloorUpdated(uint256 minSpcxcPerWeth, uint256 expiresAt);
     modifier onlyKeeper() {
         require(isKeeper[msg.sender], "not a keeper");
+        _;
+    }
+    modifier onlyFloorSetterOrOwner() {
+        require(isFloorSetter[msg.sender] || msg.sender == owner(), "not a floor setter");
         _;
     }
 
@@ -74,6 +94,7 @@ contract SpcxcSwapExecutor is Ownable2Step, ReentrancyGuard {
                 && distributor_ != spcxc_ && distributor_ != intermediate_ && distributor_ != router_,
             "bad recipient"
         );
+        require(distributor_.code.length > 0, "distributor not contract");
         require(firstTickSpacing_ > 0 && secondTickSpacing_ > 0, "bad spacing");
         require(maxSwapPerCall_ > 0, "cap must be set");
         weth = IERC20(weth_);
@@ -111,8 +132,25 @@ contract SpcxcSwapExecutor is Ownable2Step, ReentrancyGuard {
 
     function setKeeper(address keeper, bool allowed) external onlyOwner {
         require(keeper != address(0), "bad keeper");
+        require(!allowed || !isFloorSetter[keeper], "keeper cannot be a floor setter");
         isKeeper[keeper] = allowed;
         emit KeeperUpdated(keeper, allowed);
+    }
+
+    /// @notice Approving a setter requires a nonzero bound, so an unbounded hot key cannot exist by
+    /// omission; only a later, explicit setFloorLowerBound(0) by the owner can create that state.
+    function setFloorSetter(address setter, bool allowed) external onlyOwner {
+        require(setter != address(0), "bad floor setter");
+        require(!allowed || !isKeeper[setter], "floor setter cannot be a keeper");
+        require(!allowed || floorLowerBound > 0, "set floor lower bound first");
+        isFloorSetter[setter] = allowed;
+        emit FloorSetterUpdated(setter, allowed);
+    }
+
+    /// @notice Zero disables the bound. Set it before approving any floor setter.
+    function setFloorLowerBound(uint256 lowerBound) external onlyOwner {
+        floorLowerBound = lowerBound;
+        emit FloorLowerBoundUpdated(lowerBound);
     }
 
     function setSwapLimits(uint256 cap, uint256 interval) external onlyOwner {
@@ -122,8 +160,10 @@ contract SpcxcSwapExecutor is Ownable2Step, ReentrancyGuard {
         emit SwapLimitsUpdated(cap, interval);
     }
 
-    function setPriceFloor(uint256 floor, uint256 expiresAt) external onlyOwner {
+    /// @notice Owner or floor setter. A floor setter is additionally held above floorLowerBound.
+    function setPriceFloor(uint256 floor, uint256 expiresAt) external onlyFloorSetterOrOwner {
         require(floor > 0, "zero floor");
+        require(msg.sender == owner() || floor >= floorLowerBound, "floor below owner bound");
         require(expiresAt > block.timestamp && expiresAt - block.timestamp <= MAX_FLOOR_LIFETIME, "bad expiry");
         minSpcxcPerWeth = floor;
         priceFloorExpiresAt = expiresAt;

@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import {Contract,JsonRpcProvider,ZeroAddress} from 'ethers';
-import {validatePoolFacts,validateDeployment,validateSwapRoute} from '../operations/preflight.js';
+import {validatePoolFacts,validateDeployment,validateSwapRoute,validateExclusions} from '../operations/preflight.js';
 import { closeProvider } from '../operations/provider.js';
 const args=process.argv.slice(2),configPath=args.includes('--config')?args[args.indexOf('--config')+1]:'config/base-mainnet.json';
 const config=JSON.parse(fs.readFileSync(configPath));
@@ -12,7 +12,7 @@ try {
   if(network.chainId!==8453n||config.chainId!==8453) throw Error('Preflight requires Base mainnet read-only RPC/config');
   const block=await provider.getBlock('finalized');
   if(!block?.hash) throw Error('Finalized block unavailable');
-  const tag={blockTag:block.number},errors=validateDeployment(config.deployment??{});
+  const tag={blockTag:block.number},errors=[...validateDeployment(config.deployment??{}),...validateExclusions(config)];
   const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
   const desired=config.rewardsPool;
   if(!desired) throw Error('Missing rewardsPool specification');

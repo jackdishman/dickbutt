@@ -8,8 +8,10 @@
  * This is a panel that can spend money, so it is deliberately unexciting about access:
  *
  *  - it binds to the loopback interface only, and refuses a non-loopback --host;
- *  - every request carries a token minted at startup and printed in the launch URL, which stops any
- *    other process on the machine (or a browser page on some other site) from driving it;
+ *  - every request carries a token minted at startup and printed in the launch URL. The page gets it
+ *    only from that URL, never from an endpoint, so a browser page on some other site cannot obtain
+ *    it. (Another process on the same machine is not the boundary: it already shares the environment
+ *    the keys live in.)
  *  - the Origin and Host headers must be the console's own, so a page cannot POST to it cross-site;
  *  - commands come from a fixed registry with typed slots and are spawned without a shell — nothing
  *    from the browser ever reaches a command line;
@@ -163,10 +165,9 @@ export function createServer({ token, allowExecute = false, root = ROOT, runs = 
       }
 
       if (url.pathname === '/api/session' && request.method === 'GET') {
-        // Handing the token to a same-origin request is what lets the page authenticate at all,
-        // and is why this one endpoint answers without it.
+        // Mode only. The token travels in the launch URL and is never handed out by the server.
         if (!sameSite(request)) return json(response, 403, { error: 'cross-site request refused' });
-        return json(response, 200, { token, allowExecute, port });
+        return json(response, 200, { allowExecute, port });
       }
 
       if (!authorized(request, url)) return json(response, 403, { error: 'unauthorized console request' });

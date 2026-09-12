@@ -11,3 +11,4 @@ periods/
 .writer-lock/
 *.tmp
 ui/checklist.local.json
+.context/

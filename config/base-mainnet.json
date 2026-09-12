@@ -5,6 +5,7 @@
   "weth": "0x4200000000000000000000000000000000000006",
   "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   "clankerLocker": "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
+  "clankerPool": "0x92d90f7f8413749Bd4BeA26ddE4e29efC9e9A0B6",
   "clankerPositionManager": "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
   "clankerTokenId": "1391176",
   "clankerUnlockTime": "4132317178",
@@ -44,6 +45,7 @@
     "burnAddress": "0x000000000000000000000000000000000000dEaD",
     "owner": null,
     "keeper": "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+    "floorSetter": null,
     "recipientVerification": {
       "block": 51223839,
       "kcGreen": {
@@ -73,17 +75,18 @@
       "note": "Every contract takes its own owner_ constructor argument; they do not have to be the same address. deployment.owner is the high-stakes one.",
       "distributor": "Commits reward roots via proposeRound. Decides who gets paid. Use the multisig.",
       "lockerHarvester/aerodromeHarvester": "Timelocked destination changes, LP NFT custody and lock extension. Use the multisig.",
-      "swapExecutor": "Refreshes a price floor that expires within 1 day, so it signs daily. A separate lower-stakes ops signer avoids a daily multisig ceremony; it cannot move funds, only halt swaps or set a bad floor.",
+      "swapExecutor": "Owner should be the multisig, like everything else. The daily floor refresh is signed by a separate floorSetter bot key that can call setPriceFloor and nothing else, and cannot set a floor below floorLowerBound. Set the bound before approving the setter.",
       "keeper": "Not an owner. Hot signer that calls processWeth and distributeBatch only. Cannot choose recipients or amounts, weaken the floor, or redirect funds.",
-      "keyIsolation": "The keeper key signs processWeth and distributeBatch. The ops key signs setPriceFloor and must NOT be an approved keeper: operations/floor.js refuses such a signer, and run-floor.mjs refuses OPS_PRIVATE_KEY equal to KEEPER_PRIVATE_KEY. Run them on separate hosts; they take separate lock namespaces.",
+      "keyIsolation": "The keeper key signs processWeth and distributeBatch. The floorSetter (ops) key signs setPriceFloor and is refused as a keeper on-chain; operations/floor.js refuses a keeper signer, and run-floor.mjs refuses OPS_PRIVATE_KEY equal to KEEPER_PRIVATE_KEY. Run them on separate hosts; they take separate lock namespaces.",
       "guardian": "Cancels any pending round and pauses proposals. Same multisig as owner by default; can be split later without redeploying.",
-      "proposer": "Bot key that calls proposeRound. Bounded on-chain by maxRoundBps, minRoundInterval, the timelock and the guardian pause. Cannot move tokens."
+      "proposer": "Bot key that calls proposeRound. Bounded on-chain by maxRoundBps, minRoundInterval, the timelock and the guardian pause. Cannot move tokens.",
+      "floorSetter": "Hot bot key on the ops host. setPriceFloor only, held above floorLowerBound by the contract. Cannot be a keeper: the executor refuses the pairing in both directions. Worst case for a compromise is a floor at the bound, not a drained WETH stream."
     },
     "proposer": null,
     "guardian": null
   },
   "calculatorExclusions": {
-    "note": "EXCLUDED_ADDRESSES for the production calculator. It rejects an empty list but cannot know which addresses matter. Every address that receives DICKBUTT from the pipeline must be here, or it earns SPCXc rewards on fee income.",
+    "note": "EXCLUDED_ADDRESSES for the production calculator. It rejects an empty list but cannot know which addresses matter. Every address that receives DICKBUTT from the pipeline must be here, or it earns SPCXc rewards on fee income. npm run preflight checks that every recorded pipeline address, the locker and its pool are present.",
     "required": [
       {
         "role": "burnAddress",
@@ -104,6 +107,11 @@
         "role": "clankerLocker",
         "address": "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
         "reason": "Protocol locker holding LP."
+      },
+      {
+        "role": "clankerPool",
+        "address": "0x92d90f7f8413749Bd4BeA26ddE4e29efC9e9A0B6",
+        "reason": "Uniswap V3 DICKBUTT/WETH pool behind the Clanker locker. Holds a very large DICKBUTT balance and would otherwise qualify as a holder and earn SPCXc."
       },
       {
         "role": "legacyFeeSafes",
@@ -129,8 +137,8 @@
       "AerodromeFeeHarvester",
       "LegacyFeeHarvester",
       "the DICKBUTT/SPCXc rewards pool",
-      "owner and keeper addresses",
-      "proposer and guardian addresses"
+      "proposer and guardian addresses",
+      "owner, keeper and floor setter addresses"
     ]
   },
   "roundLimits": {

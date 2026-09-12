@@ -12,13 +12,23 @@ export async function reconcile(distributor,state,block,chunk=2000){
    if (typeof distributor.pending === 'function') {
      const [pendingRoot,pendingTotal] = await distributor.pending(plan.roundId,{blockTag:block});
      if (pendingRoot !== ethers.ZeroHash || BigInt(pendingTotal) !== 0n) {
-       if (pendingRoot.toLowerCase()!==plan.root.toLowerCase() || BigInt(pendingTotal)!==BigInt(plan.total)) throw Error(`round ${plan.roundId} commitment mismatch`);
+       if (pendingRoot.toLowerCase()!==plan.root.toLowerCase()) throw Error(`round ${plan.roundId} commitment mismatch: a foreign root is pending; cancel it, then rerun`);
+       if (BigInt(pendingTotal)!==BigInt(plan.total)) throw Error(`round ${plan.roundId} commitment mismatch`);
        continue;
      }
    }
    localReserved+=BigInt(plan.total);continue;
  }
- if(root.toLowerCase()!==plan.root.toLowerCase()||BigInt(total)!==BigInt(plan.total))throw Error(`round ${plan.roundId} commitment mismatch`);
+ if(root.toLowerCase()!==plan.root.toLowerCase()){
+  // A commitment this pipeline did not produce took our round id, so our plan never landed on-chain.
+  // While that foreign round is pending or active nothing can be concluded and the run stops loudly.
+  // Once the guardian or owner has closed it, the plan is abandoned and every payout in it returns
+  // to accrual, to be re-planned under the next free id. Nothing was paid against our root, so this
+  // recredits exactly once and the next period's available balance reflects whatever happened.
+  if(closed&&!active&&root!==ethers.ZeroHash){for(const[a,v]of Object.entries(plan.payouts)){accrued[a]=(accrued[a]??0n)+BigInt(v);recredits[a]=(recredits[a]??0n)+BigInt(v);}plan.settled=true;plan.superseded=true;plan.settledAt=block;plan.foreignRoot=root;continue;}
+  throw Error(`round ${plan.roundId} commitment mismatch: a foreign root is ${active?'active':'pending'}; cancel or close it, then rerun`);
+ }
+ if(BigInt(total)!==BigInt(plan.total))throw Error(`round ${plan.roundId} commitment mismatch`);
  if(active&&closed)throw Error('invalid round status');if(!closed)continue;
  const paid=new Set();let paidTotal=0n;for(const ev of await scanEvents(distributor,distributor.filters.Paid(plan.roundId),plan.toBlock,block,chunk)){const a=normalize(ev.args.account),v=BigInt(ev.args.amount);if(paid.has(a)||plan.payouts[a]===undefined||BigInt(plan.payouts[a])!==v)throw Error('invalid payment event');paid.add(a);paidTotal+=v;}
  if(paidTotal!==BigInt(distributed))throw Error('payment total mismatch');

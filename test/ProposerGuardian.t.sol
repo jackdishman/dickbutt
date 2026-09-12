@@ -168,6 +168,30 @@ contract ProposerGuardianTest is Support {
         d.setProposer(address(0), true);
     }
 
+    /// Handing the contract to the multisig must hand it the guardian role too, unless the
+    /// guardian was deliberately split out beforehand.
+    function testGuardianFollowsOwnershipUnlessSplit() public {
+        RewardMock t = new RewardMock();
+        DickbuttRewardsDistributor f = new DickbuttRewardsDistributor(address(t), 0, address(this));
+        require(f.guardian() == address(this), "defaults to owner");
+        address multisig = address(0x5A7E);
+        f.transferOwnership(multisig);
+        // Two-step: nothing moves until the multisig accepts.
+        require(f.owner() == address(this) && f.guardian() == address(this), "pending transfer changes nothing");
+        vm.prank(multisig);
+        f.acceptOwnership();
+        require(f.owner() == multisig && f.guardian() == multisig, "guardian follows the owner");
+        // Once split, the guardian stays put through later transfers.
+        vm.prank(multisig);
+        f.setGuardian(GUARDIAN);
+        address next = address(0x5A7F);
+        vm.prank(multisig);
+        f.transferOwnership(next);
+        vm.prank(next);
+        f.acceptOwnership();
+        require(f.owner() == next && f.guardian() == GUARDIAN, "split guardian does not follow");
+    }
+
     /// A share cap that floors to zero blocks proposals entirely. Surfaced by a view so
     /// operators see it before a revert, and cleared by raising the cap.
     function testDustBalanceFloorsTheCapToZero() public {

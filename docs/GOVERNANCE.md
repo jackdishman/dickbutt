@@ -4,20 +4,22 @@ Normal operation needs **zero multisig signatures**. Bots propose, activate and 
 
 | Role | Key | Can do | Cannot do |
 | --- | --- | --- | --- |
-| Owner | multisig | Set roles and limits, unpause, close a round early, rescue non-reward tokens | Withdraw reward tokens — there is no such function |
+| Owner | multisig | Set roles and limits, unpause, close a round early, rescue non-reward tokens, set the floor lower bound | Withdraw reward tokens — there is no such function |
 | Guardian | same multisig | Cancel any pending round, pause/unpause proposals | Move tokens, set roles or limits |
 | Proposer | bot | `proposeRound` within the cap, interval and pause | Move tokens, choose who gets paid beyond the committed root |
 | Keeper | bot | `processWeth`, `distributeBatch` | Propose, change amounts, weaken the price floor |
-| Ops | bot, separate host | `setPriceFloor` on the swap executor | Anything a keeper does — the bot refuses a keeper key |
+| Ops (floor setter) | bot, separate host | `setPriceFloor` on the swap executor, at or above `floorLowerBound` | Anything else on the executor: approve keepers, change limits, rescue, transfer ownership. Cannot be a keeper — the contract refuses the pairing in both directions |
 | Anyone | — | `harvest`, `activateRound` after the timelock, `closeRound` when fully paid, `splitDickbutt`/`splitWeth` | — |
 
-The owner is implicitly a proposer, so the multisig can always act without waiting on a bot. Guardian defaults to the owner at deployment and can be split out later without redeploying.
+The owner is implicitly a proposer and a floor setter, so the multisig can always act without waiting on a bot. Guardian defaults to the owner, follows an ownership transfer unless it was split out with `setGuardian`, and can be split out later without redeploying.
+
+The swap executor's owner is the multisig too. Its daily floor refresh is signed by the floor-setter role precisely so that no hot key owns a contract: an executor owner can approve itself as keeper, set a one-unit floor, raise the cap and swap the whole WETH balance at a price it just moved, and 80% of all WETH fees pass through that contract. A floor setter can only move the floor, and only down to the owner's bound.
 
 ## What a stolen proposer key can and cannot do
 
-**It cannot move a token.** `distributeBatch` is keeper-gated and pays only amounts inside the committed root, and the keeper independently rebuilds every root from its own calculator journal — a root it did not produce throws `commitment mismatch` and it refuses to distribute. Theft requires the proposer key **and** the keeper key **and** the keeper's journal.
+**It cannot move a token.** `distributeBatch` is keeper-gated and pays only amounts inside the committed root, and the keeper holds proofs only for roots its own calculator journal produced. A root it did not produce is reported as `foreign-commitment` and left untouched while every other round keeps paying. Theft requires the proposer key **and** the keeper key.
 
-What a stolen proposer key *can* do is grief: reserve the pool against real rounds. That is what the on-chain bounds limit.
+What a stolen proposer key *can* do is grief: reserve the pool against real rounds, or take a round id the calculator had already planned. The on-chain bounds limit the first. The second recovers on its own once the guardian cancels the foreign round: the calculator recredits the abandoned plan and re-plans it under the next id. [Runbook](RUNBOOK.md#unknown-commitment--treat-as-a-compromised-proposer-key).
 
 | Bound | Default | Effect |
 | --- | --- | --- |
@@ -48,22 +50,29 @@ The calculator reads `maxProposableTotal()` and caps new shares to it, so a plan
 
 A share cap that floors to zero against a dust balance blocks proposals entirely — at 50%, a single raw unit. `maxProposableTotal()` returns 0 in that case so operators can see it before hitting a revert.
 
+## Round 1 measures from a bootstrap period
+
+The calculator has to rebuild balances from the token's first block, so without intervention the first period's time-weighted average spans DICKBUTT's whole history and a wallet that bought last month averages to almost nothing. That may or may not be what you want, but it must be a decision.
+
+`node calculate-rewards.js --config … --bootstrap` commits the first period with balances and a **zero pot**: no shares, no plan. The pot is untouched and reappears in the next period, which measures from the bootstrap boundary. It is only accepted before any period has been journaled. Run it once, right after the distributor is deployed and before the first scheduled calculator run.
+
 ## Key isolation
 
 Four bot keys, none of which should share a host with another:
 
 - **Keeper** — `processWeth`, `distributeBatch`
 - **Proposer** — `proposeRound`. `PROPOSER_PRIVATE_KEY`; the keeper CLI refuses it when it equals `KEEPER_PRIVATE_KEY`
-- **Ops** — `setPriceFloor`. Refuses to run as an approved keeper. [Price-floor bot](PRICE-FLOOR.md)
+- **Ops** — `setPriceFloor` under the executor's `floorSetter` role, bounded by `floorLowerBound`. The contract refuses a keeper as a floor setter and vice versa; the bot refuses to run as an approved keeper. [Price-floor bot](PRICE-FLOOR.md)
 - **Monitor** — no key at all; read-only alerting, deliberately elsewhere
 
 The local rehearsal runs owner, keeper, proposer and guardian as four distinct signers and asserts the floor bot rejects a keeper key.
 
 ## Operating checklist
 
-1. Deploy with the multisig as `owner`. `guardian` defaults to it.
-2. `setProposer(bot, true)` and `setKeeper(bot, true)` with **different** addresses.
+1. Deploy with the multisig as `owner` of every contract, the executor included. `guardian` defaults to it and follows it if ownership moves.
+2. `setProposer(bot, true)` and `setKeeper(bot, true)` with **different** addresses. On the executor, `setFloorLowerBound(bound)` first, then `setFloorSetter(ops, true)` with a third address; the contract rejects the keeper, and rejects any setter while the bound is zero.
 3. Confirm or change `setRoundLimits(maxRoundBps, minRoundInterval)` against the payout schedule above. Defaults are 5000 and 12 hours.
+3b. Run the calculator once with `--bootstrap` before the first scheduled run, if round 1 should measure from launch rather than from the token's genesis.
 4. Fund every bot key with ETH on Base. An unfunded key fails exactly like a compromised one is stopped — silently, until something alerts.
 5. Alert on keeper exit 2 (`partial`, `closed-unpaid`, `proposal-rate-limited`), on floor-bot exit 2, and on any `RoundProposed` the calculator journal did not produce. `npm run monitor` checks the last of these directly; see the [runbook](RUNBOOK.md).
 6. Rehearse the guardian path — pause, cancel, unpause — before relying on it.
