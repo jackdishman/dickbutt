@@ -135,8 +135,8 @@
   },
   "roundLimits": {
     "roundDelay": "24 hours",
-    "maxRoundBps": 2500,
+    "maxRoundBps": 5000,
     "minRoundInterval": "12 hours",
-    "note": "maxRoundBps below 10000 permanently defers part of each pot; the steady-state buffer is roughly inflow/maxRoundBps. Decide against the intended payout schedule. See docs/GOVERNANCE.md."
+    "note": "maxRoundBps below 10000 permanently defers part of each pot; the steady-state buffer is roughly inflow/maxRoundBps. 5000 chosen because a stolen proposer key cannot move tokens, so the cap only bounds griefing. See docs/GOVERNANCE.md."
   }
 }

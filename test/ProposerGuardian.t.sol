@@ -29,25 +29,25 @@ contract ProposerGuardianTest is Support {
 
     function testDefaultsAreTheAgreedPolicy() public view {
         eq(d.roundDelay(), 24 hours);
-        eq(d.maxRoundBps(), 2500);
+        eq(d.maxRoundBps(), 5000);
         eq(d.minRoundInterval(), 12 hours);
         require(d.guardian() == GUARDIAN, "guardian");
         // Owner is implicitly a proposer so the multisig never depends on a bot.
         require(!d.isProposer(address(this)), "owner is not listed");
-        eq(d.maxProposableTotal(), 2500);
+        eq(d.maxProposableTotal(), 5000);
         eq(d.nextProposalAllowedAt(), 0);
     }
 
     function testShareCapBoundsASingleRound() public {
         vm.prank(PROPOSER);
         vm.expectRevert(bytes("round exceeds share cap"));
-        d.proposeRound(leaf(1, ALICE, 2501), 2501);
+        d.proposeRound(leaf(1, ALICE, 5001), 5001);
 
         vm.prank(PROPOSER);
-        d.proposeRound(leaf(1, ALICE, 2500), 2500);
-        eq(d.totalReserved(), 2500);
+        d.proposeRound(leaf(1, ALICE, 5000), 5000);
+        eq(d.totalReserved(), 5000);
         // The cap applies to what is left unreserved, so a queued round shrinks the next.
-        eq(d.maxProposableTotal(), 1875);
+        eq(d.maxProposableTotal(), 2500);
     }
 
     function testCapIsRecomputedAgainstUnreservedBalanceNotRawBalance() public {
@@ -173,13 +173,14 @@ contract ProposerGuardianTest is Support {
     function testDustBalanceFloorsTheCapToZero() public {
         RewardMock dust = new RewardMock();
         DickbuttRewardsDistributor small = new DickbuttRewardsDistributor(address(dust), 0, address(this));
-        dust.mint(address(small), 3);
+        // At 50% a single raw unit floors to zero, so nothing is proposable.
+        dust.mint(address(small), 1);
         eq(small.maxProposableTotal(), 0);
         vm.expectRevert(bytes("round exceeds share cap"));
         small.proposeRound(leaf(1, ALICE, 1), 1);
         small.setRoundLimits(10000, 0);
-        eq(small.maxProposableTotal(), 3);
-        small.proposeRound(leaf(1, ALICE, 3), 3);
+        eq(small.maxProposableTotal(), 1);
+        small.proposeRound(leaf(1, ALICE, 1), 1);
     }
 
     function testFuzzCapNeverAdmitsMoreThanItsShare(uint96 balance, uint16 bps, uint96 total) public {

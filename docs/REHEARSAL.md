@@ -36,7 +36,7 @@ The fee sources, assets and swap router are mocks with fixed amounts; the Splits
 
 **5. The real calculator produces a committed plan.** Two holders qualify against the 6.9M time-weighted threshold (7M and 14M DICKBUTT) under `linear` weighting, with every contract, treasury and burn address excluded. Shares split exactly 1:2 by time-weighted balance, and unallocated raw units are booked as dust for a later period. Integer flooring, not loss.
 
-**5b. The share cap bites.** The distributor admits at most 25% of the unreserved balance per round, so the plan commits 402 of the 1,615 and the rest rolls into the next period. The guardian then pauses proposals, the keeper refuses to propose while paused, and the guardian unpauses — all without the owner key. [Roles and bounds](GOVERNANCE.md).
+**5b. The share cap bites.** The distributor admits at most 50% of the unreserved balance per round, so the plan commits 807 of the 1,615 and the rest rolls into the next period. The guardian then pauses proposals, the keeper refuses to propose while paused, and the guardian unpauses — all without the owner key. [Roles and bounds](GOVERNANCE.md).
 
 **6. The real keeper delivers it.** With `--propose` the owner commits the root; the six-hour timelock is reported as `timelocked`; after the delay the round activates and pays in `batchSize: 1` batches. One recipient is deliberately blocked mid-round, producing a `payment-failed` event and `partial` status with one unpaid account. The block is lifted, a rerun pays only that account, and the round closes at `closed` — the already-paid recipient's balance is asserted unchanged.
 

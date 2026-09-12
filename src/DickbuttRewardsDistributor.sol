@@ -97,7 +97,11 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     /// Bounds the blast radius of a single bad plan; it does not bound the
     /// cumulative total across many rounds. That is what the interval,
     /// the timelock and the guardian are for.
-    uint256 public maxRoundBps = 2500;
+    /// @dev 50%. A stolen proposer key cannot move tokens at all -- payment is
+    /// keeper-gated against a root the keeper rebuilds itself -- so this trades
+    /// a tighter cap for a shorter payout backlog. Below 100% the uncommitted
+    /// remainder rolls into the next round; see docs/GOVERNANCE.md.
+    uint256 public maxRoundBps = 5000;
 
     /// @notice Minimum spacing between proposals. A cancellation does NOT
     /// refund the slot, so a compromised proposer cannot immediately retry.

@@ -7,7 +7,7 @@
 | DICKBUTT | 10% KC Green, 90% burn address |
 | WETH | 10% KC Green, 10% CDB vault, 80% swap executor |
 
-The swap executor receives the entire 80% allocation and swaps it to SPCXc for the fixed rewards distributor. It does not charge another percentage. Sending tokens to the burn address transfers them out of circulation at that address; it does not invoke a token supply burn function.
+The swap executor receives the entire 80% allocation and swaps it to SPCXc for the fixed rewards distributor. It does not charge another percentage. Splits is used for the **fan-out only**; the swap is a separate contract because Splits' own Swapper prices through Uniswap V3 and Chainlink, while this route is Aerodrome Slipstream into a Base B20 token. [Why](GOVERNANCE.md#why-splits-handles-the-fan-out-but-not-the-swap). Sending tokens to the burn address transfers them out of circulation at that address; it does not invoke a token supply burn function.
 
 ## Protocol identity
 
