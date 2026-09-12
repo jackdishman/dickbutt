@@ -7,21 +7,30 @@ export async function runCalculator({dir='.',provider,token,distributor,config,r
  const boundary=await selectBoundary(provider,config.finalityTag),blockTag=boundary.number;if(blockTag<=state.lastProcessedBlock)return {unchanged:true};
  if(state.blockHash){const previous=await provider.getBlock(state.lastProcessedBlock);if(previous?.hash!==state.blockHash)throw Error('previous snapshot hash changed');}
  const startingAccrual=amounts(state.accrued),{localReserved,recredits}=await reconcile(distributor,state,blockTag,config.chunkSize);
- const [next,available,minPayout,decimals,rewardToken]=await Promise.all([distributor.nextRoundId({blockTag}),distributor.availableForNextRound({blockTag}),distributor.minPayout({blockTag}),token.decimals({blockTag}),distributor.rewardToken({blockTag})]);
+ const [next,available,minPayout,decimals,rewardToken,maxProposable]=await Promise.all([distributor.nextRoundId({blockTag}),distributor.availableForNextRound({blockTag}),distributor.minPayout({blockTag}),token.decimals({blockTag}),distributor.rewardToken({blockTag}),distributor.maxProposableTotal({blockTag})]);
  if(Number(decimals)!==18)throw Error('unexpected holder token decimals');
  // Metadata is also read at the snapshot; never call latest through a helper.
  const reward=rewardTokenFactory(rewardToken);
  const rewardDecimals=Number(await reward.decimals({blockTag}));
  const roundId=BigInt(next).toString();if(state.plans[roundId])throw Error(`unproposed local plan already reserves round ${roundId}`);
- const availableRaw=BigInt(available),carry=sum(state.accrued),pot=availableRaw-carry-localReserved;if(pot<0n)throw Error('insolvent local accrual/reservations');
+ const availableRaw=BigInt(available),carry=sum(state.accrued),roundCap=BigInt(maxProposable);
+ let pot=availableRaw-carry-localReserved;if(pot<0n)throw Error('insolvent local accrual/reservations');
+ // The distributor caps one round at a share of its unreserved balance. Allocate at most that much
+ // in new shares; the remainder stays in the contract and reappears in the next period's available.
+ // Without this the calculator would plan rounds the contract always rejects.
+ const uncapped=pot;if(pot>roundCap)pot=roundCap;
  const fromBlock=state.lastProcessedBlock+1,startBlock=await provider.getBlock(state.lastProcessedBlock);if(!startBlock)throw Error('missing period start block');
  const transfers=await scanEvents(token,token.filters.Transfer(),fromBlock,blockTag,config.chunkSize),timestamps=new Map();for(const n of new Set(transfers.map(e=>e.blockNumber))){const b=await provider.getBlock(n);if(!b)throw Error('missing transfer block');timestamps.set(n,b.timestamp);}
  const {twab,endingBalances}=computeTWAB(state.balances,transfers,timestamps,startBlock.timestamp,boundary.timestamp,config.excluded);
  const {shares,qualifying,dust}=computeShares(twab,BigInt(config.holderThresholdRaw),pot,config.curve),accrued=amounts(state.accrued);for(const[a,v]of Object.entries(shares))accrued[a]=(accrued[a]??0n)+v;
  const threshold=BigInt(config.payoutThresholdRaw)>BigInt(minPayout)?BigInt(config.payoutThresholdRaw):BigInt(minPayout),payouts={};for(const[a,v]of Object.entries(accrued))if(v>0n&&v>=threshold){payouts[a]=v;delete accrued[a];}
- const plan=buildPlan(roundId,payouts,config.batchSize);if(plan){if(BigInt(plan.total)>availableRaw-localReserved)throw Error('plan exceeds available funds');plan.toBlock=blockTag;state.plans[roundId]=plan;}
+ const plan=buildPlan(roundId,payouts,config.batchSize);if(plan){if(BigInt(plan.total)>availableRaw-localReserved)throw Error('plan exceeds available funds');
+  // Carry from earlier periods can push the payable total past the cap even when new shares fit.
+  // Fail loudly rather than starving a specific holder by silently deferring them.
+  if(BigInt(plan.total)>roundCap)throw Error(`plan total ${plan.total} exceeds the distributor round share cap ${roundCap}: raise maxRoundBps or lower the payout threshold`);
+  plan.toBlock=blockTag;state.plans[roundId]=plan;}
  const end=await provider.getBlock(blockTag);if(end?.hash!==boundary.hash)throw Error('snapshot hash changed during calculation');
  Object.assign(state,{lastProcessedBlock:blockTag,blockHash:boundary.hash,balances:endingBalances,accrued,configHash});
- const record={version:1,config,configHash,block:{number:blockTag,hash:boundary.hash,finality:config.finalityTag},fromBlock,periodStartTs:startBlock.timestamp,periodEndTs:boundary.timestamp,startingAccrual,recredits,newShares:shares,payouts,endingAccrual:accrued,available:availableRaw,localReserved,pot,dust,qualifying,rewardToken,rewardDecimals,roundId:plan?.roundId??null,root:plan?.root??null,plan,state};journal.append(record);return record;
+ const record={version:1,config,configHash,block:{number:blockTag,hash:boundary.hash,finality:config.finalityTag},fromBlock,periodStartTs:startBlock.timestamp,periodEndTs:boundary.timestamp,startingAccrual,recredits,newShares:shares,payouts,endingAccrual:accrued,available:availableRaw,localReserved,pot,potBeforeCap:uncapped,roundCap,dust,qualifying,rewardToken,rewardDecimals,roundId:plan?.roundId??null,root:plan?.root??null,plan,state};journal.append(record);return record;
  }finally{journal.unlock();}
 }

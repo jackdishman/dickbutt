@@ -1,0 +1,31 @@
+{
+  "chainId": 8453,
+  "protocol": "Splits PushSplit V2.2",
+  "upstreamCommit": "09523d2a5d594f9ee8783faf147caa3c414230dd",
+  "deploymentSource": "https://github.com/0xSplits/splits-contracts-monorepo/blob/09523d2a5d594f9ee8783faf147caa3c414230dd/packages/splits-v2/deployments/8453.json",
+  "factory": "0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4",
+  "implementation": "0x1e2086A7e84a32482ac03000D56925F607CCB708",
+  "warehouse": "0x8fb66F38cF86A3d5e8768f8F1754A24A6c661Fb8",
+  "verifiedForkBlock": 51218068,
+  "splitOwner": "0x0000000000000000000000000000000000000000",
+  "distributionIncentive": 0,
+  "dickbutt": {
+    "recipientRoles": ["kcGreen", "burnAddress"],
+    "allocations": [1, 9],
+    "totalAllocation": 10
+  },
+  "weth": {
+    "recipientRoles": ["kcGreen", "cdbVault", "swapExecutor"],
+    "allocations": [1, 1, 8],
+    "totalAllocation": 10
+  },
+  "deployment": {
+    "router": null,
+    "dickSplit": null,
+    "wethSplit": null,
+    "swapExecutor": null,
+    "recipientConfig": "config/base-mainnet.json#deployment"
+  },
+  "rounding": "One raw unit retained in each nonempty Split and Warehouse balance; allocations floor independently and remaining dust stays in the Split.",
+  "status": "Verified integration on a pinned Base fork; application contracts not deployed by this manifest."
+}

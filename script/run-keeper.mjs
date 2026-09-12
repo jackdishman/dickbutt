@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+import 'dotenv/config';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ethers } from 'ethers';
+import { runKeeper, KEEPER_ABI } from '../keeper/engine.js';
+import { stringify } from '../calculator/journal.js';
+
+export function parseKeeperArgs(args) {
+ const options={execute:false,propose:false,confirmations:1};
+ for(let i=0;i<args.length;i++) {
+  const arg=args[i];
+  if(arg==='--execute') options.execute=true;
+  else if(arg==='--propose') options.propose=true;
+  else if(arg==='--help') options.help=true;
+  else if(['--config','--journal','--confirmations'].includes(arg)) {
+   const value=args[++i];
+   if(!value||value.startsWith('--'))throw Error(`missing value for ${arg}`);
+   if(arg==='--config')options.configPath=value;
+   if(arg==='--journal')options.dir=value;
+   if(arg==='--confirmations')options.confirmations=Number(value);
+  } else throw Error(`unknown keeper option: ${arg.startsWith('--')?arg:'positional argument'}`);
+ }
+ if(options.help)return options;
+ if(!options.configPath)throw Error('--config is required (reviewed calculator configuration JSON)');
+ if(!options.dir)throw Error('--journal is required (calculator data directory)');
+ if(options.propose&&!options.execute)throw Error('--propose requires --execute');
+ if(!Number.isSafeInteger(options.confirmations)||options.confirmations<1)throw Error('invalid confirmations');
+ return options;
+}
+
+export async function main(args=process.argv.slice(2),env=process.env) {
+ const options=parseKeeperArgs(args);
+ if(options.help) {
+  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--propose] [--confirmations 1]\nDefault: dry run. Execution allows only chain 31337 or 84532.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).');
+  return;
+ }
+ if(!env.RPC_URL)throw Error('RPC_URL is required');
+ const config=JSON.parse(fs.readFileSync(options.configPath,'utf8'));
+ const provider=new ethers.JsonRpcProvider(env.RPC_URL,undefined,{cacheTimeout:-1});
+ try {
+  const chainId=(await provider.getNetwork()).chainId.toString();
+  if(options.execute&&!['31337','84532'].includes(chainId))throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');
+  let signer,ownerSigner;
+  if(options.execute) {
+   if(!env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required for execution');
+   signer=new ethers.Wallet(env.KEEPER_PRIVATE_KEY,provider);
+   // PROPOSER_PRIVATE_KEY is the bot role; OWNER_PRIVATE_KEY stays supported for a multisig
+   // EOA or an older deployment. Either way it must not be the keeper key.
+   const proposerKey=env.PROPOSER_PRIVATE_KEY||env.OWNER_PRIVATE_KEY;
+   if(options.propose&&proposerKey===env.KEEPER_PRIVATE_KEY&&env.PROPOSER_PRIVATE_KEY) throw Error('PROPOSER_PRIVATE_KEY equals KEEPER_PRIVATE_KEY; the proposer must hold a separate key');
+   ownerSigner=options.propose&&proposerKey?new ethers.Wallet(proposerKey,provider):signer;
+   // Refuse to race transactions submitted by a different process or operational tool.
+   for(const address of new Set([signer.address,...(options.propose?[ownerSigner.address]:[])])) {
+    const [latest,pending]=await Promise.all([provider.getTransactionCount(address,'latest'),provider.getTransactionCount(address,'pending')]);
+    if(latest!==pending)throw Error('signer has pending transactions; resolve them before keeper execution');
+   }
+  }
+  const result=await runKeeper({...options,config,provider,
+   distributor:new ethers.Contract(config.distributor,KEEPER_ABI,signer??provider),
+   signerAddress:signer?.address,ownerAddress:ownerSigner?.address,
+   ownerDistributor:new ethers.Contract(config.distributor,KEEPER_ABI,ownerSigner??provider),
+   onEvent:event=>console.log(stringify(event)),
+  });
+  console.log(stringify(result));
+  if(result.rounds.some(round=>['partial','closed-unpaid','proposal-rate-limited'].includes(round.status)))process.exitCode=2;
+  return result;
+ } finally { provider.destroy(); }
+}
+
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+ main().catch(error=>{
+  // Provider errors can embed URLs, request bodies or signing material. Report only a sanitized summary.
+  let message=error.code?'RPC/signing operation failed; inspect transaction events and provider status':error.message;
+  for(const value of [process.env.RPC_URL,process.env.KEEPER_PRIVATE_KEY,process.env.OWNER_PRIVATE_KEY,process.env.PROPOSER_PRIVATE_KEY].filter(Boolean))message=message.split(value).join('[redacted]');
+  console.error(stringify({type:'keeper-error',message}));
+  process.exitCode=1;
+ });
+}

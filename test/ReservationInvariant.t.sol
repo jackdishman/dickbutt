@@ -10,6 +10,9 @@ contract ReservationHandler is Support {
     uint256 public minted;
     constructor() {
         token=new RewardMock(); d=new DickbuttRewardsDistributor(address(token),0,address(this));
+        // Lifecycle coverage predates the share cap and rate limit; disable both so these
+        // tests keep exercising rounds, not the limits. Dedicated tests cover the limits.
+        d.setRoundLimits(10000, 0);
         d.setKeeper(address(this),true); fund(1000);
     }
     function fund(uint96 amount) public { token.mint(address(d),amount); minted+=amount; }

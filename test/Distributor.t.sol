@@ -10,6 +10,9 @@ contract DistributorTest is Support {
     function setUp() public {
         token = new RewardMock();
         d = new DickbuttRewardsDistributor(address(token), 0, address(this));
+        // Lifecycle coverage predates the share cap and rate limit; disable both so these
+        // tests keep exercising rounds, not the limits. Dedicated tests cover the limits.
+        d.setRoundLimits(10000, 0);
         d.setKeeper(address(this), true);
         token.mint(address(d), 100);
     }
@@ -30,12 +33,12 @@ contract DistributorTest is Support {
     function testThresholdChangeCannotStrandCommittedLeaf() public {
         d.proposeRound(leaf(1, ALICE, 10), 10);
         d.setMinPayout(20);
-        vm.warp(block.timestamp + 6 hours); d.activateRound(1); pay(1, 10);
+        vm.warp(block.timestamp + d.roundDelay()); d.activateRound(1); pay(1, 10);
         eq(token.balanceOf(ALICE), 10);
     }
     function testBlockedTransferRetryAndDuplicate() public {
         d.proposeRound(leaf(1, ALICE, 10), 10);
-        vm.warp(block.timestamp + 6 hours); d.activateRound(1);
+        vm.warp(block.timestamp + d.roundDelay()); d.activateRound(1);
         token.setBlocked(ALICE, true); pay(1, 10);
         require(!d.paid(1, ALICE)); eq(token.balanceOf(ALICE), 0);
         token.setBlocked(ALICE, false); pay(1, 10); pay(1, 10);
@@ -55,7 +58,7 @@ contract DistributorTest is Support {
         d.proposeRound(leaf(1, ALICE, 30), 30);
         d.proposeRound(leaf(2, ALICE, 70), 70);
         vm.expectRevert(); d.activateRound(1);
-        vm.warp(block.timestamp + 6 hours); d.activateRound(1);
+        vm.warp(block.timestamp + d.roundDelay()); d.activateRound(1);
         eq(d.totalReserved(), 100); pay(1, 30); eq(d.totalReserved(), 70);
         d.activateRound(2); d.closeRound(2); eq(d.totalReserved(), 0);
         eq(d.availableForNextRound(), 70);
@@ -63,7 +66,7 @@ contract DistributorTest is Support {
     function testInvalidCrossRoundProofAndKeeperRemoval() public {
         d.proposeRound(leaf(1, ALICE, 10), 10);
         d.proposeRound(leaf(1, ALICE, 10), 10);
-        vm.warp(block.timestamp + 6 hours); d.activateRound(1); d.activateRound(2);
+        vm.warp(block.timestamp + d.roundDelay()); d.activateRound(1); d.activateRound(2);
         vm.expectRevert(); pay(2,10);
         vm.expectRevert(); pay(1,11);
         d.setKeeper(address(this),false); vm.expectRevert(); pay(1,10);
@@ -74,7 +77,7 @@ contract DistributorTest is Support {
         vm.prank(ALICE); vm.expectRevert(); d.proposeRound(leaf(1,ALICE,10),10);
         d.proposeRound(leaf(1,ALICE,10),10);
         vm.prank(ALICE); vm.expectRevert(); d.cancelPendingRound(1);
-        vm.warp(block.timestamp+6 hours); vm.prank(ALICE); d.activateRound(1);
+        vm.warp(block.timestamp+d.roundDelay()); vm.prank(ALICE); d.activateRound(1);
         vm.prank(ALICE); vm.expectRevert(); d.closeRound(1);
         vm.prank(ALICE); vm.expectRevert(); d.setKeeper(ALICE,true);
     }
@@ -84,7 +87,7 @@ contract DistributorTest is Support {
         address bob=address(0x2222);
         bytes32 la=leaf(1,ALICE,a); bytes32 lb=leaf(1,bob,b);
         bytes32 root=la<lb?keccak256(abi.encodePacked(la,lb)):keccak256(abi.encodePacked(lb,la));
-        d.proposeRound(root,a+b); vm.warp(block.timestamp+6 hours); d.activateRound(1);
+        d.proposeRound(root,a+b); vm.warp(block.timestamp+d.roundDelay()); d.activateRound(1);
         address[] memory accounts=new address[](2); uint256[] memory amounts=new uint256[](2);
         bytes32[][] memory proofs=new bytes32[][](2);
         uint256 ai=reverse?1:0; uint256 bi=1-ai;
@@ -100,7 +103,7 @@ contract DistributorTest is Support {
         address bob=address(0x2222); bytes32 la=leaf(1,ALICE,60); bytes32 lb=leaf(1,bob,60);
         bytes32 root=la<lb?keccak256(abi.encodePacked(la,lb)):keccak256(abi.encodePacked(lb,la));
         token.mint(address(d),100); d.proposeRound(root,100); d.proposeRound(leaf(2,ALICE,100),100);
-        vm.warp(block.timestamp+6 hours); d.activateRound(1);
+        vm.warp(block.timestamp+d.roundDelay()); d.activateRound(1);
         address[] memory accounts=new address[](2); accounts[0]=ALICE; accounts[1]=bob;
         uint256[] memory amounts=new uint256[](2); amounts[0]=60; amounts[1]=60;
         bytes32[][] memory proofs=new bytes32[][](2); proofs[0]=new bytes32[](1); proofs[1]=new bytes32[](1);
@@ -110,7 +113,7 @@ contract DistributorTest is Support {
         require(!d.paid(1,ALICE) && !d.paid(1,bob));
     }
     function testDuplicateAccountAndPauseRetry() public {
-        d.proposeRound(leaf(1,ALICE,10),10); vm.warp(block.timestamp+6 hours); d.activateRound(1);
+        d.proposeRound(leaf(1,ALICE,10),10); vm.warp(block.timestamp+d.roundDelay()); d.activateRound(1);
         token.setPaused(true); pay(1,10); eq(d.totalReserved(),10);
         token.setPaused(false);
         address[] memory accounts=new address[](2); accounts[0]=ALICE; accounts[1]=ALICE;
