@@ -57,6 +57,13 @@ export function buildManifest({ chainId, quoter, contracts, roles, deployedAtBlo
     quoter,
     contracts: Object.fromEntries(required.map(key => [key, contracts[key]])),
     splits: { dickSplit: contracts.dickSplit ?? null, wethSplit: contracts.wethSplit ?? null },
+    // The CLIs read safe count on-chain, but an operator debugging a legacy harvest should not
+    // have to reconstruct these from transaction history.
+    sources: {
+      locker: contracts.locker ?? null,
+      positionManager: contracts.manager ?? null,
+      legacySafes: contracts.legacySafes ?? [],
+    },
     roles,
     notes,
   };

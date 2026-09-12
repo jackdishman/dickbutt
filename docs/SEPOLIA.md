@@ -22,6 +22,20 @@ The router and quoter share one `rate` in one file deliberately: a quoter that d
 
 Fee amounts default to realistic magnitudes (0.01 WETH and 1,000 DICKBUTT per collect). This matters — the local rehearsal's 1,000-**wei** fees round a per-`1e18` swap rate to zero, so a toy-scale testnet would never exercise the price floor or slippage paths at all.
 
+## Admin roles on the stand-ins
+
+These contracts sit on a public chain where anyone can call them, so the parts that would let a stranger derail a rehearsal are gated to the deployer.
+
+| Contract | Open to anyone | Deployer only |
+| --- | --- | --- |
+| `SepoliaToken` | `mint` — an intentional faucet | `setBlocked` |
+| `SepoliaPositionManager` | `mint` | `configureFees` |
+| `SepoliaLocker` | — | `setFeeAmounts` |
+
+`SepoliaLocker` keeps `feeAdmin` **separate from `owner`**. Deployment transfers `owner` to `LockerHarvester`, and a contract cannot call `setFeeAmounts`, so gating fee size on `owner` would freeze it at the defaults permanently. `feeAdmin` stays with the deployer and is transferable with `setFeeAdmin`. Each admin role is transferable and rejects the zero address.
+
+Minting stays open because the tokens are faucets and balances are meaningless anyway. `setBlocked` is not open, because it exists to exercise the distributor's failed-recipient and retry path — a stranger flipping it mid-run would stall payouts and look like a bug in the keeper.
+
 ## Deploy
 
 ```sh
@@ -37,7 +51,7 @@ The deployer needs at least 0.02 ETH. Each deployed address is written to `<mani
 
 Two files come out:
 
-- `deployment-sepolia.json` — addresses for `npm run fees`, `npm run floor`
+- `deployment-sepolia.json` — addresses for `npm run fees`, `npm run floor`. Its `sources` block also records the locker, position manager and legacy Safes, which the CLIs read on-chain but an operator debugging a harvest should not have to reconstruct from transaction history.
 - `deployment-sepolia-calculator.json` — the **exact** object the calculator hashes and the keeper verifies
 
 Pass the second one straight through with `--config`. Rebuilding it from environment variables is possible but one stray value produces a journal the keeper rejects as a configuration identity mismatch.
@@ -85,5 +99,6 @@ A full run against a local fork of Base Sepolia (chain ID 84532, genuine Splits 
 5. Calculator produced a plan from the emitted config: 2 qualifying holders, 1:2 split, total exactly 50% of available — the round share cap
 6. Proposer bot proposed; guardian paused and unpaused without the owner key; after the 24-hour timelock the keeper activated, paid and closed
 7. Both holders received exactly their planned amounts
+8. `setFeeAmounts` still worked after `owner` moved to the harvester, and a non-admin key was rejected from `setBlocked`
 
 That was a fork, not the public testnet. It proves the scripts and wiring; it is not a Base Sepolia deployment receipt. [Evidence boundaries](REHEARSAL.md#evidence-categories), [roles and bounds](GOVERNANCE.md).

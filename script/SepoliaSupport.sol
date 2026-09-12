@@ -71,9 +71,19 @@ contract SepoliaQuoter {
 contract SepoliaToken is ERC20 {
     uint8 private immutable _decimals;
     mapping(address => bool) public blocked;
+    /// @notice Deployer. Minting stays open, but blocking a holder must not be, or any stranger
+    /// on a public testnet can stall the payout path mid-rehearsal.
+    address public admin;
 
     constructor(string memory name_, string memory symbol_, uint8 decimals_) ERC20(name_, symbol_) {
         _decimals = decimals_;
+        admin = msg.sender;
+    }
+
+    function setAdmin(address newAdmin) external {
+        require(msg.sender == admin, "not admin");
+        require(newAdmin != address(0), "bad admin");
+        admin = newAdmin;
     }
 
     function decimals() public view override returns (uint8) {
@@ -86,6 +96,7 @@ contract SepoliaToken is ERC20 {
 
     /// @notice Exercise the distributor's failed-recipient and retry path on a live chain.
     function setBlocked(address account, bool value) external {
+        require(msg.sender == admin, "not admin");
         blocked[account] = value;
     }
 
@@ -108,12 +119,17 @@ contract SepoliaLocker {
     uint256 public duration;
     uint256 public wethPerCollect;
     uint256 public dickbuttPerCollect;
+    /// @notice Separate from `owner` on purpose. `owner` is handed to LockerHarvester during
+    /// deployment, and a contract cannot call setFeeAmounts, so gating fee size on `owner` would
+    /// freeze it at the defaults forever -- defeating the point of making it configurable.
+    address public feeAdmin;
 
     constructor(address manager_, address weth_, address dickbutt_, address owner_, uint256 tokenId_) {
         manager = manager_;
         weth = IMintable(weth_);
         dickbutt = IMintable(dickbutt_);
         owner = owner_;
+        feeAdmin = msg.sender;
         tokenId = tokenId_;
         duration = block.timestamp + 365 days;
         wethPerCollect = 0.01 ether;
@@ -121,9 +137,15 @@ contract SepoliaLocker {
     }
 
     function setFeeAmounts(uint256 wethAmount, uint256 dickbuttAmount) external {
-        require(msg.sender == owner || owner == address(0), "not owner");
+        require(msg.sender == feeAdmin, "not fee admin");
         wethPerCollect = wethAmount;
         dickbuttPerCollect = dickbuttAmount;
+    }
+
+    function setFeeAdmin(address newAdmin) external {
+        require(msg.sender == feeAdmin, "not fee admin");
+        require(newAdmin != address(0), "bad admin");
+        feeAdmin = newAdmin;
     }
 
     function transferOwnership(address to) external {
@@ -153,12 +175,21 @@ contract SepoliaPositionManager is ERC721 {
     IMintable public token1;
     uint256 public amount0PerCollect;
     uint256 public amount1PerCollect;
+    address public admin;
 
-    constructor() ERC721("Sepolia Position", "sPOS") {}
+    constructor() ERC721("Sepolia Position", "sPOS") { admin = msg.sender; }
 
     function mint(address to, uint256 id) external { _mint(to, id); }
 
+    function setAdmin(address newAdmin) external {
+        require(msg.sender == admin, "not admin");
+        require(newAdmin != address(0), "bad admin");
+        admin = newAdmin;
+    }
+
+    /// @dev Admin-gated so a stranger cannot zero out or inflate collectable fees mid-rehearsal.
     function configureFees(address t0, address t1, uint256 a0, uint256 a1) external {
+        require(msg.sender == admin, "not admin");
         token0 = IMintable(t0);
         token1 = IMintable(t1);
         amount0PerCollect = a0;

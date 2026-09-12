@@ -48,6 +48,13 @@ test('manifest carries every address the operating CLIs read', () => {
     assert.ok(m.contracts[key], `manifest must carry ${key}`);
   }
   assert.equal(m.splits.dickSplit, contracts.dickSplit);
+  // Fee-source addresses are needed to debug a harvest; they are not in `contracts`.
+  const withSources = buildManifest({ chainId: 84532, quoter: addr(9), roles, deployedAtBlock: 7,
+    contracts: { ...contracts, locker: addr(40), manager: addr(41), legacySafes: [addr(42), addr(43)] } });
+  assert.equal(withSources.sources.locker, addr(40));
+  assert.equal(withSources.sources.positionManager, addr(41));
+  assert.deepEqual(withSources.sources.legacySafes, [addr(42), addr(43)]);
+  assert.deepEqual(m.sources.legacySafes, []);
   assert.throws(() => buildManifest({ chainId: 84532, quoter: addr(9), contracts: { ...contracts, legacy: undefined }, roles }), /missing contract addresses: legacy/);
   assert.throws(() => buildManifest({ chainId: 84532, contracts, roles }), /quoter/);
 });
