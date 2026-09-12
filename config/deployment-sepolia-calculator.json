@@ -1,0 +1,33 @@
+{
+  "chainId": "84532",
+  "token": "0x212a5d974c5e492ffef293337f47fc6e657ce700",
+  "distributor": "0x5e81e5b19d20e4a543393c0df166e5adb19e6668",
+  "deployBlock": 46743148,
+  "holderThresholdRaw": "6900000000000000000000000",
+  "payoutThresholdRaw": "1",
+  "curve": "linear",
+  "excluded": [
+    "0x000000000000000000000000000000000000dead",
+    "0x13a0399ec75cb4ea1bf2ef46fa3b725f26a8e141",
+    "0x1b8effd2d2c1d996e85834435f89befe195e9d4c",
+    "0x1d179beed174e5eb0fd65816797245f385c2c1f6",
+    "0x4319fae9a0542d50df37ebaf1434a22a24499f54",
+    "0x482713437b4973863bacc66af4d980f22315cb3a",
+    "0x5e81e5b19d20e4a543393c0df166e5adb19e6668",
+    "0x6bca269b283781c415ab82844023b6997bad045f",
+    "0x733e3a377416bb418e6cad5f850d9f4714db4a22",
+    "0x8731b51fc0e1e75437cd41512af5a143aefb6494",
+    "0x9a2680e05a93ac5fe30226e987afcb8aff73e1c7",
+    "0xb664a46598cf6ff32ab2a1066e63b742ad43eba5",
+    "0xc4cd56f85a003c0a66f065245ff1c4e869b351fb",
+    "0xd2f1afb84f1144c719879ee2fac9e8c8f342135a",
+    "0xec31d802ac9ad41bd09879b5dcabc33d9e5adbde",
+    "0xec5bbf9eafb88cb1ea611ebcce72d199cbfb1871",
+    "0xf0745835f26ddddb598bf071e7d7ec84a92699f8",
+    "0xf24df3ba0185184eea30a40e0a1cdc2a9e5ccb9f",
+    "0xf99148d7523fd0754acb6fa262c6c5953b02fc49"
+  ],
+  "batchSize": 50,
+  "chunkSize": 2000,
+  "finalityTag": "finalized"
+}

@@ -10,14 +10,14 @@ Nothing here has touched Base mainnet. No contract is deployed there, no custody
 | --- | --- | --- |
 | Contracts (`src/`) | Complete for the agreed design: Splits fan-out, Aerodrome swap executor with a bounded floor-setter role, three fee harvesters, push distributor with proposer/guardian bounds | 94 Foundry tests, invariant suite, fork tests against the real Clanker locker, legacy module and Splits factory |
 | Off-chain (calculator, keeper, four bots, monitor, schedule) | Complete and exercised end to end, including recovery from a foreign round and a bootstrap period | 150 JS tests; local Base-fork rehearsal with eight stages |
-| Public testnet | 14 contracts live on Base Sepolia, genuine Splits clones, one full fee cycle done, round 1 proposed by the bot proposer. **Predates the fixes below; needs a redeploy** | [SEPOLIA.md](SEPOLIA.md), `config/deployment-sepolia.json` |
+| Public testnet | Redeployed with the fixed contracts from block 46743220: genuine Splits clones, every role verified live including the floor setter's limits, one full fee cycle done. A live round with the foreign-root recovery is running | [SEPOLIA.md](SEPOLIA.md), `config/deployment-sepolia.json` |
 | Control console | `npm run console` shows the flow, the checklist and runs the commands locally | [ui/README.md](../ui/README.md) |
 | Mainnet | Nothing deployed. No mainnet deploy script exists yet by design | `config/base-mainnet.json` holds the prerequisites |
 | Independent review | Not started | [AUDITOR-BRIEF.md](../AUDITOR-BRIEF.md) is the scope |
 
 Three pull requests have merged. The repository is at parity with `origin/main`.
 
-**Sepolia round 1 at the time of writing:** proposed and timelocked, not yet paid. Root `0x26a91d5c…`, total 203,199,999 raw SPCXc (2.03 SPCXc), split exactly 1:2 across two holders and exactly 50% of the available pot. The payout needs one keeper run after the timelock. `roundDelay` on that deployment was lowered to 1 hour for the demo and must be restored to 24 hours before anyone reads its timing as representative.
+**Sepolia so far.** The first deployment's round 1 completed in full: 2.03 SPCXc paid 1:2 to two holders, reserve back to zero. That deployment is superseded by the redeploy with the fixed contracts, which has passed its role checks and a fee cycle live; its round results are recorded in [SEPOLIA.md](SEPOLIA.md) as they land. `roundDelay` on Sepolia is 1 hour for observability and must be 24 hours before anyone reads its timing as representative.
 
 ## What only you can do
 
@@ -111,7 +111,7 @@ The runbook now states the model: the proposer host is the only writer; keeper a
 In this order. Each step has a preflight or a test that confirms it.
 
 1. Kevin: prove CDB key control. Fund the keeper, proposer and floor-setter keys. Provide the owner multisig, proposer and floor-setter addresses, and the floor lower bound.
-2. Jack: redeploy to Sepolia with the fixed contracts (`--force`, after reading the old manifest) and rerun the cycle, including a bootstrap pass.
+2. Jack: redeploy to Sepolia with the fixed contracts and rerun the cycle, including a bootstrap pass. **Done 2026-09-12.**
 3. Both: leave Sepolia running unattended for several days on the rendered schedule. This is the only proof the bots survive a weekend.
 4. Kevin: create and seed the rewards pool. Record pool and token ID. Jack runs the real Aerodrome collection test.
 5. External: independent contract review against [AUDITOR-BRIEF.md](../AUDITOR-BRIEF.md).

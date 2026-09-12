@@ -71,7 +71,7 @@ export const ITEMS = [
     detail: 'Disposable Anvil fork, genuine Splits factory, mocked fee sources. Harvest, route, swap, calculate, propose, timelock, retry, close, reconcile.',
     doc: 'docs/REHEARSAL.md', derive: c => (c.rehearsalRuns > 0 ? 'done' : 'pending') },
   { id: 'rehearse.sepolia', group: 'Rehearsal', owner: 'Jack', label: 'Live Base Sepolia deployment',
-    detail: '14 contracts on the public testnet, with genuine immutable PushSplit clones bound to the real factory. Aerodrome, tokens and fee sources are stand-ins.',
+    detail: 'The whole architecture on the public testnet with genuine immutable PushSplit clones, redeployed with the floor-setter role; every role verified live. Aerodrome, tokens and fee sources are stand-ins.',
     doc: 'docs/SEPOLIA.md', derive: c => set(get(c.sepolia, 'contracts.distributor')) },
   { id: 'rehearse.soak', group: 'Rehearsal', owner: 'Jack', label: 'Unattended multi-day soak',
     detail: 'Scheduling and alerting are scaffolding until something has actually run unattended. Base Sepolia finalises ~22 minutes behind head, so fee-to-payout latency is finality + a period + the timelock: budget a day per cycle.',
