@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DICKBUTT flywheel console</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>DICKBUTT flywheel</h1>
+    <span class="sub" id="gitline">reading repository…</span>
+  </div>
+  <div class="seg" id="network" role="group" aria-label="Network"></div>
+  <div class="seg" role="group" aria-label="Theme">
+    <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+    <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+  </div>
+  <span class="mode" id="mode">…</span>
+</header>
+
+<nav class="tabs" id="tabs" role="tablist"></nav>
+
+<main>
+  <section id="tab-flow" role="tabpanel"></section>
+  <section id="tab-checklist" role="tabpanel" hidden></section>
+  <section id="tab-configure" role="tabpanel" hidden></section>
+  <section id="tab-operate" role="tabpanel" hidden></section>
+  <section id="tab-docs" role="tabpanel" hidden></section>
+</main>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

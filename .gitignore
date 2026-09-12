@@ -10,3 +10,4 @@ state.json
 periods/
 .writer-lock/
 *.tmp
+ui/checklist.local.json

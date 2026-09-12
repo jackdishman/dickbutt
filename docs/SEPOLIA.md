@@ -82,7 +82,7 @@ npm run monitor -- --config deployment-sepolia.json --journal ./data
 
 `npm run schedule` renders systemd timers or a crontab for each host; the [runbook](RUNBOOK.md) covers alert triage.
 
-Holders need a time-weighted balance above the threshold across a full period. A freshly minted balance has a low TWAB and will not qualify until it has been held for one; a first run that reports `roundId: null` usually means exactly that, not a fault.
+Base finalizes roughly 22 minutes behind head, and the calculator reads only finalized state, so nothing you just did appears in a plan immediately. `No new finalized period.` right after a deployment is correct, not broken. Holders need a time-weighted balance above the threshold across a full period. A freshly minted balance has a low TWAB and will not qualify until it has been held for one; a first run that reports `roundId: null` usually means exactly that, not a fault.
 
 ## Ownership stays with the deployer
 
@@ -103,4 +103,20 @@ A full run against a local fork of Base Sepolia (chain ID 84532, genuine Splits 
 7. Both holders received exactly their planned amounts
 8. `setFeeAmounts` still worked after `owner` moved to the harvester, and a non-admin key was rejected from `setBlocked`
 
-That was a fork, not the public testnet. It proves the scripts and wiring; it is not a Base Sepolia deployment receipt. [Evidence boundaries](REHEARSAL.md#evidence-categories), [roles and bounds](GOVERNANCE.md).
+## Live deployment
+
+The scripts have now been run against **public Base Sepolia**. Addresses are recorded in [config/deployment-sepolia.json](../config/deployment-sepolia.json); throwaway keys, nothing of value at stake.
+
+| | |
+| --- | --- |
+| Deployer / owner / guardian | `0x1d179bEed174E5Eb0Fd65816797245F385C2c1F6` |
+| SplitsFeeRouter | `0x7faB864aCb452A93a3857c743241C7a99d6b8dfD` |
+| DICKBUTT Split (genuine PushSplit) | `0x23AB25F8d56262eAb17caA88e2f1e11d7A99eaeC` |
+| WETH Split (genuine PushSplit) | `0x783f6f84CB489a243bAa9C2Ea3F2B12c534be64d` |
+| SpcxcSwapExecutor | `0x6F3e354C4bF5C9AE23994d923F3441ba2c347968` |
+
+Both Splits report `FACTORY() = 0x8E8eB0cC…` and `owner() = 0x0`, so they are real immutable clones of the genuine protocol, not stand-ins. The whole deployment cost about **0.00008 ETH**.
+
+`roundDelay` was lowered from 24h to the contract minimum of 1h for this run so a round completes in observable time. Restore it before drawing any conclusion about mainnet timelock behaviour.
+
+The earlier fork run proved the scripts and wiring. This one is a real public-testnet deployment receipt. [Evidence boundaries](REHEARSAL.md#evidence-categories), [roles and bounds](GOVERNANCE.md).

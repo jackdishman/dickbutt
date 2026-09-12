@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { runFloorRefresh } from '../operations/floor.js';
+import { closeProvider } from '../operations/provider.js';
 
 const USAGE = `Usage: npm run floor -- --config deployment.json [--execute] [--monitor] [--force]
                     [--lifetime-hours 20] [--refresh-before-hours 8] [--warn-before-hours 4]
@@ -103,7 +104,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     console.log(JSON.stringify(result, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
     if (result.alert) process.exitCode = 2;
     return result;
-  } finally { release?.(); provider.destroy(); }
+  } finally { release?.(); closeProvider(provider); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

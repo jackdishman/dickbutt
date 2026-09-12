@@ -15,7 +15,14 @@ The code has compiled and its tests have executed; the earlier “never compiled
 npm ci
 npm test
 forge test
+npm run console                                    # local panel: flow, checklist, config, commands
 BASE_RPC_URL=https://mainnet.base.org npm run rehearse
 ```
+
+[`npm run console`](ui/README.md) is the quickest way to see where the project stands: it resolves
+the flow diagram against whichever network you select, derives the launch checklist from the config
+files rather than from a tick box, and runs the read-only commands with their output streamed. It
+binds to loopback, reads no private key, and refuses transaction-sending commands unless started with
+`--allow-execute`.
 
 The rehearsal uses a disposable local fork and produces a report and calculator journal under `.context/`. Mainnet signing, legacy claims and ownership handoffs are not performed. The public operating CLIs default to dry-run and only allow transaction execution on local chain or Base Sepolia.

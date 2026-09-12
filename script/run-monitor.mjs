@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { runMonitor } from '../operations/monitor.js';
+import { closeProvider } from '../operations/provider.js';
 import { KEEPER_ABI } from '../keeper/engine.js';
 import { Journal } from '../calculator/journal.js';
 
@@ -76,7 +77,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     console.log(JSON.stringify(output, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
     process.exitCode = result.exitCode;
     return result;
-  } finally { provider.destroy(); }
+  } finally { closeProvider(provider); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

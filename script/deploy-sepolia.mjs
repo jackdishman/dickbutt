@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { validateRoles, buildManifest, buildCalculatorConfig } from '../operations/deployment.js';
+import { closeProvider } from '../operations/provider.js';
 
 const SPLITS_FACTORY = '0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4';
 const BURN = '0x000000000000000000000000000000000000dEaD';
@@ -187,7 +188,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
       calculatorConfig: path.relative(ROOT, configPath), deployedAtBlock,
       ownershipStillHeldBy: deployer.address }, null, 2));
     return manifest;
-  } finally { provider.destroy(); }
+  } finally { closeProvider(provider); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {Contract,JsonRpcProvider,Wallet} from 'ethers';
 import {runFeeCycle} from '../operations/fees.js';
+import { closeProvider } from '../operations/provider.js';
 import {acquireExecutionLock} from '../keeper/engine.js';
 const args=process.argv.slice(2),execute=args.includes('--execute');
 if(args.includes('--help')) {
@@ -51,4 +52,4 @@ try {
     feeRouter,executor,weth:new Contract(c.weth,['function balanceOf(address) view returns(uint256)'],provider),quote:async amount=>(await quoter.quoteExactInput.staticCall(swapPath,amount))[0],onEvent});
   console.log(JSON.stringify(result));if(result.swapStatus==='price-floor-refresh-required')process.exitCode=2;
 } catch(e) {console.error(e.code?'Fee operation failed; inspect transaction events and RPC status':e.message);process.exitCode=1;}
-finally {release?.();provider.destroy();}
+finally {release?.();closeProvider(provider);}
