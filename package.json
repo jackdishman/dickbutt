@@ -1,13 +1,14 @@
 {
   "name": "dickbutt-rewards-calculator",
   "version": "2.0.0",
-  "description": "DICKBUTT fee harvesting, Splits protocol routing, TWAB rewards and deployment rehearsal",
+  "description": "DICKBUTT fee harvesting, Splits protocol routing, TWAB rewards, deployment rehearsal and a local control console",
   "type": "module",
   "main": "calculate-rewards.js",
   "scripts": {
     "calculate": "node calculate-rewards.js",
+    "console": "node ui/server.mjs",
     "rebuild-state": "node calculate-rewards.js rebuild-state",
-    "test": "node --test calculator/test/*.test.js test/golden.test.mjs keeper/test/*.test.js operations/test/*.test.js",
+    "test": "node --test calculator/test/*.test.js test/golden.test.mjs keeper/test/*.test.js operations/test/*.test.js ui/test/*.test.js",
     "rehearse": "node script/rehearse.mjs",
     "keeper": "node script/run-keeper.mjs",
     "fees": "node script/run-fees.mjs",

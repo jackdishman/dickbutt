@@ -45,6 +45,7 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 | `calculator/` | Finalized time-weighted balances, eligibility, accrual, Merkle plans and immutable journal. |
 | `keeper/` and `script/run-keeper.mjs` | Verifies journal/configuration/commitments, handles proposals and timelocks, submits unpaid batches and closes completed rounds. |
 | `operations/` | Fee-cycle orchestration, price-floor refresh, keyless monitoring, the operating schedule, deployment manifests and read-only preflight. |
+| `ui/` | Local control console: the flow diagram, the launch checklist, the mainnet addresses and the operating commands, all resolved from the files above. |
 
 `FeeSplitter.sol` is the earlier custom splitter, retained for regression tests. New deployments use `SplitsFeeRouter` plus `SpcxcSwapExecutor`. Foundry builds `src/`; old root-level Solidity copies are not the deployment source.
 
@@ -65,6 +66,22 @@ Harvesting, token routing, activation after the timelock and closing a fully pai
 A stolen proposer key cannot move tokens — payment is keeper-gated and the keeper refuses any root its own journal did not produce. On-chain bounds limit the griefing it can do: a 24-hour timelock, at most 50% of the unreserved balance per round, 12 hours between proposals, and a guardian pause. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders. [Roles, bounds and the payout-schedule tradeoff](docs/GOVERNANCE.md).
 
 Gas is funded externally. No WETH gas deduction exists. Freezing fee destinations does not remove downstream proposer, price-floor or issuer dependencies.
+
+## Control console
+
+`npm run console` opens a local panel over the same files everything else reads: the fee flow
+resolved per network, the launch checklist, the Base mainnet addresses, and the operating commands
+with streamed output.
+
+```sh
+npm run console                       # read-only: reads, dry runs and the local rehearsal
+npm run console -- --allow-execute    # additionally permits the commands that sign and broadcast
+```
+
+It binds to loopback, mints a per-session token, and spawns commands from a fixed registry without a
+shell. It reads no private key; the child CLIs load their own, and the console reports only whether a
+variable is set. Checklist items that derive from configuration cannot be ticked by hand, so the
+picture cannot drift from `config/base-mainnet.json`. [Console notes and security model](ui/README.md).
 
 ## Rehearse locally
 
