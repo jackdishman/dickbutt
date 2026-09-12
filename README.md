@@ -41,7 +41,7 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 | `src/SplitsFeeRouter.sol` | Creates two immutable upstream PushSplits through the official factory and forwards each token to its correct Split. No custom percentage-transfer implementation. |
 | `src/SpcxcSwapExecutor.sol` | Swaps the WETH allocation to SPCXc using a fixed two-hop route, capped size, deadline, owner floor and approved keeper. |
 | `src/AerodromeFeeHarvester.sol` | Holds the concentrated LP NFT; burns its DICKBUTT fees and forwards its SPCXc fees. |
-| `src/DickbuttRewardsDistributor.sol` | Reserves proposed/active obligations and pushes proof-verified rewards, allowing failed recipients to be retried. |
+| `src/DickbuttRewardsDistributor.sol` | Reserves proposed/active obligations and pushes proof-verified rewards, allowing failed recipients to be retried. Bot proposer bounded by a share cap, rate limit, timelock and guardian pause. |
 | `calculator/` | Finalized time-weighted balances, eligibility, accrual, Merkle plans and immutable journal. |
 | `keeper/` and `script/run-keeper.mjs` | Verifies journal/configuration/commitments, handles proposals and timelocks, submits unpaid batches and closes completed rounds. |
 | `operations/` | Fee-cycle orchestration, price-floor refresh/monitor and read-only pool/configuration preflight. |
@@ -60,7 +60,9 @@ That rewards pool is **not** the swap route. Converting the WETH allocation uses
 
 The calculator defaults to a 6.9M DICKBUTT time-weighted minimum. `WEIGHTING` must explicitly choose `linear` or `sqrt`; rehearsal uses linear. Square-root weighting increases the aggregate reward weight of balances split among qualifying wallets. Pools, burn addresses, treasury and operational contracts need explicit exclusions. Small allocations accrue until they reach the payout threshold. [Calculator configuration and recovery](calculator/README.md).
 
-Harvesting, token routing and activation after the timelock are permissionless. **Swaps and payouts require an approved keeper; each payout root requires the owner.** Default round delay is six hours. The owner must also refresh the swap price floor, which expires within one day. The floor is an administrative limit, not a live oracle. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders.
+Harvesting, token routing, activation after the timelock and closing a fully paid round are permissionless. **Swaps and payouts require an approved keeper; each payout root requires a proposer.** Normal operation needs no multisig signature: bots propose, activate and pay, and the multisig acts only as guardian to cancel a pending round or pause proposals.
+
+A stolen proposer key cannot move tokens — payment is keeper-gated and the keeper refuses any root its own journal did not produce. On-chain bounds limit the griefing it can do: a 24-hour timelock, at most 25% of the unreserved balance per round, 12 hours between proposals, and a guardian pause. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders. [Roles, bounds and the payout-schedule tradeoff](docs/GOVERNANCE.md).
 
 Gas is funded externally. No WETH gas deduction exists. Freezing fee destinations does not remove downstream proposer, price-floor or issuer dependencies.
 

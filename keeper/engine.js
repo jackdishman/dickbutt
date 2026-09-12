@@ -12,6 +12,10 @@ export const KEEPER_ABI = [
  'function pending(uint256) view returns(bytes32 root,uint256 total,uint256 readyAt)',
  'function paid(uint256,address) view returns(bool)',
  'function isKeeper(address) view returns(bool)',
+ 'function isProposer(address) view returns(bool)',
+ 'function proposalsPaused() view returns(bool)',
+ 'function maxProposableTotal() view returns(uint256)',
+ 'function nextProposalAllowedAt() view returns(uint256)',
  'function owner() view returns(address)',
  'function proposeRound(bytes32,uint256) returns(uint256)',
  'function activateRound(uint256)',
@@ -125,7 +129,16 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
    result.rounds.push(report);
    if (!state.exists&&!state.waiting) {
     if (!execute||!propose) continue;
-    if (normalize(await ownerDistributor.owner())!==normalize(ownerAddress)) throw Error('proposal signer is not distributor owner');
+    // The proposer is a bot role now; the owner keeps the ability implicitly. Check the
+    // contract's own limits first so an operator sees why, instead of a bare revert.
+    const [proposer,contractOwner,paused,maxTotal,allowedAt]=await Promise.all([
+     ownerDistributor.isProposer(ownerAddress),ownerDistributor.owner(),ownerDistributor.proposalsPaused(),
+     ownerDistributor.maxProposableTotal(),ownerDistributor.nextProposalAllowedAt()]);
+    if (!proposer&&normalize(contractOwner)!==normalize(ownerAddress)) throw Error('proposal signer is neither an approved proposer nor the distributor owner');
+    if (paused) throw Error('proposals are paused by the guardian; resolve before reproposing');
+    if (BigInt(plan.total)>BigInt(maxTotal)) throw Error(`round ${plan.roundId} total ${plan.total} exceeds the contract share cap ${maxTotal}`);
+    const latest=await provider.getBlock('latest');
+    if (BigInt(allowedAt)>BigInt(latest.timestamp)) {report.status='proposal-rate-limited';report.readyAt=allowedAt.toString();continue;}
     await send('propose',plan.roundId,()=>ownerDistributor.proposeRound(plan.root,plan.total));
     state=await inspect(distributor,plan);
    }

@@ -34,7 +34,9 @@ The fee sources, assets and swap router are mocks with fixed amounts; the Splits
 
 **4. The executor swaps its whole allocation.** `processWeth` converts all 799 WETH at the mock router's 2× rate into 1,598 SPCXc paid straight to the distributor. Combined with the Aerodrome fees the rewards vault holds **1,615 raw SPCXc**. A keeper minimum, an owner price floor, the per-call cap and a deadline all apply; the executor verifies the actual distributor balance delta rather than the router's claimed output.
 
-**5. The real calculator produces a committed plan.** Two holders qualify against the 6.9M time-weighted threshold (7M and 14M DICKBUTT) under `linear` weighting, with every contract, treasury and burn address excluded. The journal record allocates **1,614 of the 1,615** available units — 538 and 1,076, exactly 1:2 — and books the remaining unit as dust for a later period. Integer flooring, not loss.
+**5. The real calculator produces a committed plan.** Two holders qualify against the 6.9M time-weighted threshold (7M and 14M DICKBUTT) under `linear` weighting, with every contract, treasury and burn address excluded. Shares split exactly 1:2 by time-weighted balance, and unallocated raw units are booked as dust for a later period. Integer flooring, not loss.
+
+**5b. The share cap bites.** The distributor admits at most 25% of the unreserved balance per round, so the plan commits 402 of the 1,615 and the rest rolls into the next period. The guardian then pauses proposals, the keeper refuses to propose while paused, and the guardian unpauses — all without the owner key. [Roles and bounds](GOVERNANCE.md).
 
 **6. The real keeper delivers it.** With `--propose` the owner commits the root; the six-hour timelock is reported as `timelocked`; after the delay the round activates and pays in `batchSize: 1` batches. One recipient is deliberately blocked mid-round, producing a `payment-failed` event and `partial` status with one unpaid account. The block is lifted, a rerun pays only that account, and the round closes at `closed` — the already-paid recipient's balance is asserted unchanged.
 
@@ -46,11 +48,11 @@ These are distinct and must not be merged when reporting status. Results below a
 
 | Category | Command | Result |
 | --- | --- | --- |
-| Deterministic JS units | `npm test` | 61 passed, 0 failed |
-| Deterministic Solidity units | `forge test` | 75 passed, 0 failed, 4 fork suites skipped |
+| Deterministic JS units | `npm test` | 65 passed, 0 failed |
+| Deterministic Solidity units | `forge test` | 85 passed, 0 failed, 4 fork suites skipped |
 | Genuine protocol/state forks | `BASE_RPC_URL=… forge test` | 12 passed, 0 failed; native-only tests skipped |
 | Native B20 + real route | Base Foundry, see below | 13 passed, 0 failed, 1 skipped |
-| Full local rehearsal | `npm run rehearse` | success; four checks recorded |
+| Full local rehearsal | `npm run rehearse` | success; five checks recorded |
 | Read-only production preflight | `npm run preflight -- --config config/base-mainnet.json` | 2 configuration errors, all external prerequisites |
 
 The fork suites cover the real Clanker locker and its 60% deduction, the real legacy module against both actual Safes, and the real Splits factory/implementation/Warehouse including dust, Warehouse-only balances, recipient-failure rollback and fuzzed conservation.
@@ -82,7 +84,7 @@ This swap route is separate from the **rewards pool** — the 0.3% full-range DI
 - **No production deployment.** No contract in `src/` has a mainnet or public-testnet deployment receipt. A local fork address is not a deployment.
 - **No real fee sources.** Locker, Aerodrome manager, legacy module, Safes and the swap router are mocks in the rehearsal. Their real behavior is covered only by the separate fork suites, and the real DICKBUTT/SPCXc pool has no coverage at all because it does not exist.
 - **No custody change.** Locker ownership, legacy creator authority and LP NFT custody are three separate handoffs. None was performed or simulated against mainnet.
-- **No governance judgement.** The distributor enforces proof membership and solvency, not whether a root fairly represents holders. Exclusions, thresholds and weighting stay off-chain policy.
+- **No governance judgement.** The distributor enforces proof membership, solvency and the round bounds, not whether a root fairly represents holders. Exclusions, thresholds and weighting stay off-chain policy. The guardian only helps if somebody is alerted and acts inside the 24-hour timelock.
 - **No liveness guarantee.** The keeper processes one invocation and exits. Scheduling, gas funding, alerting and journal backup are operational work that does not exist in this repository. [Keeper behavior](KEEPER.md).
 
 ## Preparing a public-testnet rehearsal

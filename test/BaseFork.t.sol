@@ -161,6 +161,9 @@ contract BaseForkTest {
         uint256 amount = 1;
         require(IERC20(SPCXC).balanceOf(holder) >= amount, "unfunded holder at pinned block");
         DickbuttRewardsDistributor distributor = new DickbuttRewardsDistributor(SPCXC, 0, address(this));
+        // Lifecycle coverage predates the share cap and rate limit; disable both so these
+        // tests keep exercising rounds, not the limits. Dedicated tests cover the limits.
+        distributor.setRoundLimits(10000, 0);
         distributor.setKeeper(address(this), true);
         vm.prank(holder);
         require(IERC20(SPCXC).transfer(address(distributor), amount), "fund transfer");
@@ -168,7 +171,7 @@ contract BaseForkTest {
         uint256 beforeBalance = IERC20(SPCXC).balanceOf(recipient);
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(uint256(1), recipient, amount))));
         distributor.proposeRound(leaf, amount);
-        vm.warp(block.timestamp + 6 hours);
+        vm.warp(block.timestamp + distributor.roundDelay());
         distributor.activateRound(1);
         address[] memory accounts = new address[](1);
         accounts[0] = recipient;

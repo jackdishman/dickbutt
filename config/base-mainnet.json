@@ -75,8 +75,12 @@
       "lockerHarvester/aerodromeHarvester": "Timelocked destination changes, LP NFT custody and lock extension. Use the multisig.",
       "swapExecutor": "Refreshes a price floor that expires within 1 day, so it signs daily. A separate lower-stakes ops signer avoids a daily multisig ceremony; it cannot move funds, only halt swaps or set a bad floor.",
       "keeper": "Not an owner. Hot signer that calls processWeth and distributeBatch only. Cannot choose recipients or amounts, weaken the floor, or redirect funds.",
-      "keyIsolation": "The keeper key signs processWeth and distributeBatch. The ops key signs setPriceFloor and must NOT be an approved keeper: operations/floor.js refuses such a signer, and run-floor.mjs refuses OPS_PRIVATE_KEY equal to KEEPER_PRIVATE_KEY. Run them on separate hosts; they take separate lock namespaces."
-    }
+      "keyIsolation": "The keeper key signs processWeth and distributeBatch. The ops key signs setPriceFloor and must NOT be an approved keeper: operations/floor.js refuses such a signer, and run-floor.mjs refuses OPS_PRIVATE_KEY equal to KEEPER_PRIVATE_KEY. Run them on separate hosts; they take separate lock namespaces.",
+      "guardian": "Cancels any pending round and pauses proposals. Same multisig as owner by default; can be split later without redeploying.",
+      "proposer": "Bot key that calls proposeRound. Bounded on-chain by maxRoundBps, minRoundInterval, the timelock and the guardian pause. Cannot move tokens."
+    },
+    "proposer": null,
+    "guardian": null
   },
   "calculatorExclusions": {
     "note": "EXCLUDED_ADDRESSES for the production calculator. It rejects an empty list but cannot know which addresses matter. Every address that receives DICKBUTT from the pipeline must be here, or it earns SPCXc rewards on fee income.",
@@ -125,7 +129,14 @@
       "AerodromeFeeHarvester",
       "LegacyFeeHarvester",
       "the DICKBUTT/SPCXc rewards pool",
-      "owner and keeper addresses"
+      "owner and keeper addresses",
+      "proposer and guardian addresses"
     ]
+  },
+  "roundLimits": {
+    "roundDelay": "24 hours",
+    "maxRoundBps": 2500,
+    "minRoundInterval": "12 hours",
+    "note": "maxRoundBps below 10000 permanently defers part of each pot; the steady-state buffer is roughly inflow/maxRoundBps. Decide against the intended payout schedule. See docs/GOVERNANCE.md."
   }
 }

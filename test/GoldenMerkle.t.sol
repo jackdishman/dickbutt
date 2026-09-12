@@ -20,9 +20,12 @@ contract GoldenMerkleTest is Support {
         require(jvm.parseJsonBytes32(json,".root")==ROOT,"golden root changed");
         RewardMock token=new RewardMock();
         DickbuttRewardsDistributor d=new DickbuttRewardsDistributor(address(token),0,address(this));
+        // Lifecycle coverage predates the share cap and rate limit; disable both so these
+        // tests keep exercising rounds, not the limits. Dedicated tests cover the limits.
+        d.setRoundLimits(10000, 0);
         token.mint(address(d),6000000); d.setKeeper(address(this),true);
         for(uint256 i=1;i<42;i++){ d.proposeRound(bytes32(i),1); d.cancelPendingRound(i); }
-        eq(d.proposeRound(ROOT,6000000),42); vm.warp(block.timestamp+6 hours); d.activateRound(42);
+        eq(d.proposeRound(ROOT,6000000),42); vm.warp(block.timestamp+d.roundDelay()); d.activateRound(42);
         address[] memory a=new address[](3); uint256[] memory n=new uint256[](3); bytes32[][] memory p=new bytes32[][](3);
         for(uint256 i;i<3;i++){
             string memory base=string.concat(".entries[",jvm.toString(i),"]");

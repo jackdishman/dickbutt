@@ -49,6 +49,9 @@ try {
   // Signer 0 owns the contracts and refreshes the price floor; signer 5 is the hot keeper.
   // They are deliberately distinct so one compromised host cannot both swap and set the floor.
   const keeperSigner=await provider.getSigner(5),keeperAddress=await keeperSigner.getAddress();
+  // Signer 6 is the proposer bot; signer 7 stands in for the guardian multisig.
+  const proposerSigner=await provider.getSigner(6),proposerAddress=await proposerSigner.getAddress();
+  const guardianSigner=await provider.getSigner(7),guardianAddress=await guardianSigner.getAddress();
   async function deploy(file,name,args=[]){
     const artifact=JSON.parse(fs.readFileSync(path.join(root,'out',file,name+'.json')));
     const c=await new ContractFactory(artifact.abi,artifact.bytecode.object,signer).deploy(...args);await c.waitForDeployment();
@@ -77,6 +80,7 @@ try {
   await send('legacy-current-fees',d.mint(safes[0].target,600));await send('legacy-historic-fees',d.mint(safes[1].target,500));
   await send('holder-alice',d.mint(alice,parseEther('7000000')));await send('holder-bob',d.mint(bob,parseEther('14000000')));
   await send('swap-keeper',executor.setKeeper(keeperAddress,true));await send('payout-keeper',distributor.setKeeper(keeperAddress,true));
+  await send('proposer',distributor.setProposer(proposerAddress,true));await send('guardian',distributor.setGuardian(guardianAddress));
   const onEvent=e=>{if(e.hash)report.transactions.push(e);};
   // Floor comes from the real ops bot, not a hand-written setPriceFloor, and the owner key it uses
   // must not be a keeper. An expired floor is the starting state, so it must refresh and clear the alert.
@@ -93,19 +97,24 @@ try {
   assert.equal(await d.balanceOf(kc),209n);assert.equal(await d.balanceOf(burn),1902n);
   assert.equal(await s.balanceOf(distributor.target),1615n);
   report.checks.push('Three fee sources, actual immutable Splits percentages/dust, swap and rewards-vault funding verified');
-  const config={chainId:'31337',token:d.target.toLowerCase(),distributor:distributor.target.toLowerCase(),deployBlock:(await d.deploymentTransaction().wait()).blockNumber,holderThresholdRaw:parseEther('6900000').toString(),payoutThresholdRaw:'1',curve:'linear',excluded:[burn,kc,cdb,owner,keeperAddress,feeRouter.target,await feeRouter.dickSplit(),await feeRouter.wethSplit(),manager.target,locker.target,clanker.target,aero.target,legacy.target,executor.target,distributor.target,...safes.map(x=>x.target)].map(x=>x.toLowerCase()).sort(),batchSize:1,chunkSize:2000,finalityTag:'finalized'};
+  const config={chainId:'31337',token:d.target.toLowerCase(),distributor:distributor.target.toLowerCase(),deployBlock:(await d.deploymentTransaction().wait()).blockNumber,holderThresholdRaw:parseEther('6900000').toString(),payoutThresholdRaw:'1',curve:'linear',excluded:[burn,kc,cdb,owner,keeperAddress,proposerAddress,guardianAddress,feeRouter.target,await feeRouter.dickSplit(),await feeRouter.wethSplit(),manager.target,locker.target,clanker.target,aero.target,legacy.target,executor.target,distributor.target,...safes.map(x=>x.target)].map(x=>x.toLowerCase()).sort(),batchSize:1,chunkSize:2000,finalityTag:'finalized'};
   const dir=path.join(output,'calculator');fs.mkdirSync(dir);fs.writeFileSync(path.join(output,'calculator-config.json'),JSON.stringify(config,null,2));
   // Give holders a complete interval and let the local finalized tag advance. No time travel touches Base.
   await provider.send('evm_increaseTime',[3600]);await provider.send('anvil_mine',[128]);
   const calculate=()=>runCalculator({dir,provider,token:new Contract(d.target,ERC20_ABI,provider),distributor:new Contract(distributor.target,DISTRIBUTOR_ABI,provider),config});
   const record=await calculate();assert.ok(record.plan);assert.equal(Object.keys(record.plan.payouts).length,2);
   // Keeper signs batches, owner signs the root: two keys, exercised through the split-signer path.
+  // Three keys: keeper signs batches, proposer bot signs the root, guardian signs nothing here.
   const keeperArgs={dir,provider,distributor:new Contract(distributor.target,KEEPER_ABI,keeperSigner),
-   ownerDistributor:new Contract(distributor.target,KEEPER_ABI,signer),ownerAddress:owner,
+   ownerDistributor:new Contract(distributor.target,KEEPER_ABI,proposerSigner),ownerAddress:proposerAddress,
    config,execute:true,propose:true,signerAddress:keeperAddress,onEvent};
+  // The guardian can stop a proposal without the owner key, and nothing is signed while paused.
+  await send('guardian-pause',distributor.connect(guardianSigner).pauseProposals(true));
+  await assert.rejects(runKeeper(keeperArgs),/paused by the guardian/);
+  await send('guardian-unpause',distributor.connect(guardianSigner).pauseProposals(false));
   const first=await runKeeper(keeperArgs);assert.equal(first.rounds[0].status,'timelocked');
   await send('simulate-blocked-recipient',s.setBlocked(bob,true));
-  await provider.send('evm_increaseTime',[6*3600+1]);await provider.send('anvil_mine',[128]);
+  await provider.send('evm_increaseTime',[Number(await distributor.roundDelay())+1]);await provider.send('anvil_mine',[128]);
   const partial=await runKeeper({...keeperArgs,propose:false});assert.equal(partial.rounds[0].status,'partial');
   assert.equal(partial.rounds[0].unpaid.length,1);const alicePaid=await s.balanceOf(alice);assert.ok(alicePaid>0n);
   await send('unblock-recipient',s.setBlocked(bob,false));
@@ -115,7 +124,7 @@ try {
   assert.equal(await distributor.totalReserved(),0n);
   await provider.send('anvil_mine',[128]);const reconciliation=await calculate();
   assert.equal(reconciliation.state.plans[record.plan.roundId].settled,true);
-  report.checks.push('Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner/ops and keeper signers throughout; floor bot refuses a keeper key');
+  report.checks.push('Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner/ops, keeper, proposer and guardian signers; floor bot refuses a keeper key','Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer');
   report.contracts={weth:w.target,dickbutt:d.target,spcxc:s.target,distributor:distributor.target,executor:executor.target,feeRouter:feeRouter.target,dickSplit:await feeRouter.dickSplit(),wethSplit:await feeRouter.wethSplit(),clanker:clanker.target,aero:aero.target,legacy:legacy.target};
   report.keeper={first,partial,retry,repeat};report.success=true;
   fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,(_,v)=>typeof v==='bigint'?v.toString():v,2));

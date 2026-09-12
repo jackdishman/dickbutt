@@ -71,12 +71,39 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     /// @notice roundId => recipient => paid.
     mapping(uint256 => mapping(address => bool)) public paid;
 
-    uint256 public roundDelay = 6 hours;
+    /// @notice Longer than the original 6 hours: routine operation needs no
+    /// human signature, so the only reason to shorten this is impatience,
+    /// while the guardian needs time to wake up and act.
+    uint256 public roundDelay = 24 hours;
 
     /// @notice Payments below this are skipped -- gas would exceed value.
     uint256 public minPayout;
 
     mapping(address => bool) public isKeeper;
+
+    /// @notice Bot keys allowed to commit a plan. The owner is always able to
+    /// propose as well, so the multisig can act without waiting on a bot.
+    mapping(address => bool) public isProposer;
+
+    /// @notice Multisig that can cancel any pending round and stop new ones.
+    /// It signs nothing during normal operation; it exists to say no.
+    address public guardian;
+
+    /// @notice Guardian switch. Cancelling is a race against a compromised
+    /// proposer re-proposing; pausing ends the race.
+    bool public proposalsPaused;
+
+    /// @notice Largest share of the unreserved balance one round may commit.
+    /// Bounds the blast radius of a single bad plan; it does not bound the
+    /// cumulative total across many rounds. That is what the interval,
+    /// the timelock and the guardian are for.
+    uint256 public maxRoundBps = 2500;
+
+    /// @notice Minimum spacing between proposals. A cancellation does NOT
+    /// refund the slot, so a compromised proposer cannot immediately retry.
+    uint256 public minRoundInterval = 12 hours;
+
+    uint256 public lastProposalAt;
 
     event RoundProposed(uint256 indexed roundId, bytes32 root, uint256 total, uint256 readyAt);
     event RoundCancelled(uint256 indexed roundId, bytes32 root);
@@ -85,9 +112,25 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     event Paid(uint256 indexed roundId, address indexed account, uint256 amount);
     event PaymentFailed(uint256 indexed roundId, address indexed account, uint256 amount);
     event KeeperUpdated(address indexed keeper, bool allowed);
+    event ProposerUpdated(address indexed proposer, bool allowed);
+    event GuardianUpdated(address indexed previous, address indexed current);
+    event ProposalsPauseChanged(bool paused, address indexed by);
+    event RoundLimitsUpdated(uint256 maxRoundBps, uint256 minRoundInterval);
 
     modifier onlyKeeper() {
         require(isKeeper[msg.sender], "not a keeper");
+        _;
+    }
+
+    modifier onlyProposer() {
+        require(isProposer[msg.sender] || msg.sender == owner(), "not a proposer");
+        _;
+    }
+
+    /// @dev Guardian and owner may be the same multisig; both paths are kept
+    /// so the roles can be split later without redeploying.
+    modifier onlyGuardianOrOwner() {
+        require(msg.sender == guardian || msg.sender == owner(), "not guardian or owner");
         _;
     }
 
@@ -95,19 +138,39 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
         require(rewardToken_ != address(0), "bad reward token");
         rewardToken = IERC20(rewardToken_);
         minPayout = minPayout_;
+        guardian = owner_;
+        emit GuardianUpdated(address(0), owner_);
     }
 
     // ---------------------------------------------------------------
     // Round lifecycle -- all per-round, nothing global blocks
     // ---------------------------------------------------------------
 
-    /// @notice Commit a payout plan. Moves no tokens. Multisig should own
-    /// this: it is the step that decides who gets paid.
+    /// @notice Commit a payout plan. Moves no tokens. A bot key may hold this
+    /// role: the plan is timelocked, capped as a share of the unreserved
+    /// balance, rate limited, and the guardian can cancel or pause it.
+    /// @dev A stolen proposer key still cannot move tokens -- distributeBatch
+    /// is keeper-gated and pays only amounts inside the committed root, and an
+    /// honest keeper refuses a root that does not match its own journal. The
+    /// limits here bound griefing: reserving the pool against real rounds.
     /// @return roundId The id assigned to this plan.
-    function proposeRound(bytes32 root, uint256 total) external onlyOwner returns (uint256 roundId) {
+    function proposeRound(bytes32 root, uint256 total) external onlyProposer returns (uint256 roundId) {
+        require(!proposalsPaused, "proposals paused");
         require(root != bytes32(0), "empty root");
         require(total > 0, "empty round");
-        require(rewardToken.balanceOf(address(this)) >= totalReserved + total, "insufficient balance for this round");
+        require(
+            lastProposalAt == 0 || block.timestamp >= lastProposalAt + minRoundInterval,
+            "round interval not elapsed"
+        );
+
+        uint256 balance = rewardToken.balanceOf(address(this));
+        require(balance >= totalReserved + total, "insufficient balance for this round");
+        // Cap against what is actually unreserved, so queued rounds shrink the
+        // next one rather than each taking a share of the same tokens.
+        uint256 available = balance - totalReserved;
+        require(total <= (available * maxRoundBps) / 10000, "round exceeds share cap");
+
+        lastProposalAt = block.timestamp;
         totalReserved += total;
 
         roundId = nextRoundId++;
@@ -119,7 +182,10 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     /// @notice Cancel a committed plan before it can pay anything. This is
     /// the reason the timelock exists -- use it if the calculator output
     /// looks wrong, or the proposing key may be compromised.
-    function cancelPendingRound(uint256 roundId) external onlyOwner {
+    /// @dev Guardian or owner. Does not reset lastProposalAt: cancelling a
+    /// hostile plan must not hand the proposer a fresh slot. If a legitimate
+    /// plan needs immediate replacement, the owner lowers minRoundInterval.
+    function cancelPendingRound(uint256 roundId) external onlyGuardianOrOwner {
         PendingRound memory p = pending[roundId];
         require(p.root != bytes32(0), "nothing pending");
         emit RoundCancelled(roundId, p.root);
@@ -236,6 +302,36 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
         emit KeeperUpdated(keeper, allowed);
     }
 
+    function setProposer(address proposer, bool allowed) external onlyOwner {
+        require(proposer != address(0), "bad proposer");
+        isProposer[proposer] = allowed;
+        emit ProposerUpdated(proposer, allowed);
+    }
+
+    function setGuardian(address newGuardian) external onlyOwner {
+        require(newGuardian != address(0), "bad guardian");
+        emit GuardianUpdated(guardian, newGuardian);
+        guardian = newGuardian;
+    }
+
+    /// @notice Stop or resume new proposals. Existing pending rounds are
+    /// untouched; cancel them separately. Activation and payment of already
+    /// committed rounds continue, so a pause never strands owed rewards.
+    function pauseProposals(bool paused) external onlyGuardianOrOwner {
+        proposalsPaused = paused;
+        emit ProposalsPauseChanged(paused, msg.sender);
+    }
+
+    /// @param newMaxRoundBps 1..10000. 10000 disables the share cap.
+    /// @param newMinRoundInterval Up to 7 days. Zero disables rate limiting.
+    function setRoundLimits(uint256 newMaxRoundBps, uint256 newMinRoundInterval) external onlyOwner {
+        require(newMaxRoundBps > 0 && newMaxRoundBps <= 10000, "bad share cap");
+        require(newMinRoundInterval <= 7 days, "unreasonable interval");
+        maxRoundBps = newMaxRoundBps;
+        minRoundInterval = newMinRoundInterval;
+        emit RoundLimitsUpdated(newMaxRoundBps, newMinRoundInterval);
+    }
+
     function setRoundDelay(uint256 newDelay) external onlyOwner {
         require(newDelay >= 1 hours && newDelay <= 3 days, "unreasonable delay");
         roundDelay = newDelay;
@@ -265,6 +361,20 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     function availableForNextRound() external view returns (uint256) {
         uint256 balance = rewardToken.balanceOf(address(this));
         return balance > totalReserved ? balance - totalReserved : 0;
+    }
+
+    /// @notice Largest total proposeRound would currently accept. Zero means a
+    /// round cannot be proposed right now -- an empty pool, or a share cap that
+    /// floors to zero against a dust balance.
+    function maxProposableTotal() external view returns (uint256) {
+        uint256 balance = rewardToken.balanceOf(address(this));
+        uint256 available = balance > totalReserved ? balance - totalReserved : 0;
+        return (available * maxRoundBps) / 10000;
+    }
+
+    /// @notice Timestamp from which the next proposal is allowed.
+    function nextProposalAllowedAt() external view returns (uint256) {
+        return lastProposalAt == 0 ? 0 : lastProposalAt + minRoundInterval;
     }
 
     function roundInfo(uint256 roundId)

@@ -16,7 +16,7 @@ async function fixture(t) {
  const chain={id:31337n,now:100,next:1n,pending:[ethers.ZeroHash,0n,0n],round:[ethers.ZeroHash,0n,0n,false,false],paid:new Set(),fail:new Set(),calls:[],waits:0,allowed:true};
  const provider={getNetwork:async()=>({chainId:chain.id}),getBlock:async n=>({number:n==='finalized'||n==='latest'?10:n,hash:blockHash,timestamp:n==='latest'?chain.now:(n==='finalized'?10:n)*10}),getCode:async()=> '0x01'};
  const tx=(name,fn)=>{chain.calls.push(name);return {hash:'0x'+'12'.repeat(32),wait:async()=>{chain.waits++;fn();return {status:1,hash:'0x'+'12'.repeat(32),logs:chain.logs??[]};}};};
- const distributor={getAddress:async()=>distributorAddress,rewardToken:async()=>rewardAddress,nextRoundId:async()=>chain.next,availableForNextRound:async()=>100n,minPayout:async()=>1n,roundInfo:async()=>[...chain.round],pending:async()=>[...chain.pending],paid:async(_id,account)=>chain.paid.has(account),isKeeper:async()=>chain.allowed,owner:async()=>a,
+ const distributor={getAddress:async()=>distributorAddress,rewardToken:async()=>rewardAddress,nextRoundId:async()=>chain.next,availableForNextRound:async()=>100n,minPayout:async()=>1n,roundInfo:async()=>[...chain.round],pending:async()=>[...chain.pending],paid:async(_id,account)=>chain.paid.has(account),isKeeper:async()=>chain.allowed,owner:async()=>a,isProposer:async()=>chain.proposer??false,proposalsPaused:async()=>chain.paused??false,maxProposableTotal:async()=>chain.maxTotal??(1n<<128n),nextProposalAllowedAt:async()=>chain.allowedAt??0n,
  proposeRound:async(root,total)=>tx('propose',()=>{chain.next++;chain.pending=[root,BigInt(total),BigInt(chain.now+3600)];}),
  activateRound:async()=>tx('activate',()=>{chain.round=[chain.pending[0],chain.pending[1],0n,true,false];chain.pending=[ethers.ZeroHash,0n,0n];}),
  distributeBatch:async(_id,accounts,amounts)=>tx('batch',()=>{chain.logs=[];for(let i=0;i<accounts.length;i++){if(chain.fail.has(accounts[i])){chain.logs.push({address:distributorAddress,parsed:{name:'PaymentFailed',args:{roundId:1n,account:accounts[i],amount:BigInt(amounts[i])}}});continue;}assert.ok(!chain.paid.has(accounts[i]),'executor must filter already-paid accounts');chain.paid.add(accounts[i]);chain.round[2]+=BigInt(amounts[i]);}}),
@@ -41,3 +41,33 @@ test('exclusive lock prevents concurrent nonce use',async t=>{const f=await fixt
 test('changed journal snapshot fails before sending',async t=>{const f=await fixture(t);f.provider.getBlock=async()=>({hash:ethers.ZeroHash,timestamp:100});await assert.rejects(runKeeper({...f,execute:true,propose:true}),/snapshot/);assert.deepEqual(f.chain.calls,[]);});
 test('pending commitment mismatch fails before activation',async t=>{const f=await fixture(t);f.chain.next=2n;f.chain.pending=[f.record.plan.root,101n,0n];await assert.rejects(runKeeper({...f,execute:true}),/commitment/);assert.deepEqual(f.chain.calls,[]);});
 test('unknown receipt blocks rerun until receipt is resolved',async t=>{const f=await fixture(t);f.activate();let sends=0;f.distributor.distributeBatch=async()=>{sends++;return {hash:'0x'+'34'.repeat(32),wait:async()=>{throw Error('RPC timed out');}};};await assert.rejects(runKeeper({...f,execute:true}),/transaction failed/);f.provider.getTransactionReceipt=async()=>null;await assert.rejects(runKeeper({...f,execute:true}),/unresolved transaction/);assert.equal(sends,1);f.provider.getTransactionReceipt=async()=>({status:0,confirmations:async()=>1});f.chain.allowed=false;await assert.rejects(runKeeper({...f,execute:true}),/keeper/);assert.equal(fs.existsSync(path.join(f.dir,'keeper-pending-transaction.json')),false);});
+test('proposer role, guardian pause and contract limits are checked before sending',async t=>{
+ // Owner remains implicitly able to propose, so the default fixture (owner===signer) still works.
+ const owner=await fixture(t);await runKeeper({...owner,execute:true,propose:true});assert.deepEqual(owner.chain.calls,['propose']);
+ // A bot key that is neither proposer nor owner is rejected without a transaction.
+ const stranger=await fixture(t);stranger.distributor.owner=async()=>b;
+ await assert.rejects(runKeeper({...stranger,execute:true,propose:true}),/neither an approved proposer nor/);
+ assert.deepEqual(stranger.chain.calls,[]);
+ // The same key succeeds once the owner lists it as a proposer.
+ const bot=await fixture(t);bot.distributor.owner=async()=>b;bot.chain.proposer=true;
+ await runKeeper({...bot,execute:true,propose:true});assert.deepEqual(bot.chain.calls,['propose']);
+ // Guardian pause stops proposals before any signing.
+ const paused=await fixture(t);paused.chain.paused=true;
+ await assert.rejects(runKeeper({...paused,execute:true,propose:true}),/paused by the guardian/);
+ assert.deepEqual(paused.chain.calls,[]);
+ // A plan larger than the on-chain share cap is reported, not submitted to revert.
+ const capped=await fixture(t);capped.chain.maxTotal=1n;
+ await assert.rejects(runKeeper({...capped,execute:true,propose:true}),/exceeds the contract share cap/);
+ assert.deepEqual(capped.chain.calls,[]);
+});
+test('rate limited proposal reports instead of reverting and proceeds once elapsed',async t=>{
+ const f=await fixture(t);f.chain.allowedAt=BigInt(f.chain.now+3600);
+ const waiting=await runKeeper({...f,execute:true,propose:true});
+ assert.equal(waiting.rounds[0].status,'proposal-rate-limited');
+ assert.equal(waiting.rounds[0].readyAt,String(f.chain.now+3600));
+ assert.deepEqual(f.chain.calls,[]);
+ f.chain.now+=3600;
+ const proceeds=await runKeeper({...f,execute:true,propose:true});
+ assert.equal(proceeds.rounds[0].status,'timelocked');
+ assert.deepEqual(f.chain.calls,['propose']);
+});

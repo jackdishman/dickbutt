@@ -73,6 +73,9 @@ contract IntegrationTest is Support {
         router = new RouterMock(w, s);
         manager = new PositionMock();
         distributor = new DickbuttRewardsDistributor(address(s), 0, address(this));
+        // Lifecycle coverage predates the share cap and rate limit; disable both so these
+        // tests keep exercising rounds, not the limits. Dedicated tests cover the limits.
+        distributor.setRoundLimits(10000, 0);
         distributor.setKeeper(address(this), true);
         splitter = new FeeSplitter(
             address(w),
@@ -156,7 +159,7 @@ contract IntegrationTest is Support {
         eq(distributor.totalReserved(), 1400);
         vm.expectRevert();
         distributor.activateRound(1);
-        vm.warp(100000 + 6 hours);
+        vm.warp(100000 + distributor.roundDelay());
         distributor.activateRound(1);
         distributor.activateRound(2);
         s.setBlocked(BOB, true);
