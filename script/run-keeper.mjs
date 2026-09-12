@@ -8,11 +8,12 @@ import { runKeeper, KEEPER_ABI } from '../keeper/engine.js';
 import { stringify } from '../calculator/journal.js';
 
 export function parseKeeperArgs(args) {
- const options={execute:false,propose:false,confirmations:1};
+ const options={execute:false,propose:false,proposeOnly:false,confirmations:1};
  for(let i=0;i<args.length;i++) {
   const arg=args[i];
   if(arg==='--execute') options.execute=true;
   else if(arg==='--propose') options.propose=true;
+  else if(arg==='--propose-only') {options.propose=true;options.proposeOnly=true;}
   else if(arg==='--help') options.help=true;
   else if(['--config','--journal','--confirmations'].includes(arg)) {
    const value=args[++i];
@@ -33,7 +34,7 @@ export function parseKeeperArgs(args) {
 export async function main(args=process.argv.slice(2),env=process.env) {
  const options=parseKeeperArgs(args);
  if(options.help) {
-  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--propose] [--confirmations 1]\nDefault: dry run. Execution allows only chain 31337 or 84532.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).');
+  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--propose|--propose-only] [--confirmations 1]\nDefault: dry run. Execution allows only chain 31337 or 84532.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.');
   return;
  }
  if(!env.RPC_URL)throw Error('RPC_URL is required');
@@ -44,13 +45,21 @@ export async function main(args=process.argv.slice(2),env=process.env) {
   if(options.execute&&!['31337','84532'].includes(chainId))throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');
   let signer,ownerSigner;
   if(options.execute) {
-   if(!env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required for execution');
-   signer=new ethers.Wallet(env.KEEPER_PRIVATE_KEY,provider);
    // PROPOSER_PRIVATE_KEY is the bot role; OWNER_PRIVATE_KEY stays supported for a multisig
    // EOA or an older deployment. Either way it must not be the keeper key.
    const proposerKey=env.PROPOSER_PRIVATE_KEY||env.OWNER_PRIVATE_KEY;
-   if(options.propose&&proposerKey===env.KEEPER_PRIVATE_KEY&&env.PROPOSER_PRIVATE_KEY) throw Error('PROPOSER_PRIVATE_KEY equals KEEPER_PRIVATE_KEY; the proposer must hold a separate key');
-   ownerSigner=options.propose&&proposerKey?new ethers.Wallet(proposerKey,provider):signer;
+   if(options.proposeOnly) {
+    // The whole point: this host commits roots and never needs the key that moves funds.
+    if(!proposerKey)throw Error('PROPOSER_PRIVATE_KEY is required for --propose-only');
+    if(env.KEEPER_PRIVATE_KEY)throw Error('--propose-only must run on a host without KEEPER_PRIVATE_KEY');
+    ownerSigner=new ethers.Wallet(proposerKey,provider);
+    signer=ownerSigner;
+   } else {
+    if(!env.KEEPER_PRIVATE_KEY)throw Error('KEEPER_PRIVATE_KEY is required for execution');
+    signer=new ethers.Wallet(env.KEEPER_PRIVATE_KEY,provider);
+    if(options.propose&&proposerKey===env.KEEPER_PRIVATE_KEY&&env.PROPOSER_PRIVATE_KEY) throw Error('PROPOSER_PRIVATE_KEY equals KEEPER_PRIVATE_KEY; the proposer must hold a separate key');
+    ownerSigner=options.propose&&proposerKey?new ethers.Wallet(proposerKey,provider):signer;
+   }
    // Refuse to race transactions submitted by a different process or operational tool.
    for(const address of new Set([signer.address,...(options.propose?[ownerSigner.address]:[])])) {
     const [latest,pending]=await Promise.all([provider.getTransactionCount(address,'latest'),provider.getTransactionCount(address,'pending')]);

@@ -77,8 +77,10 @@ KEEPER_PRIVATE_KEY=0x… \
   npm run keeper -- --config deployment-sepolia-calculator.json --journal ./data --execute
 
 # Third host, no key: alerting.
-npm run floor -- --config deployment-sepolia.json --monitor
+npm run monitor -- --config deployment-sepolia.json --journal ./data
 ```
+
+`npm run schedule` renders systemd timers or a crontab for each host; the [runbook](RUNBOOK.md) covers alert triage.
 
 Holders need a time-weighted balance above the threshold across a full period. A freshly minted balance has a low TWAB and will not qualify until it has been held for one; a first run that reports `roundId: null` usually means exactly that, not a fault.
 

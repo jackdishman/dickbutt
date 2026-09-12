@@ -48,7 +48,7 @@ These are distinct and must not be merged when reporting status. Results below a
 
 | Category | Command | Result |
 | --- | --- | --- |
-| Deterministic JS units | `npm test` | 72 passed, 0 failed |
+| Deterministic JS units | `npm test` | 86 passed, 0 failed |
 | Deterministic Solidity units | `forge test` | 92 passed, 0 failed, 4 fork suites skipped |
 | Genuine protocol/state forks | `BASE_RPC_URL=… forge test` | 12 passed, 0 failed; native-only tests skipped |
 | Native B20 + real route | Base Foundry, see below | 13 passed, 0 failed, 1 skipped |

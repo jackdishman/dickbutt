@@ -44,7 +44,7 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 | `src/DickbuttRewardsDistributor.sol` | Reserves proposed/active obligations and pushes proof-verified rewards, allowing failed recipients to be retried. Bot proposer bounded by a share cap, rate limit, timelock and guardian pause. |
 | `calculator/` | Finalized time-weighted balances, eligibility, accrual, Merkle plans and immutable journal. |
 | `keeper/` and `script/run-keeper.mjs` | Verifies journal/configuration/commitments, handles proposals and timelocks, submits unpaid batches and closes completed rounds. |
-| `operations/` | Fee-cycle orchestration, price-floor refresh/monitor, deployment manifests and read-only pool/configuration preflight. |
+| `operations/` | Fee-cycle orchestration, price-floor refresh, keyless monitoring, the operating schedule, deployment manifests and read-only preflight. |
 
 `FeeSplitter.sol` is the earlier custom splitter, retained for regression tests. New deployments use `SplitsFeeRouter` plus `SpcxcSwapExecutor`. Foundry builds `src/`; old root-level Solidity copies are not the deployment source.
 
@@ -97,6 +97,8 @@ npm run keeper -- --config calculator-config.json --journal ./data --execute --p
 # Rerun after the timelock to deliver/retry and close:
 npm run keeper -- --config calculator-config.json --journal ./data --execute
 ```
+
+Four bot roles run on four hosts and never share a key: keeper (fees, payouts), ops (price floor), proposer (`--propose-only`, which refuses to start where the keeper key exists) and a keyless monitor. `npm run schedule` renders systemd units or a crontab from one validated definition, and `npm run monitor` is the keyless watchdog that catches an expired floor, an unfunded bot, a guardian pause or a root the calculator journal never produced. [Runbook](docs/RUNBOOK.md).
 
 The swap price floor expires within one day. `npm run floor` refreshes it with an **ops key that is not a keeper**, on separate infrastructure, and its `--monitor` mode alerts before expiry without loading any key. [Price-floor bot](docs/PRICE-FLOOR.md).
 
