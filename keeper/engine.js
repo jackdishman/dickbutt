@@ -24,10 +24,27 @@ export const KEEPER_ABI = [
  'event PaymentFailed(uint256 indexed roundId,address indexed account,uint256 amount)',
 ];
 
-export function acquireExecutionLock(chainId, address) {
+/** Block the current thread; the CLIs are single-purpose processes with nothing else to do meanwhile. */
+function sleepSync(ms) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.max(1, ms)); }
+
+/**
+ * One signer, one process at a time on this host. The fee cycle and the payout job share a key and a
+ * schedule that will sometimes overlap, so a caller may wait a bounded time for the lock rather than
+ * page about a collision. A lock that outlives the wait is treated as stale-or-stuck and still fails.
+ */
+export function acquireExecutionLock(chainId, address, {waitMs=0,pollMs=2000}={}) {
  const location=path.join(os.tmpdir(),`dickbutt-keeper-${chainId}-${normalize(address)}.lock`);
- try { fs.mkdirSync(location, {mode:0o700}); }
- catch { throw Error(`keeper lock exists: ${location}; verify its owner and pending transactions before manual recovery`); }
+ const deadline=Date.now()+waitMs;
+ for (;;) {
+  try { fs.mkdirSync(location, {mode:0o700}); break; }
+  catch {
+   if (Date.now()>=deadline) {
+    let holder='';try{holder=` held by ${fs.readFileSync(path.join(location,'owner.json'),'utf8')}`;}catch{}
+    throw Error(`keeper lock exists: ${location}${holder}; verify its owner and pending transactions before manual recovery`);
+   }
+   sleepSync(Math.min(pollMs,deadline-Date.now()));
+  }
+ }
  fs.writeFileSync(path.join(location,'owner.json'),stringify({pid:process.pid,host:os.hostname(),started:new Date().toISOString()}),{mode:0o600});
  return ()=>fs.rmSync(location,{recursive:true});
 }
@@ -50,17 +67,24 @@ async function inspect(distributor,plan) {
  const [pendingRoot,pendingTotal,readyAt]=pending;
  const exists=root!==ethers.ZeroHash || BigInt(total)!==0n || active || closed;
  const waiting=pendingRoot!==ethers.ZeroHash || BigInt(pendingTotal)!==0n;
- if (exists && (root.toLowerCase()!==plan.root.toLowerCase() || BigInt(total)!==BigInt(plan.total))) throw Error(`round ${plan.roundId} commitment mismatch`);
- if (waiting && (pendingRoot.toLowerCase()!==plan.root.toLowerCase() || BigInt(pendingTotal)!==BigInt(plan.total))) throw Error(`pending round ${plan.roundId} commitment mismatch`);
  if ((active&&closed)||(exists&&waiting)||(exists&&!active&&!closed)||BigInt(distributed)>BigInt(total)) throw Error(`invalid round ${plan.roundId} status`);
  if ((exists||waiting) && BigInt(next)<=BigInt(plan.roundId)) throw Error('next round id inconsistent with commitment');
  if (!exists&&!waiting && BigInt(next)!==BigInt(plan.roundId)) throw Error(`local round id ${plan.roundId} differs from next round id ${next}`);
- return {exists,waiting,active,closed,distributed:BigInt(distributed),readyAt:BigInt(readyAt)};
+ // A root this journal did not produce sits at our round id. Rounds are independent, so this one is
+ // reported and left alone rather than halting every other round: the keeper holds no proofs for a
+ // foreign root and so cannot pay it, and the monitor raises the alarm. Once the guardian has closed
+ // it the calculator recredits our plan and re-plans it under the next free id.
+ const onChainRoot=exists?root:waiting?pendingRoot:null;
+ if (onChainRoot===ethers.ZeroHash) throw Error(`round ${plan.roundId} commitment mismatch: zero root with committed state`);
+ if (onChainRoot && onChainRoot.toLowerCase()!==plan.root.toLowerCase()) return {foreign:true,foreignRoot:onChainRoot,exists,waiting,active,closed,distributed:BigInt(distributed),readyAt:BigInt(readyAt)};
+ if (exists && BigInt(total)!==BigInt(plan.total)) throw Error(`round ${plan.roundId} commitment mismatch`);
+ if (waiting && BigInt(pendingTotal)!==BigInt(plan.total)) throw Error(`pending round ${plan.roundId} commitment mismatch`);
+ return {foreign:false,exists,waiting,active,closed,distributed:BigInt(distributed),readyAt:BigInt(readyAt)};
 }
 
 /** Consume authentic calculator Journal records; all transaction dependencies are injected. */
 export async function runKeeper({dir,provider,distributor,config,execute=false,propose=false,proposeOnly=false,signerAddress,
- ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,onEvent=()=>{}}) {
+ ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,lockWaitSeconds=0,onEvent=()=>{}}) {
  // proposeOnly lets the proposer bot run without the keeper key on its host. It commits roots and
  // stops; activation is permissionless and payment belongs to the keeper.
  if (proposeOnly&&!propose) throw Error('proposeOnly requires propose');
@@ -74,7 +98,7 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
  const result={mode:execute?'execute':'dry-run',chainId,rounds:[],transactions:[]};
  const emit=event=>onEvent({...event,chainId});
  try {
-  if (execute) for (const address of [...new Set([signerAddress,...(propose?[ownerAddress]:[])].map(normalize))].sort()) locks.push(acquireExecutionLock(chainId,address));
+  if (execute) for (const address of [...new Set([signerAddress,...(propose?[ownerAddress]:[])].map(normalize))].sort()) locks.push(acquireExecutionLock(chainId,address,{waitMs:lockWaitSeconds*1000}));
   journal.lock();
   const rows=journal.entries();
   if (!rows.length) throw Error('no calculator journal records');
@@ -130,6 +154,11 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
    let state=await inspect(distributor,plan);
    const report={roundId:plan.roundId,root:plan.root,total:plan.total,status:'proposal-required',unpaid:[],failed:[]};
    result.rounds.push(report);
+   if (state.foreign) {
+    report.status=state.closed?'superseded':'foreign-commitment';report.foreignRoot=state.foreignRoot;
+    emit({type:report.status,roundId:plan.roundId,localRoot:plan.root,foreignRoot:state.foreignRoot});
+    continue;
+   }
    if (!state.exists&&!state.waiting) {
     if (!execute||!propose) continue;
     // The proposer is a bot role now; the owner keeps the ability implicitly. Check the

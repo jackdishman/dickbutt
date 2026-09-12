@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { runFloorRefresh } from '../floor.js';
 
 const OWNER = '0x0000000000000000000000000000000000000A11';
+const OPS = '0x0000000000000000000000000000000000000B0B';
 const KEEPER = '0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F';
 const NOW = 1_700_000_000n;
 const DAY = 86400n;
 
-function harness({ floor = 19n * 10n ** 17n, remaining = DAY, keepers = [KEEPER], chainId = 31337n, sendFails = false } = {}) {
+function harness({ floor = 19n * 10n ** 17n, remaining = DAY, keepers = [KEEPER], setters = [OPS], lowerBound = 10n ** 18n, chainId = 31337n, sendFails = false } = {}) {
   const calls = [];
   const executor = {
     minSpcxcPerWeth: async () => floor,
@@ -16,6 +17,8 @@ function harness({ floor = 19n * 10n ** 17n, remaining = DAY, keepers = [KEEPER]
     MAX_FLOOR_LIFETIME: async () => DAY,
     owner: async () => OWNER,
     isKeeper: async a => keepers.some(k => k.toLowerCase() === a.toLowerCase()),
+    isFloorSetter: async a => setters.some(k => k.toLowerCase() === a.toLowerCase()),
+    floorLowerBound: async () => lowerBound,
     setPriceFloor: async (f, e) => {
       calls.push({ floor: f, expiresAt: e });
       return { hash: '0xfeed', wait: async () => (sendFails ? { status: 0 } : { status: 1 }) };
@@ -96,7 +99,7 @@ test('execute refreshes and bounds the expiry to the contract maximum', async ()
 test('guards the quote, the owner, the chain and reverted receipts', async () => {
   const base = { ...harness({ remaining: 60n }), signerAddress: OWNER, execute: true };
   await assert.rejects(runFloorRefresh({ ...base, quote: async () => 0n }), /zero quote/);
-  await assert.rejects(runFloorRefresh({ ...base, signerAddress: '0x00000000000000000000000000000000000000Bb' }), /not the executor owner/);
+  await assert.rejects(runFloorRefresh({ ...base, signerAddress: '0x00000000000000000000000000000000000000Bb' }), /neither an approved floor setter nor the executor owner/);
   await assert.rejects(runFloorRefresh({ ...harness({ remaining: 60n, chainId: 8453n }), signerAddress: OWNER, execute: true }), /disabled/);
   await assert.rejects(runFloorRefresh({ ...harness({ remaining: 60n, sendFails: true }), signerAddress: OWNER, execute: true }), /set-price-floor failed/);
   await assert.rejects(runFloorRefresh({ ...base, slippageBps: 9000 }), /basis points/);
@@ -113,4 +116,28 @@ test('a wildly different quote is rejected until explicitly forced', async () =>
   // A modest move passes without force.
   const calm = await runFloorRefresh({ ...harness({ remaining: 60n, floor: 18n * 10n ** 17n }), signerAddress: OWNER, execute: true });
   assert.equal(calm.status, 'refreshed');
+});
+
+test('the floor-setter role refreshes; the owner is accepted; a stranger is not', async () => {
+  const h = harness({ remaining: 60n });
+  const r = await runFloorRefresh({ ...h, signerAddress: OPS, execute: true });
+  assert.equal(r.status, 'refreshed');
+  assert.equal(h.calls.length, 1);
+  assert.equal(r.floorLowerBound, (10n ** 18n).toString());
+  assert.equal(r.lowerBoundUnset, false);
+  const asOwner = await runFloorRefresh({ ...harness({ remaining: 60n }), signerAddress: OWNER, execute: true });
+  assert.equal(asOwner.status, 'refreshed');
+  await assert.rejects(runFloorRefresh({ ...harness({ remaining: 60n }), signerAddress: '0x00000000000000000000000000000000000000Cc', execute: true }), /neither an approved floor setter/);
+});
+
+test('a quote that lands below the owner lower bound is refused for every signer', async () => {
+  // Quote 2x less 5% is 1.9e18; a bound at 2e18 means the market has fallen through the owner's line.
+  const low = harness({ remaining: 60n, lowerBound: 2n * 10n ** 18n });
+  await assert.rejects(runFloorRefresh({ ...low, signerAddress: OPS, execute: true }), /below the owner lower bound/);
+  await assert.rejects(runFloorRefresh({ ...low, signerAddress: OWNER, execute: true }), /below the owner lower bound/);
+  assert.equal(low.calls.length, 0);
+  // An unset bound is reported so the monitor can flag it; it does not stop the refresh.
+  const unset = await runFloorRefresh({ ...harness({ remaining: 60n, lowerBound: 0n }), signerAddress: OPS, execute: true });
+  assert.equal(unset.lowerBoundUnset, true);
+  assert.equal(unset.status, 'refreshed');
 });

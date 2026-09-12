@@ -35,6 +35,14 @@ credit only unpaid recipients, once. Paid event amounts and their sum must
 match the plan and on-chain distributed amount. Unknown or altered commitments
 require investigation rather than silently releasing their local obligation.
 
+## Bootstrap
+
+Balances must be rebuilt from the token's first block, so the first period would otherwise average every holder over the token's whole history. `node calculate-rewards.js --config … --bootstrap` commits the first period with balances and a zero pot: no shares, no plan, and the pot reappears untouched in the next period, which measures from the bootstrap boundary. It is refused once any period has been journaled. Whether round 1 should measure from launch or from genesis is a policy decision; the flag makes it an explicit one.
+
+## Superseded plans
+
+If a round id the calculator planned is taken on-chain by a root it did not produce, the run stops while that foreign round is pending or active. Once it is closed, `reconcile` marks the local plan `superseded`, returns every payout in it to accrual as a recredit, and the next plan carries them under the next free id. Nothing was ever paid against the local root, so this recredits exactly once. The cap logic leaves room under `maxProposableTotal()` for carried accrual when it can; when the carry alone reaches the cap, the plan exceeds the cap and the run fails loudly for the owner to raise it.
+
 ## Recovery
 
 `node calculate-rewards.js rebuild-state` reconstructs `state.json` entirely
@@ -64,7 +72,7 @@ gaps but cannot recover a deleted journal or prove a truncated tail existed.
   `reconcile(distributor, state, blockNumber, chunkSize)`.
 - `journal.js`: `Journal.lock`, `append`, `entries`, `rebuild`, `cache`, `unlock`.
 - `engine.js`: `runCalculator({dir, provider, token, distributor, config,
-  rewardTokenFactory})`. The optional token factory enables isolated tests;
+  bootstrap, rewardTokenFactory})`. The optional token factory enables isolated tests;
   production uses an ethers contract. Config includes `chainId`, `token`,
   `distributor`, `deployBlock`, raw holder/payout thresholds, `curve`,
   `excluded`, `batchSize`, `chunkSize`, and `finalityTag`.

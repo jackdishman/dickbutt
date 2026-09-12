@@ -37,3 +37,31 @@ test('carry pushing the payable total past the cap fails loudly rather than star
  // Second period lifts the holder to 80, which is payable but larger than one round's cap.
  await assert.rejects(runCalculator(f),/exceeds the distributor round share cap/);
 });
+
+test('bootstrap commits balances with a zero pot and is refused after the first period',async()=>{
+ const f=fixture();
+ const boot=await runCalculator({...f,bootstrap:true});
+ assert.equal(boot.bootstrap,true);assert.equal(boot.pot,0n);assert.equal(boot.plan,null);assert.deepEqual(boot.newShares,{});
+ assert.equal(boot.state.balances[a],100n,'balances are committed even though nothing is shared');
+ f.advance();
+ await assert.rejects(runCalculator({...f,bootstrap:true}),/only valid for the first period/);
+ assert.equal(new Journal(f.dir).entries().length,1,'a refused bootstrap commits nothing');
+ // The untouched pot reappears in the first real period, measured from the bootstrap boundary.
+ const real=await runCalculator(f);
+ assert.equal(real.bootstrap,false);assert.equal(real.plan.total,'100');assert.equal(real.periodStartTs,100);
+});
+test('carry below the cap leaves room for the new shares so the round stays proposable',async()=>{
+ const f=fixture();
+ const b='0x00000000000000000000000000000000000000bb';
+ f.token.queryFilter=async(_f,from)=>from===1?[{blockNumber:1,index:0,args:{from:z,to:a,value:90n}},{blockNumber:1,index:1,args:{from:z,to:b,value:10n}}]:[];
+ f.config.curve='linear';f.config.payoutThresholdRaw='8';
+ f.distributor.maxProposableTotal=async()=>50n;
+ const first=await runCalculator(f);
+ // 100 available, cap 50: a takes 45 and is paid; b's 5 is below the 8 threshold and carries.
+ assert.equal(first.plan.total,'45');assert.equal(first.endingAccrual[b],5n);
+ f.distributor.nextRoundId=async()=>9007199254740994n;f.distributor.availableForNextRound=async()=>200n;f.advance();
+ const second=await runCalculator(f);
+ // Room under the cap is 50 minus the 5 carried, so only 45 of new shares are allocated: a 40, b 4.
+ // b's 9 is now payable and the round totals 49, inside the cap. Without the room it would be 55 and fail.
+ assert.equal(second.pot,45n);assert.equal(second.plan.total,'49');assert.equal(second.payouts[b],9n);
+});

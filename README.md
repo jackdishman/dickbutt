@@ -39,7 +39,7 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 | `src/LockerHarvester.sol` | Permissionless collection from the owned Clanker locker to a configured receiver; timelocked destination changes and optional permanent freeze. |
 | `src/LegacyFeeHarvester.sol` | Permissionless DICKBUTT recovery from both verified current/historical fee Safes to the fixed receiver. Requires a separate legacy creator-authority handoff. |
 | `src/SplitsFeeRouter.sol` | Creates two immutable upstream PushSplits through the official factory and forwards each token to its correct Split. No custom percentage-transfer implementation. |
-| `src/SpcxcSwapExecutor.sol` | Swaps the WETH allocation to SPCXc using a fixed two-hop route, capped size, deadline, owner floor and approved keeper. |
+| `src/SpcxcSwapExecutor.sol` | Swaps the WETH allocation to SPCXc using a fixed two-hop route, capped size, deadline, approved keeper and a price floor refreshed by a narrow floor-setter role above an owner bound. |
 | `src/AerodromeFeeHarvester.sol` | Holds the concentrated LP NFT; burns its DICKBUTT fees and forwards its SPCXc fees. |
 | `src/DickbuttRewardsDistributor.sol` | Reserves proposed/active obligations and pushes proof-verified rewards, allowing failed recipients to be retried. Bot proposer bounded by a share cap, rate limit, timelock and guardian pause. |
 | `calculator/` | Finalized time-weighted balances, eligibility, accrual, Merkle plans and immutable journal. |
@@ -47,7 +47,7 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 | `operations/` | Fee-cycle orchestration, price-floor refresh, keyless monitoring, the operating schedule, deployment manifests and read-only preflight. |
 | `ui/` | Local control console: the flow diagram, the launch checklist, the mainnet addresses and the operating commands, all resolved from the files above. |
 
-`FeeSplitter.sol` is the earlier custom splitter, retained for regression tests. New deployments use `SplitsFeeRouter` plus `SpcxcSwapExecutor`. Foundry builds `src/`; old root-level Solidity copies are not the deployment source.
+`FeeSplitter.sol` is the earlier custom splitter, retained for regression tests. New deployments use `SplitsFeeRouter` plus `SpcxcSwapExecutor`. Foundry builds `src/`.
 
 ## Pool and aggregator intent
 
@@ -63,7 +63,7 @@ The calculator defaults to a 6.9M DICKBUTT time-weighted minimum. `WEIGHTING` mu
 
 Harvesting, token routing, activation after the timelock and closing a fully paid round are permissionless. **Swaps and payouts require an approved keeper; each payout root requires a proposer.** Normal operation needs no multisig signature: bots propose, activate and pay, and the multisig acts only as guardian to cancel a pending round or pause proposals.
 
-A stolen proposer key cannot move tokens — payment is keeper-gated and the keeper refuses any root its own journal did not produce. On-chain bounds limit the griefing it can do: a 24-hour timelock, at most 50% of the unreserved balance per round, 12 hours between proposals, and a guardian pause. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders. [Roles, bounds and the payout-schedule tradeoff](docs/GOVERNANCE.md).
+A stolen proposer key cannot move tokens — payment is keeper-gated and the keeper holds proofs only for roots its own journal produced; a foreign root is reported and left alone while other rounds keep paying, and is recredited and re-planned once the guardian cancels it. On-chain bounds limit the griefing it can do: a 24-hour timelock, at most 50% of the unreserved balance per round, 12 hours between proposals, and a guardian pause. The swap executor's daily price floor is signed by a floor-setter role that can do nothing else and cannot go below an owner bound, so no hot key owns a contract. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders. [Roles, bounds and the payout-schedule tradeoff](docs/GOVERNANCE.md).
 
 Gas is funded externally. No WETH gas deduction exists. Freezing fee destinations does not remove downstream proposer, price-floor or issuer dependencies.
 
@@ -115,11 +115,11 @@ npm run keeper -- --config calculator-config.json --journal ./data --execute --p
 npm run keeper -- --config calculator-config.json --journal ./data --execute
 ```
 
-Four bot roles run on four hosts and never share a key: keeper (fees, payouts), ops (price floor), proposer (`--propose-only`, which refuses to start where the keeper key exists) and a keyless monitor. `npm run schedule` renders systemd units or a crontab from one validated definition, and `npm run monitor` is the keyless watchdog that catches an expired floor, an unfunded bot, a guardian pause or a root the calculator journal never produced. [Runbook](docs/RUNBOOK.md).
+Four bot roles run on four hosts and never share a key: keeper (fees, payouts), ops (price floor, under the executor's floor-setter role), proposer (`--propose-only`, which refuses to start where the keeper key exists) and a keyless monitor. The fee cycle skips and names any source whose custody handoff has not happened yet, so the rollout can be staged. `npm run schedule` renders systemd units or a crontab from one validated definition, and `npm run monitor` is the keyless watchdog that catches an expired floor, an unfunded bot, a guardian pause or a root the calculator journal never produced. [Runbook](docs/RUNBOOK.md).
 
 The swap price floor expires within one day. `npm run floor` refreshes it with an **ops key that is not a keeper**, on separate infrastructure, and its `--monitor` mode alerts before expiry without loading any key. [Price-floor bot](docs/PRICE-FLOOR.md).
 
-Set `RPC_URL`, `KEEPER_PRIVATE_KEY` and, when separate, `OWNER_PRIVATE_KEY` in the environment. Keep fee cycles and keeper runs sequential for a signer. The CLI enforces a shared process lock and checks pending transactions; unresolved transaction markers require receipt reconciliation. Use scheduler alerts for nonzero exit status, unpaid recipients and stale price floors. [Keeper behavior](docs/KEEPER.md).
+Set `RPC_URL` everywhere, `KEEPER_PRIVATE_KEY` on the keeper host, `OPS_PRIVATE_KEY` on the ops host and `PROPOSER_PRIVATE_KEY` on the proposer host. Run the calculator once with `--bootstrap` at launch if round 1 should measure from launch rather than from the token's genesis. Keep fee cycles and keeper runs sequential for a signer. The CLI enforces a shared process lock and checks pending transactions; unresolved transaction markers require receipt reconciliation. Use scheduler alerts for nonzero exit status, unpaid recipients and stale price floors. [Keeper behavior](docs/KEEPER.md).
 
 ## Deploy to Base Sepolia
 
@@ -134,4 +134,4 @@ RPC_URL=https://sepolia.base.org DEPLOYER_PRIVATE_KEY=0x… npm run deploy:sepol
 
 ## Before production
 
-Complete recipient/multisig/keeper configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. A successful local rehearsal does not create a public-testnet deployment or approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).
+Complete recipient/multisig/keeper/floor-setter configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, confirm the calculator exclusion set covers every pool and pipeline address (`npm run preflight` checks it), decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. A successful local rehearsal does not create a public-testnet deployment or approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).

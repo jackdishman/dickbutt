@@ -2,12 +2,27 @@ import {isAddress, ZeroAddress} from 'ethers';
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
 export function validateDeployment(config) {
   const errors=[];
-  for(const name of ['kcGreen','cdbVault','burnAddress','owner','keeper']) {
+  for(const name of ['kcGreen','cdbVault','burnAddress','owner','keeper','floorSetter']) {
     if(!isAddress(config[name]??'')||same(config[name],ZeroAddress)) errors.push(`deployment.${name} must be an explicit nonzero address`);
   }
   // Compare only well-formed addresses; absent ones already reported above and must not read as duplicates.
   const recipients=['kcGreen','cdbVault','burnAddress'].map(k=>config[k]).filter(v=>isAddress(v??'')).map(v=>v.toLowerCase());
   if(new Set(recipients).size!==recipients.length) errors.push('KC Green, CDB and burn recipients must be distinct');
+  // The executor enforces this too; say it here before a deployment reverts on it.
+  if(isAddress(config.floorSetter??'')&&same(config.floorSetter,config.keeper)) errors.push('deployment.floorSetter must not be the keeper');
+  return errors;
+}
+/// Every address that holds or receives DICKBUTT outside a real holder's wallet must be excluded, or it
+/// earns SPCXc on the machinery's own balance. The pool behind the locker is the largest such balance.
+export function validateExclusions(config) {
+  const listed=new Set((config.calculatorExclusions?.required??[]).flatMap(e=>Array.isArray(e.address)?e.address:[e.address]).filter(v=>isAddress(v??'')).map(v=>v.toLowerCase()));
+  const errors=[];
+  const need=[['clankerLocker',config.clankerLocker],['clankerPool',config.clankerPool],['rewardsPool.pool',config.rewardsPool?.pool]];
+  for(const name of ['burnAddress','kcGreen','cdbVault','keeper','floorSetter','proposer','owner','guardian']) need.push([`deployment.${name}`,config.deployment?.[name]]);
+  for(const [name,value] of need) {
+    if(!isAddress(value??'')) {if(name==='clankerPool') errors.push('clankerPool must record the DICKBUTT/WETH pool so it can be excluded');continue;}
+    if(!listed.has(value.toLowerCase())) errors.push(`${name} (${value}) is missing from calculatorExclusions.required`);
+  }
   return errors;
 }
 /// Pin the two-hop WETH -> USDC -> SPCXc swap path. The executor encodes tick spacings, not pool

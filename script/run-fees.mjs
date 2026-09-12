@@ -24,7 +24,8 @@ try {
   const address=execute?await signer.getAddress():undefined;
   const marker=path.join(path.dirname(path.resolve(configPath)),'fee-pending-transaction.json');
   if(execute){
-    release=acquireExecutionLock(String(chainId),address);
+    // The payout job shares this signer and its lock; wait out an overlap rather than page about it.
+    release=acquireExecutionLock(String(chainId),address,{waitMs:300_000});
     if(await provider.getTransactionCount(address,'pending')!==await provider.getTransactionCount(address,'latest'))throw Error('signer has pending transactions; resolve before retry');
     if(fs.existsSync(marker)) {
       const entry=JSON.parse(fs.readFileSync(marker)),receipt=await provider.getTransactionReceipt(entry.hash);

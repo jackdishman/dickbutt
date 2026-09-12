@@ -12,7 +12,7 @@ export const DEPLOYABLE_CHAINS = { 84532: 'base-sepolia', 31337: 'local' };
  */
 export function validateRoles(roles = {}, { deployer } = {}) {
   const errors = [];
-  const required = ['owner', 'keeper', 'proposer', 'guardian', 'kcGreen', 'cdbVault', 'burnAddress'];
+  const required = ['owner', 'keeper', 'proposer', 'guardian', 'ops', 'kcGreen', 'cdbVault', 'burnAddress'];
   for (const name of required) {
     if (!isAddress(roles[name] ?? '') || same(roles[name], ZeroAddress)) {
       errors.push(`roles.${name} must be an explicit nonzero address`);
@@ -25,6 +25,9 @@ export function validateRoles(roles = {}, { deployer } = {}) {
   if (same(roles.keeper, roles.proposer)) errors.push('keeper and proposer must be separate keys on separate hosts');
   if (same(roles.keeper, roles.guardian)) errors.push('keeper must not be the guardian');
   if (deployer && same(roles.keeper, deployer)) errors.push('keeper must not be the deploying key');
+  // The ops key is the executor's floor setter. The contract refuses a keeper as floor setter, so
+  // catch it here before a deployment transaction reverts halfway through role wiring.
+  if (same(roles.ops, roles.keeper)) errors.push('ops (floor setter) must not be the keeper: one host must never both set the price and swap at it');
 
   // Guardian may equal owner: one multisig that both administers and stops things is the
   // intended default. Proposer sharing the owner key is allowed but pointless, so warn-by-error
@@ -32,7 +35,7 @@ export function validateRoles(roles = {}, { deployer } = {}) {
   const payees = ['kcGreen', 'cdbVault', 'burnAddress'].map(k => roles[k].toLowerCase());
   if (new Set(payees).size !== payees.length) errors.push('kcGreen, cdbVault and burnAddress must be distinct');
   for (const name of ['kcGreen', 'cdbVault']) {
-    if (same(roles[name], roles.keeper) || same(roles[name], roles.proposer)) {
+    if (same(roles[name], roles.keeper) || same(roles[name], roles.proposer) || same(roles[name], roles.ops)) {
       errors.push(`roles.${name} must not be an operational bot key`);
     }
   }
@@ -79,7 +82,7 @@ export function buildCalculatorConfig({ chainId, contracts, roles, deployBlock, 
   // Everything that receives DICKBUTT from the pipeline, plus every operational key. A missing
   // entry here silently pays rewards to the machinery instead of to holders.
   const excluded = [
-    roles.burnAddress, roles.kcGreen, roles.cdbVault, roles.owner, roles.keeper, roles.proposer, roles.guardian,
+    roles.burnAddress, roles.kcGreen, roles.cdbVault, roles.owner, roles.keeper, roles.proposer, roles.guardian, roles.ops,
     contracts.feeRouter, contracts.dickSplit, contracts.wethSplit, contracts.executor, contracts.distributor,
     contracts.clanker, contracts.aero, contracts.legacy, contracts.locker, contracts.manager,
     ...(contracts.legacySafes ?? []),

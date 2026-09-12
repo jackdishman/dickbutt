@@ -1,9 +1,10 @@
 {
-  "_comment": "Template for npm run deploy:sepolia -- --roles <this file>. Copy, fill, keep out of git if it names real keys' addresses. The keeper must be a separate key from every administrative role; deployment refuses otherwise.",
+  "_comment": "Template for npm run deploy:sepolia -- --roles <this file>. Copy, fill, keep out of git if it names real keys' addresses. The keeper must be a separate key from every administrative role; deployment refuses otherwise. ops is the price-floor setter on the swap executor; it must not be the keeper either.",
   "owner": "0x0000000000000000000000000000000000000000",
   "guardian": "0x0000000000000000000000000000000000000000",
   "proposer": "0x0000000000000000000000000000000000000000",
   "keeper": "0x0000000000000000000000000000000000000000",
+  "ops": "0x0000000000000000000000000000000000000000",
   "kcGreen": "0x0000000000000000000000000000000000000000",
   "cdbVault": "0x0000000000000000000000000000000000000000",
   "burnAddress": "0x000000000000000000000000000000000000dEaD"

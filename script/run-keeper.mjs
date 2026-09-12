@@ -9,19 +9,20 @@ import { closeProvider } from '../operations/provider.js';
 import { stringify } from '../calculator/journal.js';
 
 export function parseKeeperArgs(args) {
- const options={execute:false,propose:false,proposeOnly:false,confirmations:1};
+ const options={execute:false,propose:false,proposeOnly:false,confirmations:1,lockWaitSeconds:300};
  for(let i=0;i<args.length;i++) {
   const arg=args[i];
   if(arg==='--execute') options.execute=true;
   else if(arg==='--propose') options.propose=true;
   else if(arg==='--propose-only') {options.propose=true;options.proposeOnly=true;}
   else if(arg==='--help') options.help=true;
-  else if(['--config','--journal','--confirmations'].includes(arg)) {
+  else if(['--config','--journal','--confirmations','--lock-wait'].includes(arg)) {
    const value=args[++i];
    if(!value||value.startsWith('--'))throw Error(`missing value for ${arg}`);
    if(arg==='--config')options.configPath=value;
    if(arg==='--journal')options.dir=value;
    if(arg==='--confirmations')options.confirmations=Number(value);
+   if(arg==='--lock-wait')options.lockWaitSeconds=Number(value);
   } else throw Error(`unknown keeper option: ${arg.startsWith('--')?arg:'positional argument'}`);
  }
  if(options.help)return options;
@@ -29,13 +30,14 @@ export function parseKeeperArgs(args) {
  if(!options.dir)throw Error('--journal is required (calculator data directory)');
  if(options.propose&&!options.execute)throw Error('--propose requires --execute');
  if(!Number.isSafeInteger(options.confirmations)||options.confirmations<1)throw Error('invalid confirmations');
+ if(!Number.isSafeInteger(options.lockWaitSeconds)||options.lockWaitSeconds<0)throw Error('invalid lock wait');
  return options;
 }
 
 export async function main(args=process.argv.slice(2),env=process.env) {
  const options=parseKeeperArgs(args);
  if(options.help) {
-  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--propose|--propose-only] [--confirmations 1]\nDefault: dry run. Execution allows only chain 31337 or 84532.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.');
+  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--propose|--propose-only] [--confirmations 1] [--lock-wait 300]\nDefault: dry run. Execution allows only chain 31337 or 84532.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.\n--lock-wait waits this many seconds for another run on the same signer to finish before failing.\nExit 2: recipients unpaid, a proposal rate limited, or a foreign root at a planned round id.');
   return;
  }
  if(!env.RPC_URL)throw Error('RPC_URL is required');
@@ -74,7 +76,7 @@ export async function main(args=process.argv.slice(2),env=process.env) {
    onEvent:event=>console.log(stringify(event)),
   });
   console.log(stringify(result));
-  if(result.rounds.some(round=>['partial','closed-unpaid','proposal-rate-limited'].includes(round.status)))process.exitCode=2;
+  if(result.rounds.some(round=>['partial','closed-unpaid','proposal-rate-limited','foreign-commitment'].includes(round.status)))process.exitCode=2;
   return result;
  } finally { closeProvider(provider); }
 }

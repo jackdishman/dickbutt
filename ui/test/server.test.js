@@ -155,3 +155,13 @@ test('the token comparison is length-guarded so it cannot throw', async () => {
     }
   });
 });
+
+test('the session endpoint reports the mode but never hands out the token', async () => {
+  await withConsole({ allowExecute: true }, async request => {
+    const response = await fetch(`${request.base}/api/session`);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.allowExecute, true);
+    assert.equal(body.token, undefined, 'a local process must not be able to bootstrap itself into the console');
+  });
+});

@@ -41,7 +41,9 @@ cross-links.
 This is a panel that can spend money, so it is deliberately unexciting about access:
 
 - it binds to the loopback interface only, and `--host` refuses anything else;
-- every request carries a token minted at startup, compared in constant time;
+- every request carries a token minted at startup, compared in constant time. It travels only in the
+  launch URL the server prints; no endpoint hands it out, so a page must have been opened from that
+  URL to drive the console;
 - the `Origin` and `Sec-Fetch-Site` headers must be the console's own, so a page on another site
   cannot drive it even though it cannot read the replies either;
 - commands come from a fixed registry with typed slots, spawned **without a shell**. Nothing from

@@ -1,9 +1,10 @@
 /**
- * Owner-side price-floor refresh for SpcxcSwapExecutor.
+ * Price-floor refresh for SpcxcSwapExecutor, signed by the floor-setter key.
  *
  * Deliberately separate from the keeper: different key, different lock namespace, no calculator
  * journal, no distributor contact. The executor's floor expires within one day, so this runs on a
- * schedule while the keeper runs on its own. The only write is setPriceFloor.
+ * schedule while the keeper runs on its own. The only write is setPriceFloor, and on-chain the
+ * floor-setter role can do nothing else and cannot go below the owner's floorLowerBound.
  *
  * The floor is a coarse administrative backstop quoted at the per-call cap, not an oracle and not
  * the per-transaction slippage limit. The keeper still supplies a tight minOut quoted at the actual
@@ -30,9 +31,9 @@ export async function runFloorRefresh({
   if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps > 5000) throw Error('slippage must be 0..5000 basis points');
   if (!Number.isInteger(maxDeviationBps) || maxDeviationBps <= 0) throw Error('invalid maxDeviationBps');
 
-  const [currentFloor, expiresAt, cap, maxLifetime, owner] = (await Promise.all([
+  const [currentFloor, expiresAt, cap, maxLifetime, owner, lowerBound] = (await Promise.all([
     executor.minSpcxcPerWeth(), executor.priceFloorExpiresAt(), executor.maxSwapPerCall(),
-    executor.MAX_FLOOR_LIFETIME(), executor.owner(),
+    executor.MAX_FLOOR_LIFETIME(), executor.owner(), executor.floorLowerBound(),
   ])).map(v => (typeof v === 'string' ? v : BigInt(v)));
   if (BigInt(lifetimeSeconds) > BigInt(maxLifetime)) throw Error(`lifetimeSeconds exceeds contract MAX_FLOOR_LIFETIME (${maxLifetime})`);
 
@@ -40,6 +41,13 @@ export async function runFloorRefresh({
   // executor. An approved keeper signing floor refreshes collapses the two roles into one host.
   if (signerAddress && await executor.isKeeper(signerAddress)) {
     throw Error('ops signer is an approved keeper; the floor bot requires a key that is not a keeper');
+  }
+  // Authority is checked up front, fresh floor or not, so a misconfigured ops host is found on its
+  // first scheduled run rather than on the first run that actually needs to write.
+  if (execute) {
+    if (!signerAddress) throw Error('execute requires signerAddress');
+    const isOwner = signerAddress.toLowerCase() === String(owner).toLowerCase();
+    if (!isOwner && !await executor.isFloorSetter(signerAddress)) throw Error('floor signer is neither an approved floor setter nor the executor owner');
   }
 
   const now = BigInt((await provider.getBlock('latest')).timestamp);
@@ -49,6 +57,8 @@ export async function runFloorRefresh({
     mode: execute ? 'execute' : 'dry-run', chainId: chainId.toString(),
     currentFloor: currentFloor.toString(), expiresAt: expiresAt.toString(),
     secondsRemaining: Number(remaining), status: 'fresh', swapsBlocked: !active,
+    // Zero means the owner has not bounded floor setters yet; the monitor flags that separately.
+    floorLowerBound: lowerBound.toString(), lowerBoundUnset: BigInt(lowerBound) === 0n,
   };
 
   if (!active) result.status = 'expired';
@@ -63,12 +73,6 @@ export async function runFloorRefresh({
   }
   if (result.status === 'fresh') return result;
 
-  // Fail on the cheap authority check before spending an RPC round trip on a quote.
-  if (execute) {
-    if (!signerAddress) throw Error('execute requires signerAddress');
-    if (signerAddress.toLowerCase() !== String(owner).toLowerCase()) throw Error('floor signer is not the executor owner');
-  }
-
   // Quote at the per-call cap: the largest swap the executor can make, so the worst price impact
   // and therefore the most conservative floor. A smaller real swap clears it comfortably.
   const amount = referenceAmount === undefined ? BigInt(cap) : BigInt(referenceAmount);
@@ -80,6 +84,11 @@ export async function runFloorRefresh({
   result.referenceAmount = amount.toString();
   result.quoted = quoted.toString();
   result.proposedFloor = proposed.toString();
+  // The contract would reject a floor setter here anyway. Refuse for the owner too: the market has
+  // fallen through a bound the owner chose deliberately, and that deserves a human look, not a bot.
+  if (proposed < BigInt(lowerBound)) {
+    throw Error(`proposed floor ${proposed} is below the owner lower bound ${lowerBound}; swaps stay halted until the owner reviews the market and lowers the bound`);
+  }
 
   if (BigInt(currentFloor) > 0n) {
     const previous = BigInt(currentFloor);

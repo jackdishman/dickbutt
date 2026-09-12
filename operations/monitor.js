@@ -39,6 +39,18 @@ export async function runMonitor({
     checks.push(check('price-floor', 'ok', 'floor active', { secondsRemaining: Number(remaining) }));
   }
 
+  // --- floor lower bound -------------------------------------------------
+  // The floor-setter key is hot. Without an owner bound it can set any floor, which is the whole
+  // opening a compromised host needs. An executor without the getter predates the role: redeploy.
+  try {
+    const bound = BigInt(await executor.floorLowerBound());
+    checks.push(bound === 0n
+      ? check('floor-lower-bound', 'attention', 'floorLowerBound is zero; a compromised floor setter can set any floor', { lowerBound: '0' })
+      : check('floor-lower-bound', 'ok', 'floor setters are bounded', { lowerBound: bound.toString() }));
+  } catch {
+    checks.push(check('floor-lower-bound', 'failed', 'executor does not expose floorLowerBound; it predates the floor-setter role and needs redeploying', {}));
+  }
+
   // --- gas ---------------------------------------------------------------
   // An unfunded bot fails exactly like a compromised one is stopped: silently.
   for (const [role, address] of Object.entries(gasAccounts)) {
@@ -67,6 +79,9 @@ export async function runMonitor({
     const [pendingRoot, pendingTotal, readyAt] = pending;
     for (const [label, candidate, amount] of [['pending', pendingRoot, pendingTotal], ['active', root, total]]) {
       if (!candidate || BigInt(amount) === 0n) continue;
+      // A foreign round the guardian cancelled before anything was paid is the incident resolved, not
+      // a fresh one; it keeps its root on-chain forever. One that paid anything stays alarming.
+      if (label === 'active' && closed && BigInt(distributed) === 0n) continue;
       if (!known.has(candidate.toLowerCase())) {
         checks.push(check('unknown-commitment', 'attention',
           `round ${id} carries a ${label} root the calculator journal never produced`,

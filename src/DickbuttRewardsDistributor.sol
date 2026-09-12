@@ -76,7 +76,9 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     /// while the guardian needs time to wake up and act.
     uint256 public roundDelay = 24 hours;
 
-    /// @notice Payments below this are skipped -- gas would exceed value.
+    /// @notice Guidance for the off-chain calculator: it defers a holder's accrual
+    /// until it reaches at least this much, so gas never exceeds value. NOT enforced
+    /// on-chain; a committed root is paid exactly as committed.
     uint256 public minPayout;
 
     mapping(address => bool) public isKeeper;
@@ -299,6 +301,18 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     // ---------------------------------------------------------------
     // Admin
     // ---------------------------------------------------------------
+
+    /// @dev The guardian defaults to the owner and follows an ownership transfer, unless
+    /// it was deliberately split out with setGuardian. Otherwise handing the contracts to
+    /// the multisig would leave the deployer key holding the guardian role.
+    function _transferOwnership(address newOwner) internal override {
+        address previous = owner();
+        super._transferOwnership(newOwner);
+        if (previous != address(0) && newOwner != address(0) && guardian == previous) {
+            emit GuardianUpdated(previous, newOwner);
+            guardian = newOwner;
+        }
+    }
 
     function setKeeper(address keeper, bool allowed) external onlyOwner {
         require(keeper != address(0), "bad keeper");

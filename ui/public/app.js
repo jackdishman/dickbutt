@@ -237,6 +237,7 @@ const FIELD_LABELS = {
   'deployment.proposer': ['Proposer', 'Bot key for proposeRound. Cannot move tokens.'],
   'deployment.guardian': ['Guardian', 'Leave empty to inherit the owner multisig.'],
   'deployment.keeper': ['Keeper', 'Hot key for processWeth and distributeBatch.'],
+  'deployment.floorSetter': ['Floor setter (ops)', 'Hot key for setPriceFloor only, above the owner bound. Never the keeper.'],
   'deployment.kcGreen': ['KC Green', '10% of both fee tokens. Immutable Split recipient.'],
   'deployment.cdbVault': ['CDB treasury', '10% of WETH. Immutable Split recipient.'],
   'deployment.burnAddress': ['Burn address', '90% of DICKBUTT.'],
@@ -538,10 +539,11 @@ window.addEventListener('hashchange', () => {
 });
 
 (async () => {
-  // The token is minted at startup and handed to the same-origin page; every later call carries it.
+  // The token is minted at startup and arrives only in the launch URL; every later call carries it.
   const url = new URL(location.href);
+  app.token = url.searchParams.get('token');
+  if (!app.token) throw Error('Open the console from the URL the server printed; it carries the session token.');
   const session = await (await fetch('/api/session')).json();
-  app.token = url.searchParams.get('token') ?? session.token;
   app.allowExecute = session.allowExecute;
   await refresh();
 })().catch(error => {

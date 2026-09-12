@@ -49,9 +49,11 @@ try {
   // Signer 0 owns the contracts and refreshes the price floor; signer 5 is the hot keeper.
   // They are deliberately distinct so one compromised host cannot both swap and set the floor.
   const keeperSigner=await provider.getSigner(5),keeperAddress=await keeperSigner.getAddress();
-  // Signer 6 is the proposer bot; signer 7 stands in for the guardian multisig.
+  // Signer 6 is the proposer bot; signer 7 stands in for the guardian multisig; signer 8 is the ops
+  // bot that refreshes the price floor under the executor's narrow floor-setter role.
   const proposerSigner=await provider.getSigner(6),proposerAddress=await proposerSigner.getAddress();
   const guardianSigner=await provider.getSigner(7),guardianAddress=await guardianSigner.getAddress();
+  const opsSigner=await provider.getSigner(8),opsAddress=await opsSigner.getAddress();
   async function deploy(file,name,args=[]){
     const artifact=JSON.parse(fs.readFileSync(path.join(root,'out',file,name+'.json')));
     const c=await new ContractFactory(artifact.abi,artifact.bytecode.object,signer).deploy(...args);await c.waitForDeployment();
@@ -80,29 +82,41 @@ try {
   await send('legacy-current-fees',d.mint(safes[0].target,600));await send('legacy-historic-fees',d.mint(safes[1].target,500));
   await send('holder-alice',d.mint(alice,parseEther('7000000')));await send('holder-bob',d.mint(bob,parseEther('14000000')));
   await send('swap-keeper',executor.setKeeper(keeperAddress,true));await send('payout-keeper',distributor.setKeeper(keeperAddress,true));
+  // Bound first, then approve: no floor setter is ever live unbounded. The keeper is refused as a setter.
+  await send('floor-lower-bound',executor.setFloorLowerBound(10n**18n));await send('floor-setter',executor.setFloorSetter(opsAddress,true));
+  await assert.rejects(executor.setFloorSetter(keeperAddress,true),/floor setter cannot be a keeper/);
+  await assert.rejects(executor.connect(opsSigner).setKeeper(opsAddress,true));
+  await assert.rejects(executor.connect(opsSigner).setPriceFloor(10n**18n-1n,time+3600),/floor below owner bound/);
   await send('proposer',distributor.setProposer(proposerAddress,true));await send('guardian',distributor.setGuardian(guardianAddress));
   const onEvent=e=>{if(e.hash)report.transactions.push(e);};
-  // Floor comes from the real ops bot, not a hand-written setPriceFloor, and the owner key it uses
-  // must not be a keeper. An expired floor is the starting state, so it must refresh and clear the alert.
-  const floorArgs={provider,executor,quote:async n=>n*2n,signerAddress:owner,onEvent};
+  // Floor comes from the real ops bot under the floor-setter role, never the owner key. An expired
+  // floor is the starting state, so it must refresh and clear the alert.
+  const floorArgs={provider,executor:executor.connect(opsSigner),quote:async n=>n*2n,signerAddress:opsAddress,onEvent};
   const floorBefore=await runFloorRefresh({...floorArgs});
   assert.equal(floorBefore.status,'expired');assert.equal(floorBefore.swapsBlocked,true);assert.equal(floorBefore.alert,true);
   const floorSet=await runFloorRefresh({...floorArgs,execute:true});
   assert.equal(floorSet.status,'refreshed');assert.equal(floorSet.alert,false);
   report.transactions.push({action:'price-floor',hash:floorSet.transaction});
   await assert.rejects(runFloorRefresh({...floorArgs,signerAddress:keeperAddress,execute:true}),/not a keeper/);
+  await assert.rejects(runFloorRefresh({...floorArgs,signerAddress:alice,execute:true}),/neither an approved floor setter/);
+  assert.equal(floorSet.lowerBoundUnset,false);
   const fees=await runFeeCycle({provider,signerAddress:keeperAddress,locker:clanker,aero,legacy,feeRouter,executor:executor.connect(keeperSigner),weth:w,quote:async n=>n*2n,execute:true,onEvent});
   assert.equal(fees.swapStatus,'processed');
   assert.equal(await w.balanceOf(kc),99n);assert.equal(await w.balanceOf(cdb),99n);
   assert.equal(await d.balanceOf(kc),209n);assert.equal(await d.balanceOf(burn),1902n);
   assert.equal(await s.balanceOf(distributor.target),1615n);
   report.checks.push('Three fee sources, actual immutable Splits percentages/dust, swap and rewards-vault funding verified');
-  const config={chainId:'31337',token:d.target.toLowerCase(),distributor:distributor.target.toLowerCase(),deployBlock:(await d.deploymentTransaction().wait()).blockNumber,holderThresholdRaw:parseEther('6900000').toString(),payoutThresholdRaw:'1',curve:'linear',excluded:[burn,kc,cdb,owner,keeperAddress,proposerAddress,guardianAddress,feeRouter.target,await feeRouter.dickSplit(),await feeRouter.wethSplit(),manager.target,locker.target,clanker.target,aero.target,legacy.target,executor.target,distributor.target,...safes.map(x=>x.target)].map(x=>x.toLowerCase()).sort(),batchSize:1,chunkSize:2000,finalityTag:'finalized'};
+  const config={chainId:'31337',token:d.target.toLowerCase(),distributor:distributor.target.toLowerCase(),deployBlock:(await d.deploymentTransaction().wait()).blockNumber,holderThresholdRaw:parseEther('6900000').toString(),payoutThresholdRaw:'1',curve:'linear',excluded:[burn,kc,cdb,owner,keeperAddress,proposerAddress,guardianAddress,opsAddress,feeRouter.target,await feeRouter.dickSplit(),await feeRouter.wethSplit(),manager.target,locker.target,clanker.target,aero.target,legacy.target,executor.target,distributor.target,...safes.map(x=>x.target)].map(x=>x.toLowerCase()).sort(),batchSize:1,chunkSize:2000,finalityTag:'finalized'};
   const dir=path.join(output,'calculator');fs.mkdirSync(dir);fs.writeFileSync(path.join(output,'calculator-config.json'),JSON.stringify(config,null,2));
   // Give holders a complete interval and let the local finalized tag advance. No time travel touches Base.
   await provider.send('evm_increaseTime',[3600]);await provider.send('anvil_mine',[128]);
-  const calculate=()=>runCalculator({dir,provider,token:new Contract(d.target,ERC20_ABI,provider),distributor:new Contract(distributor.target,DISTRIBUTOR_ABI,provider),config});
+  const calculate=(bootstrap=false)=>runCalculator({dir,provider,token:new Contract(d.target,ERC20_ABI,provider),distributor:new Contract(distributor.target,DISTRIBUTOR_ABI,provider),config,bootstrap});
+  // Bootstrap period: balances are committed with a zero pot so round 1 does not weight holders over the
+  // token's whole history. The pot is untouched and reappears in the next period.
+  const boot=await calculate(true);assert.equal(boot.bootstrap,true);assert.equal(boot.pot,0n);assert.equal(boot.plan,null);
+  await provider.send('evm_increaseTime',[3600]);await provider.send('anvil_mine',[128]);
   const record=await calculate();assert.ok(record.plan);assert.equal(Object.keys(record.plan.payouts).length,2);
+  assert.equal(record.plan.total,'807','half of the 1615 available, untouched by the bootstrap period');
   // Keeper signs batches, owner signs the root: two keys, exercised through the split-signer path.
   // Three keys: keeper signs batches, proposer bot signs the root, guardian signs nothing here.
   const keeperArgs={dir,provider,distributor:new Contract(distributor.target,KEEPER_ABI,keeperSigner),
@@ -124,9 +138,42 @@ try {
   assert.equal(await distributor.totalReserved(),0n);
   await provider.send('anvil_mine',[128]);const reconciliation=await calculate();
   assert.equal(reconciliation.state.plans[record.plan.roundId].settled,true);
-  report.checks.push('Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner/ops, keeper, proposer and guardian signers; floor bot refuses a keeper key','Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer');
+  // --- A foreign root lands at our next round id (a stolen proposer key, or an operator working outside
+  // the journal). The keeper must keep other rounds moving, never pay the foreign round, and recover once
+  // the guardian has cancelled it, with every recipient of the abandoned plan recredited exactly once.
+  assert.ok(reconciliation.plan,'the remaining half of the pot is planned as round 2');
+  const abandoned=reconciliation.plan;assert.equal(abandoned.roundId,'2');
+  await provider.send('evm_increaseTime',[12*3600+1]);await provider.send('anvil_mine',[1]);
+  const foreignRoot='0x'+'f0'.repeat(32);
+  await send('foreign-proposal',distributor.proposeRound(foreignRoot,1));
+  await provider.send('anvil_mine',[128]); // let the local finalized tag see the foreign round
+  const blocked=await runKeeper(keeperArgs);
+  assert.equal(blocked.rounds.find(r=>r.roundId==='2').status,'foreign-commitment');
+  assert.equal(blocked.rounds.find(r=>r.roundId==='1').status,'closed');
+  assert.equal(blocked.transactions.length,0,'nothing is signed against a foreign root');
+  await assert.rejects(calculate(),/foreign root is pending/);
+  await send('guardian-cancel',distributor.connect(guardianSigner).cancelPendingRound(2));
+  const cancelled=await runKeeper({...keeperArgs,propose:false});
+  assert.equal(cancelled.rounds.find(r=>r.roundId==='2').status,'superseded');
+  // The recredited carry is half the pot and so is the cap: lift the cap for the recovery round.
+  await send('lift-cap',distributor.setRoundLimits(10000,0));
+  await provider.send('anvil_mine',[128]);
+  const recovered=await calculate();
+  assert.equal(recovered.state.plans['2'].superseded,true);
+  assert.equal(Object.values(recovered.recredits).reduce((s,v)=>s+BigInt(v),0n),BigInt(abandoned.total),'abandoned plan recredited exactly once');
+  assert.equal(recovered.plan.roundId,'3');
+  assert.ok(BigInt(recovered.plan.total)>=BigInt(abandoned.total),'round 3 carries the abandoned payouts forward');
+  const reproposed=await runKeeper(keeperArgs);assert.equal(reproposed.rounds.find(r=>r.roundId==='3').status,'timelocked');
+  await send('restore-cap',distributor.setRoundLimits(5000,0)); // the cap only gates proposals; activation and payment are unaffected
+  await provider.send('evm_increaseTime',[Number(await distributor.roundDelay())+1]);await provider.send('anvil_mine',[128]);
+  const aliceBefore=await s.balanceOf(alice),bobBefore=await s.balanceOf(bob);
+  const paidOut=await runKeeper({...keeperArgs,propose:false});assert.equal(paidOut.rounds.find(r=>r.roundId==='3').status,'closed');
+  assert.equal((await s.balanceOf(alice))-aliceBefore,BigInt(recovered.plan.payouts[alice.toLowerCase()]));
+  assert.equal((await s.balanceOf(bob))-bobBefore,BigInt(recovered.plan.payouts[bob.toLowerCase()]));
+  assert.equal(await distributor.totalReserved(),0n);
+  report.checks.push('Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key','Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer','Bootstrap period commits balances with a zero pot','A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it');
   report.contracts={weth:w.target,dickbutt:d.target,spcxc:s.target,distributor:distributor.target,executor:executor.target,feeRouter:feeRouter.target,dickSplit:await feeRouter.dickSplit(),wethSplit:await feeRouter.wethSplit(),clanker:clanker.target,aero:aero.target,legacy:legacy.target};
-  report.keeper={first,partial,retry,repeat};report.success=true;
+  report.keeper={first,partial,retry,repeat,blocked,cancelled,reproposed,paidOut};report.success=true;
   fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,(_,v)=>typeof v==='bigint'?v.toString():v,2));
   console.log(JSON.stringify({success:true,evidence:path.relative(root,output),checks:report.checks},null,2));
 } catch(error) {

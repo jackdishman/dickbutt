@@ -11,7 +11,18 @@
  *   write  — signs and broadcasts. Requires the server to be started with --allow-execute.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 const PATH_PATTERN = /^[A-Za-z0-9._][A-Za-z0-9._/-]*$/;
+
+/** Same resolution the rehearsal uses: FORGE_BIN, else the standard foundryup location, else PATH. */
+export function forgeBinary(env = process.env) {
+  if (env.FORGE_BIN) return env.FORGE_BIN;
+  const standard = path.join(os.homedir(), '.foundry', 'bin', 'forge');
+  return fs.existsSync(standard) ? standard : 'forge';
+}
 
 /** Repo-relative paths only: no absolute paths, no traversal, no option-lookalikes. */
 export function validatePath(value, label) {
@@ -36,7 +47,7 @@ export const COMMANDS = [
   {
     id: 'forge-test', group: 'Verify', kind: 'read', label: 'Solidity tests',
     summary: 'Foundry unit tests. Fork suites skip without BASE_RPC_URL.',
-    argv: () => ['forge', 'test'],
+    argv: () => [forgeBinary(), 'test'],
   },
   {
     id: 'preflight', group: 'Verify', kind: 'read', label: 'Preflight (Base mainnet)',

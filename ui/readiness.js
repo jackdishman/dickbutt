@@ -17,7 +17,7 @@ export const STATES = ['done', 'pending', 'blocked', 'n/a'];
 export const ITEMS = [
   // --- addresses -------------------------------------------------------------
   { id: 'cfg.owner', group: 'Addresses', owner: 'Kevin', label: 'Owner multisig',
-    detail: 'Owns the distributor and both harvesters: commits reward roots, timelocked destinations, LP NFT custody. Also the default guardian.',
+    detail: 'Owns the distributor, both harvesters and the swap executor: roles, limits, timelocked destinations, LP NFT custody, the floor lower bound. Also the default guardian.',
     doc: 'docs/GOVERNANCE.md', derive: c => set(get(c.mainnet, 'deployment.owner')) },
   { id: 'cfg.proposer', group: 'Addresses', owner: 'Kevin', label: 'Proposer bot key',
     detail: 'Calls proposeRound. Cannot move tokens: payment is keeper-gated and the keeper rejects any root its own journal did not produce.',
@@ -28,6 +28,9 @@ export const ITEMS = [
   { id: 'cfg.keeper', group: 'Addresses', owner: 'Kevin', label: 'Keeper hot key',
     detail: 'Signs processWeth and distributeBatch only. Treat the key as disposable; worst case for a compromise is griefing, not theft.',
     doc: 'docs/KEEPER.md', derive: c => set(get(c.mainnet, 'deployment.keeper')) },
+  { id: 'cfg.floorSetter', group: 'Addresses', owner: 'Kevin', label: 'Floor setter (ops) key',
+    detail: 'Signs setPriceFloor only, above the owner lower bound. The executor refuses it as a keeper and refuses the keeper as a setter. Separate host from the keeper.',
+    doc: 'docs/PRICE-FLOOR.md', derive: c => set(get(c.mainnet, 'deployment.floorSetter')) },
   { id: 'cfg.kcGreen', group: 'Addresses', owner: 'Kevin', label: 'KC Green recipient',
     detail: 'Verified on-chain, holds 1,000,000 DICKBUTT, and is already in the required calculator exclusion set.',
     derive: c => set(get(c.mainnet, 'deployment.kcGreen')) },

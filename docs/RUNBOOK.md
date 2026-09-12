@@ -9,7 +9,7 @@ Four hosts. A shared host is a shared blast radius, so none of these keys may be
 | Host | Jobs | Key | Cadence |
 | --- | --- | --- | --- |
 | `keeper` | fee-cycle, payout | `KEEPER_PRIVATE_KEY` | 6h, 15m |
-| `ops` | floor-refresh | `OPS_PRIVATE_KEY` | 1h |
+| `ops` | floor-refresh | `OPS_PRIVATE_KEY` (the executor's floor setter) | 1h |
 | `proposer` | calculate-and-propose | `PROPOSER_PRIVATE_KEY` | 12h |
 | `monitor` | monitor | **none** | 5m |
 
@@ -22,6 +22,19 @@ npm run schedule -- --format cron --host ops
 The schedule lives in `operations/schedule.js` and is validated before rendering: it refuses if a key would land on two hosts, if the keeper key would run on the ops host, if the monitor holds a key or shares a host, or if a cadence contradicts a contract limit. Edit that file, not the rendered output.
 
 The proposer runs `--propose-only`, which **refuses to start if `KEEPER_PRIVATE_KEY` is present in its environment**. That is the enforcement, not just the convention: the host that commits roots never holds the key that moves funds.
+
+The ops key holds the executor's `floorSetter` role, not its ownership. On-chain it can call `setPriceFloor` and nothing else, cannot set a floor below the owner's `floorLowerBound`, and cannot be approved as a keeper. The executor's owner is the multisig, like every other contract.
+
+## Journal distribution
+
+The calculator journal (`periods/*.json`) has exactly one writer: the proposer host, where `calculate-and-propose` runs. The keeper host needs a copy to pay from, and the monitor host needs a copy to tell a foreign root from one of ours. Neither may write to it.
+
+- Copy, do not share. A writable network mount joins the hosts into one blast radius and lets a compromised keeper host rewrite the record the proposer relies on. Pull a read-only copy after each proposer run: `rsync -a --delete proposer:/srv/dickbutt/data/periods/ /srv/dickbutt/data/periods/` into a staging directory, then rename it into place so the keeper never reads a half-copied file.
+- A stale copy is safe. The keeper verifies every plan against the on-chain commitment before acting; a copy that lacks the newest period simply has nothing to do for that round yet.
+- A torn or edited copy fails closed. Each record carries the hash of its predecessor and its own hash, and the keeper rebuilds every Merkle root from the payouts before it signs anything.
+- Back the proposer's copy up somewhere the bots cannot write. It is the only replay record; `state.json` is a cache.
+
+Locks are per host. Two hosts running the same key are not coordinated by anything here; that is why the schedule never puts one key on two hosts.
 
 ## Exit codes
 
@@ -54,10 +67,18 @@ A stolen proposer key **cannot move tokens on its own** — payment is keeper-ga
    cast send $DISTRIBUTOR "cancelPendingRound(uint256)" $ROUND_ID --rpc-url $RPC_URL
    ```
    Cancelling does **not** refund the proposer's rate-limit slot, so a compromised key cannot immediately re-propose. The pause is what ends the race; the cancel just cleans up.
-3. **Confirm the keeper never paid it.** `paid(roundId, account)` should be false throughout, and the keeper logs should show a `commitment mismatch` refusal.
+3. **Confirm the keeper never paid it.** `paid(roundId, account)` should be false throughout. If the foreign round took a round id the calculator had already planned, the keeper reports that round as `foreign-commitment` (exit 2) and keeps paying every other round; it holds no proofs for a foreign root and cannot pay it.
 4. Rotate the proposer key, `setProposer(old, false)` and `setProposer(new, true)` from the owner, then unpause.
+5. **Let the pipeline recover the collided round.** Once the foreign round is cancelled (or, if it was activated, closed early by the owner), the keeper reports the local plan as `superseded` and the next calculator run recredits every recipient of that plan and re-plans them under the next free round id. The run log shows the recredits and `superseded: ["N"]`.
+6. The recredited carry is about half the pot and so is the share cap, so the recovery round usually cannot fit under `maxRoundBps`. The calculator then fails loudly with `exceeds the distributor round share cap`. Raise the cap for one round from the owner, `setRoundLimits(10000, minRoundInterval)`, let the round propose, then restore it.
 
-If the root turns out to be a legitimate out-of-band proposal, unpause and get it into the journal before proposing again.
+If the root turns out to be a legitimate out-of-band proposal that should stand, leave it; the calculator refuses to run while a foreign round is pending or active at a planned id, so cancel or close it before the next period. The pipeline cannot adopt a root it did not compute.
+
+### `floor-lower-bound` — floor setters are unbounded
+
+> floorLowerBound is zero; a compromised floor setter can set any floor
+
+Set it from the owner before any floor setter is approved: `setFloorLowerBound(raw SPCXc per 1e18 WETH)`, conservatively below market. If the executor reports `does not expose floorLowerBound`, it predates the floor-setter role and must be redeployed.
 
 ### `price-floor` — swaps are blocked or about to be
 
@@ -72,7 +93,7 @@ OPS_PRIVATE_KEY=0x… npm run floor -- --config deployment.json --execute
 
 If it refuses with *deviates Nbps from the active floor*, the quote moved more than 50% since the last refresh. **Look at the market before overriding.** Then `--force`.
 
-If it refuses with *ops signer is an approved keeper*, someone put the wrong key on the ops host. Fix the host, do not remove the check.
+If it refuses with *ops signer is an approved keeper*, someone put the wrong key on the ops host. Fix the host, do not remove the check. If it refuses with *below the owner lower bound*, the market has fallen through a line the owner drew deliberately; the owner reviews and lowers `floorLowerBound`, the bot does not.
 
 ### `gas` — a bot is about to stop silently
 
@@ -91,6 +112,10 @@ cast send $DISTRIBUTOR "activateRound(uint256)" $ROUND_ID --rpc-url $RPC_URL
 ```
 
 Then find out why the keeper did not. Usually gas, a held lock, or an unresolved transaction.
+
+### fee cycle `awaiting-handoff`
+
+A source whose custody handoff has not happened is skipped and named in `awaitingHandoff`, and the rest of the cycle routes and swaps whatever has already arrived. This is the expected state during a staged rollout, not an alert. Once the handoff is done the next cycle picks the source up with no change.
 
 ### keeper exit 2 — `partial` or `closed-unpaid`
 
@@ -111,7 +136,7 @@ If it was mined, delete `keeper-pending-transaction.json` from the journal direc
 
 ### `keeper lock exists` / `floor lock exists`
 
-A crashed process left its lock. Verify the recorded PID and host in `owner.json` are genuinely gone, check for outstanding transactions from that signer, then remove the directory. Locks coordinate processes on one host only; two hosts running the same key will both proceed.
+The payout job and the fee cycle share the keeper key and will sometimes overlap; both wait up to five minutes (`--lock-wait`) for the other to finish before failing, so a plain overlap never pages. A lock that outlives the wait belongs to a crashed or stuck process: the error names its PID, host and start time. Verify that process is genuinely gone, check for outstanding transactions from that signer, then remove the directory. Locks coordinate processes on one host only; two hosts running the same key will both proceed.
 
 ## Compromised keys
 
@@ -119,11 +144,11 @@ A crashed process left its lock. Verify the recorded PID and host in `owner.json
 | --- | --- | --- |
 | Proposer | Commit roots; grief by reserving the pool. **Cannot move tokens.** | Guardian pause, cancel pending, rotate |
 | Keeper | Swap at a bad-but-above-floor price; reorder or stall payouts. **Cannot redirect funds** — destinations are immutable and payouts are bounded by the committed root | `setKeeper(old,false)` from the owner, rotate |
-| Ops | Set a harmful floor, or let it lapse and halt swaps. **Cannot move funds** | Rotate the executor owner; refresh the floor |
+| Ops (floor setter) | Set the floor anywhere down to `floorLowerBound`, or let it lapse and halt swaps. Cannot approve keepers, change limits or move funds; the executor refuses it as a keeper | `setFloorSetter(old,false)` from the owner, rotate, refresh the floor |
 | Guardian | Pause proposals, cancel rounds. Denial only | `setGuardian(new)` from the owner |
 | Owner multisig | Everything above, plus roles and limits. **Cannot withdraw reward tokens** — no such function exists | Full incident; there is no higher authority |
 
-Theft of holder rewards requires the proposer key **and** the keeper key **and** the calculator journal. No single key loses funds.
+Theft of holder rewards requires the proposer key **and** the keeper key: a root only the attacker knows, and the only key that can pay against it. The journal is not a secret and is not a third factor. No single key loses funds. Before the floor-setter role existed, the ops key was the executor's owner and could approve itself as keeper, zero the floor and swap the WETH balance at a manipulated price; that is why the role is narrow and bounded now.
 
 ## Timing you cannot tune away
 

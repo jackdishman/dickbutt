@@ -10,6 +10,9 @@ export async function main(){
  // rejects as a configuration identity mismatch, so prefer the file a deployment emitted.
  const flag=process.argv.indexOf('--config'),configPath=flag>=0?process.argv[flag+1]:null;
  if(flag>=0&&(!configPath||configPath.startsWith('--')))throw Error('missing value for --config');
+ // --bootstrap commits the first period with a zero pot so round 1 does not weight holders over the
+ // token's whole history. Only valid before any period has been journaled; see calculator/README.md.
+ const bootstrap=process.argv.includes('--bootstrap');
  if(!process.env.RPC_URL)throw Error('Missing RPC_URL');
  if(!configPath)for(const name of ['DICKBUTT_ADDRESS','DISTRIBUTOR_ADDRESS','DICKBUTT_DEPLOY_BLOCK','PAYOUT_THRESHOLD_RAW','WEIGHTING'])if(!process.env[name])throw Error(`Missing ${name}`);
  const provider=new ethers.JsonRpcProvider(process.env.RPC_URL, undefined, {cacheTimeout: -1});try{
@@ -29,8 +32,8 @@ export async function main(){
  }
  if(!['sqrt','linear'].includes(config.curve))throw Error('WEIGHTING must be sqrt or linear');
  if(BigInt(config.payoutThresholdRaw)<0n||BigInt(config.holderThresholdRaw)<0n)throw Error('negative threshold');
- const record=await runCalculator({dir,provider,token:new ethers.Contract(config.token,ERC20_ABI,provider),distributor:new ethers.Contract(config.distributor,DISTRIBUTOR_ABI,provider),config});
- console.log(record.unchanged?'No new finalized period.':stringify({block:record.block,curve:config.curve,roundId:record.roundId,root:record.root,total:record.plan?.total??'0',batches:record.plan?.batches.length??0,journal:path.join(dir,'periods')}));
+ const record=await runCalculator({dir,provider,token:new ethers.Contract(config.token,ERC20_ABI,provider),distributor:new ethers.Contract(config.distributor,DISTRIBUTOR_ABI,provider),config,bootstrap});
+ console.log(record.unchanged?'No new finalized period.':stringify({block:record.block,curve:config.curve,bootstrap:record.bootstrap,roundId:record.roundId,root:record.root,total:record.plan?.total??'0',batches:record.plan?.batches.length??0,superseded:Object.values(record.state?.plans??{}).filter(p=>p.superseded).map(p=>p.roundId),journal:path.join(dir,'periods')}));
  console.log('Nothing submitted on-chain. Review the committed period plan before proposing.');
  }finally{closeProvider(provider);}
 }

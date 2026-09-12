@@ -4,7 +4,7 @@ import { validateRoles, buildManifest, buildCalculatorConfig, DEPLOYABLE_CHAINS 
 
 const addr = n => '0x' + String(n).padStart(40, '0');
 const roles = {
-  owner: addr(1), keeper: addr(2), proposer: addr(3), guardian: addr(1),
+  owner: addr(1), keeper: addr(2), proposer: addr(3), guardian: addr(1), ops: addr(7),
   kcGreen: addr(4), cdbVault: addr(5), burnAddress: addr('dead'),
 };
 const contracts = {
@@ -29,10 +29,14 @@ test('roles reject a keeper that doubles as an administrator or deployer', () =>
   assert.ok(validateRoles({ ...roles, keeper: roles.proposer }).some(e => e.includes('separate keys')));
   assert.ok(validateRoles({ ...roles, keeper: roles.guardian }).some(e => e.includes('not be the guardian')));
   assert.ok(validateRoles(roles, { deployer: roles.keeper }).some(e => e.includes('deploying key')));
+  // The executor refuses a keeper as floor setter; say so before a deployment reverts mid-wiring.
+  assert.ok(validateRoles({ ...roles, ops: roles.keeper }).some(e => e.includes('floor setter) must not be the keeper')));
+  assert.deepEqual(validateRoles({ ...roles, ops: roles.owner }), [], 'ops may be the owner, which is pointless but not unsafe');
 });
 
 test('roles reject missing, zero, duplicate and bot-key payees', () => {
-  assert.ok(validateRoles({}).length >= 7);
+  assert.ok(validateRoles({}).length >= 8);
+  assert.ok(validateRoles({ ...roles, cdbVault: roles.ops }).some(e => e.includes('operational bot key')));
   assert.ok(validateRoles({ ...roles, owner: '0x' + '0'.repeat(40) }).some(e => e.includes('roles.owner')));
   assert.ok(validateRoles({ ...roles, cdbVault: roles.kcGreen }).some(e => e.includes('distinct')));
   assert.ok(validateRoles({ ...roles, kcGreen: roles.keeper }).some(e => e.includes('operational bot key')));
@@ -66,7 +70,7 @@ test('calculator config excludes every pipeline contract and operational key', (
   });
   assert.equal(c.chainId, '84532');
   assert.equal(c.curve, 'linear');
-  for (const a of [roles.burnAddress, roles.kcGreen, roles.cdbVault, roles.keeper, roles.proposer,
+  for (const a of [roles.burnAddress, roles.kcGreen, roles.cdbVault, roles.keeper, roles.proposer, roles.ops,
     contracts.feeRouter, contracts.dickSplit, contracts.wethSplit, contracts.distributor, addr(30), addr(31)]) {
     assert.ok(c.excluded.includes(a.toLowerCase()), `${a} must be excluded`);
   }
