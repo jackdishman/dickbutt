@@ -1,0 +1,42 @@
+{
+  "_comment": "Template for npm run deploy:mainnet -- --params <this file>. Copy it, fill every field, and keep the filled copy out of git. Nothing here has a default: each value is a production decision the deploy script refuses to make for you. Addresses live in config/base-mainnet.json, not here.",
+
+  "_dickbuttDeployBlock": "Block DICKBUTT was created. The calculator scans Transfer events from here and treats what it finds as the complete history. Verified on-chain: the script checks there is no code at block-1 and code at this block, so it needs an archive RPC.",
+  "dickbuttDeployBlock": null,
+
+  "_holderThresholdRaw": "Minimum DICKBUTT held to qualify for rewards, in wei. Documented as 6,900,000 DICKBUTT = 6900000000000000000000000.",
+  "holderThresholdRaw": null,
+
+  "_payoutThresholdRaw": "Minimum SPCXc a recipient must earn to be included in a round, in raw units (8 decimals).",
+  "payoutThresholdRaw": null,
+
+  "_minPayoutRaw": "DickbuttRewardsDistributor constructor. On-chain floor below which an individual recipient transfer is skipped, in SPCXc raw units.",
+  "minPayoutRaw": null,
+
+  "_batchSize": "Recipients per distributeBatch call. Estimate from real gas with margin: 256 native SPCXc recipients measured 14.66M execution gas against Base's 16,777,216 per-transaction cap, before transaction overhead. The public test used 50.",
+  "batchSize": null,
+
+  "_chunkSize": "Event scan window in blocks. Sized to what the production RPC will serve without rejecting the range; Sepolia used 2000.",
+  "chunkSize": null,
+
+  "_curve": "linear or sqrt. Square-root allocation is Sybilable. This is an economics decision.",
+  "curve": null,
+
+  "_maxSwapPerCallWei": "SpcxcSwapExecutor cap per swap, in WETH wei. Bounds how much a compromised keeper can push through the pool in one call.",
+  "maxSwapPerCallWei": null,
+
+  "_minSwapIntervalSeconds": "Minimum seconds between executor swaps.",
+  "minSwapIntervalSeconds": null,
+
+  "_floorLowerBoundRaw": "SPCXc per WETH below which swaps should halt rather than execute, in SPCXc raw units. The floor setter bot can never set a floor under this. Must be nonzero: the executor refuses to approve a floor setter while the bound is zero.",
+  "floorLowerBoundRaw": null,
+
+  "_lockerMinIntervalSeconds": "Anti-spam gap between permissionless Clanker locker harvests. Not a security control. Contract maximum is 30 days.",
+  "lockerMinIntervalSeconds": null,
+
+  "_aerodromeMinIntervalSeconds": "Anti-spam gap between permissionless Aerodrome harvests. Contract maximum is 30 days.",
+  "aerodromeMinIntervalSeconds": null,
+
+  "_aerodromeUnlockTime": "Unix timestamp before which AerodromeFeeHarvester will not release the LP NFT. Constructor requires it in the future and within 100 years. Review this against the locker/legacy permanence discussion in AUDITOR-BRIEF.md before choosing.",
+  "aerodromeUnlockTime": null
+}

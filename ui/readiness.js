@@ -22,9 +22,9 @@ export const ITEMS = [
   { id: 'cfg.proposer', group: 'Addresses', owner: 'Kevin', label: 'Proposer bot key',
     detail: 'Calls proposeRound. Cannot move tokens: payment is keeper-gated and the keeper rejects any root its own journal did not produce.',
     doc: 'docs/GOVERNANCE.md', derive: c => set(get(c.mainnet, 'deployment.proposer')) },
-  { id: 'cfg.guardian', group: 'Addresses', owner: 'Kevin', label: 'Guardian (optional)',
-    detail: 'Cancels a pending round and pauses proposals. Null means it inherits the owner multisig, which is the intended default.',
-    derive: c => (get(c.mainnet, 'deployment.guardian') ? 'done' : 'n/a') },
+  { id: 'cfg.guardian', group: 'Addresses', owner: 'Kevin', label: 'Guardian',
+    detail: 'Cancels a pending round and pauses proposals. It may be the owner multisig — the constructor defaults it to the owner and it follows an ownership transfer — but validateRoles requires the address written out, so a null blocks preflight rather than inheriting quietly.',
+    doc: 'docs/GOVERNANCE.md', derive: c => set(get(c.mainnet, 'deployment.guardian')) },
   { id: 'cfg.keeper', group: 'Addresses', owner: 'Kevin', label: 'Keeper hot key',
     detail: 'Signs processWeth and distributeBatch only. Treat the key as disposable; worst case for a compromise is griefing, not theft.',
     doc: 'docs/KEEPER.md', derive: c => set(get(c.mainnet, 'deployment.keeper')) },
@@ -87,6 +87,9 @@ export const ITEMS = [
   { id: 'ops.fundBots', group: 'Operations', owner: 'Kevin', label: 'Fund the proposer and ops keys',
     detail: 'Four roles on four hosts, never sharing a key: keeper, ops, proposer and a keyless monitor.',
     doc: 'docs/RUNBOOK.md' },
+  { id: 'ops.params', group: 'Operations', owner: 'Kevin', label: 'Choose the production magnitudes',
+    detail: 'Floor lower bound, swap cap, batch size, thresholds, harvest intervals and the Aerodrome unlock time. Every one is an economics or risk decision, so the deploy script refuses to default any of them; config/params-mainnet.example.json states why for each field.',
+    doc: 'docs/MAINNET-DEPLOY.md' },
   { id: 'ops.schedule', group: 'Operations', owner: 'Jack', label: 'Install the rendered schedule',
     detail: 'npm run schedule renders systemd units or a crontab from one validated definition, so no scheduler can disagree about which key runs where.',
     doc: 'docs/RUNBOOK.md' },
@@ -99,8 +102,8 @@ export const ITEMS = [
     detail: 'Self-review found real bugs but the author wrote them. AUDITOR-BRIEF.md has the scope, trust boundaries and evidence limits ready.',
     doc: 'AUDITOR-BRIEF.md' },
   { id: 'gate.mainnetWrites', group: 'Gates', owner: 'Jack', label: 'Lift the mainnet execution gate',
-    detail: 'The operating CLIs hard-refuse chain 8453. Lifting that is a deliberate production-operating decision and should be its own reviewed change, after a testnet soak — not a config edit.',
-    doc: 'AUDITOR-BRIEF.md' },
+    detail: 'Deploying is now possible (npm run deploy:mainnet), but the OPERATING CLIs still hard-refuse chain 8453: fees, floor and keeper. Lifting that is a separate production-operating decision and should be its own reviewed change, after a testnet soak — not a config edit.',
+    doc: 'docs/MAINNET-DEPLOY.md' },
 ];
 
 export const GROUPS = [...new Set(ITEMS.map(i => i.group))];
