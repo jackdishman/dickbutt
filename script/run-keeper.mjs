@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { runKeeper, KEEPER_ABI } from '../keeper/engine.js';
-import { closeProvider } from '../operations/provider.js';
+import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import { stringify } from '../calculator/journal.js';
 
 export function parseKeeperArgs(args) {
@@ -42,7 +42,7 @@ export async function main(args=process.argv.slice(2),env=process.env) {
  }
  if(!env.RPC_URL)throw Error('RPC_URL is required');
  const config=JSON.parse(fs.readFileSync(options.configPath,'utf8'));
- const provider=new ethers.JsonRpcProvider(env.RPC_URL,undefined,{cacheTimeout:-1});
+ const provider=createRpcProvider(env.RPC_URL,undefined,{cacheTimeout:-1});
  try {
   const chainId=(await provider.getNetwork()).chainId.toString();
   if(options.execute&&!['31337','84532'].includes(chainId))throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');

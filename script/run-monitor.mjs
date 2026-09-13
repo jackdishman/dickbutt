@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { runMonitor } from '../operations/monitor.js';
-import { closeProvider } from '../operations/provider.js';
+import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import { KEEPER_ABI } from '../keeper/engine.js';
 import { Journal } from '../calculator/journal.js';
 
@@ -46,7 +46,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   if (o.help) { console.log(USAGE); return; }
   if (!env.RPC_URL) throw Error('RPC_URL is required');
   const manifest = JSON.parse(fs.readFileSync(o.configPath, 'utf8'));
-  const provider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
+  const provider = createRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
   try {
     const chainId = (await provider.getNetwork()).chainId;
     if (String(chainId) !== String(manifest.chainId)) throw Error('RPC/config chain mismatch');

@@ -1,0 +1,162 @@
+Warning: This is a nightly build of Foundry. It is recommended to use the latest stable version. To mute this warning set `FOUNDRY_DISABLE_NIGHTLY_WARNING` in your environment. 
+
+No files changed, compilation skipped
+2026-09-13T03:03:13.132756Z  WARN evm::traces::external: etherscan config not found
+2026-09-13T03:03:13.144626Z  WARN forge::test: failed calling "targetArtifactSelectors()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.144991Z  WARN forge::test: failed calling "targetArtifacts()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.150340Z  WARN forge::test: failed calling "excludeArtifacts()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.150536Z  WARN forge::test: failed calling "targetSenders()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.150546Z  WARN forge::test: failed calling "excludeSenders()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.151114Z  WARN forge::test: failed calling "excludeContracts()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.151134Z  WARN forge::test: failed calling "targetInterfaces()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.151142Z  WARN forge::test: failed calling "targetSelectors()": execution reverted: EvmError: Revert (gas: 21227)
+2026-09-13T03:03:13.151149Z  WARN forge::test: failed calling "excludeSelectors()": execution reverted: EvmError: Revert (gas: 21227)
+
+Ran 7 tests for test/SepoliaSupport.t.sol:SepoliaSupportTest
+[PASS] testCollectRequiresPositionOwnership() (gas: 153614)
+[PASS] testFaucetIsOpenButBlockingIsAdminOnly() (gas: 97366)
+[PASS] testFeeAmountsStayAdjustableAfterOwnershipHandoff() (gas: 26833)
+[PASS] testOnlyFeeAdminAdjustsFeesAndTheRoleIsTransferable() (gas: 34500)
+[PASS] testPositionFeesAreAdminOnly() (gas: 262523)
+[PASS] testQuoterAgreesWithTheRouterItQuotesFor() (gas: 475035)
+[PASS] testRouterHonoursDeadlineAndMinimumOutput() (gas: 361154)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 9.40ms (2.29ms CPU time)
+
+Ran 1 test for test/Integration.t.sol:IntegrationTest
+[PASS] testFullFeeCycleConcurrentRoundsRetryAndEarlyClose() (gas: 1167773)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 9.64ms (1.18ms CPU time)
+
+Ran 12 tests for test/Harvesters.t.sol:LockerHarvesterTest
+[PASS] testDelayChangeDoesNotAcceleratePending() (gas: 56436)
+[PASS] testDestinationFreezeAllPaths() (gas: 24994)
+[PASS] testHarvestPermissionlessFixedAndInterval() (gas: 80798)
+[PASS] testRecoveryAfterPermissionlessRelease() (gas: 82813)
+[PASS] testRecoveryOnlyAfterUnlock() (gas: 97817)
+[PASS] testRecoveryOwnerOnly() (gas: 19186)
+[PASS] testRecoveryRejectsMissingLockerOwnership() (gas: 2094009)
+[PASS] testRecoveryRejectsZeroRecipientAndSecondRecovery() (gas: 94944)
+[PASS] testRejectExcessiveInterval() (gas: 117306)
+[PASS] testRejectLockerWithoutPosition() (gas: 450014)
+[PASS] testRejectWrongConfiguredId() (gas: 122224)
+[PASS] testTimelockAndCancellation() (gas: 90762)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 9.97ms (2.04ms CPU time)
+
+Ran 10 tests for test/LegacyFees.t.sol:LegacyFeesTest
+[PASS] testConstructorRejectsDisabledModule() (gas: 81692)
+[PASS] testConstructorRejectsInvalidAddresses() (gas: 317027)
+[PASS] testDisabledModuleCannotHarvest() (gas: 97660)
+[PASS] testEmptySafeIsNoOp() (gas: 23229)
+[PASS] testFuzzCallerCannotRedirect(address,uint96) (runs: 4096, μ: 98999, ~: 100089)
+[PASS] testHistoricalSafeUsesSameCreatorAndFixedDestination() (gas: 766692)
+[PASS] testLegacyAuthorityRequiredEvenWhenEmpty() (gas: 33377)
+[PASS] testPermissionlessHarvestIncludesHistoricFeesAndKeepsOtherAssets() (gas: 712860)
+[PASS] testRecipientTransferFailurePreservesFees() (gas: 117957)
+[PASS] testRejectsEmptyAndDuplicateSafeList() (gas: 141511)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 171.91ms (165.05ms CPU time)
+
+Ran 2 tests for test/GoldenMerkle.t.sol:GoldenMerkleTest
+[PASS] testCommittedGoldenVectorsExecuteInActualDistributor() (gas: 7749755)
+[PASS] testFuzzMerkleSingleLeaf(uint256,address,uint96) (runs: 4096, μ: 1453, ~: 1384)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 276.86ms (51.70ms CPU time)
+
+Ran 11 tests for test/ProposerGuardian.t.sol:ProposerGuardianTest
+[PASS] testCapIsRecomputedAgainstUnreservedBalanceNotRawBalance() (gas: 228346)
+[PASS] testDefaultsAreTheAgreedPolicy() (gas: 32790)
+[PASS] testDustBalanceFloorsTheCapToZero() (gas: 2531307)
+[PASS] testFuzzCapNeverAdmitsMoreThanItsShare(uint96,uint16,uint96) (runs: 4096, μ: 2452844, ~: 2412334)
+[PASS] testGuardianFollowsOwnershipUnlessSplit() (gas: 2392006)
+[PASS] testGuardianPauseEndsTheCancelRace() (gas: 166474)
+[PASS] testLimitSettersRejectUnreasonableValues() (gas: 29713)
+[PASS] testPauseNeverStrandsAlreadyCommittedRewards() (gas: 249024)
+[PASS] testRateLimitSpacesProposalsAndCancelDoesNotRefundTheSlot() (gas: 249733)
+[PASS] testRoleAuthorisation() (gas: 182429)
+[PASS] testShareCapBoundsASingleRound() (gas: 164108)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 177.07ms (177.42ms CPU time)
+
+Ran 20 tests for test/Harvesters.t.sol:HarvestersTest
+[PASS] testCollectedFeesRouteByTokenNotOrder() (gas: 222244)
+[PASS] testDestinationTimelockCancel() (gas: 91744)
+[PASS] testFreezeAllDestinationMutations() (gas: 23919)
+[PASS] testFuzzStrayRouting(uint128,uint128) (runs: 4096, μ: 173838, ~: 175441)
+[PASS] testHarvestRoutesStraysAndInterval() (gas: 190217)
+[PASS] testLockExtensionAndWithdrawal() (gas: 85321)
+[PASS] testPendingChangePreventsFreeze() (gas: 62598)
+[PASS] testPermanentLock() (gas: 45803)
+[PASS] testProtectedRescue() (gas: 20247)
+[PASS] testRejectExcessiveInterval() (gas: 123123)
+[PASS] testRejectMillisecondsExtension() (gas: 16202)
+[PASS] testRejectMillisecondsLock() (gas: 122834)
+[PASS] testRejectPastLock() (gas: 122935)
+[PASS] testRejectSameTokens() (gas: 118224)
+[PASS] testRejectUnexpectedManager() (gas: 891429)
+[PASS] testRejectUnexpectedNFT() (gas: 54006)
+[PASS] testRejectZeroAndEOAAddresses() (gas: 220687)
+[PASS] testRescueUnrelatedToken() (gas: 606253)
+[PASS] testTokenTransferFailureRollsBackHarvest() (gas: 247712)
+[PASS] testUnauthorizedMutation() (gas: 15736)
+Suite result: ok. 20 passed; 0 failed; 0 skipped; finished in 277.13ms (270.23ms CPU time)
+
+Ran 13 tests for test/FeeSplitter.t.sol:FeeSplitterTest
+[PASS] testAuthorizationAndRescue() (gas: 121229)
+[PASS] testConstructorValidation() (gas: 207049)
+[PASS] testExpiredFloorAndDeadline() (gas: 85500)
+[PASS] testFloorBounds() (gas: 14495)
+[PASS] testFloorRounding() (gas: 361543)
+[PASS] testFuzzFixedDickSplit(uint128) (runs: 4096, μ: 104176, ~: 106214)
+[PASS] testFuzzWethSplit(uint128) (runs: 4096, μ: 419145, ~: 422641)
+[PASS] testMissingFloorFailsClosed() (gas: 1722281)
+[PASS] testNoGasDrain() (gas: 74109)
+[PASS] testProtectedRewardForwarding() (gas: 77216)
+[PASS] testRepeatedProcessingAndRevocation() (gas: 524160)
+[PASS] testRouteAndAllowanceAndCap() (gas: 470634)
+[PASS] testRouterCannotLie() (gas: 383743)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 276.92ms (452.00ms CPU time)
+
+Ran 7 tests for test/SwapExecutor.t.sol:SwapExecutorTest
+[PASS] testDeadlineExpiryFloorRoundingAndStricterKeeperMinimum() (gas: 687106)
+[PASS] testFloorSetterIsNarrowAndBoundedAndExclusiveWithKeeper() (gas: 156718)
+[PASS] testFuzzWholeAllocation(uint128) (runs: 4096, μ: 362038, ~: 362041)
+[PASS] testKeeperAndOwnerBoundariesAndProtectedTokens() (gas: 204732)
+[PASS] testMissingFloorFailsClosedAndInvalidRouteRejected() (gas: 2030123)
+[PASS] testRejectsLyingOutputAndIncompleteInputWithAtomicRollback() (gas: 639650)
+[PASS] testSwapsWholeCappedAllocationToFixedDistributor() (gas: 406524)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 277.16ms (275.65ms CPU time)
+
+Ran 10 tests for test/Distributor.t.sol:DistributorTest
+[PASS] testBlockedTransferRetryAndDuplicate() (gas: 305498)
+[PASS] testCancelPendingReleasesAndRecordsPlan() (gas: 175332)
+[PASS] testConcurrentPendingActiveEarlyClose() (gas: 370339)
+[PASS] testDuplicateAccountAndPauseRetry() (gas: 292528)
+[PASS] testFuzzBatchOrderPartialRetry(uint96,uint96,bool,bool) (runs: 4096, μ: 340696, ~: 322115)
+[PASS] testInvalidCrossRoundProofAndKeeperRemoval() (gas: 325990)
+[PASS] testMalformedRootOverspendRollsBackEntireBatch() (gas: 409177)
+[PASS] testPendingReservesFunds() (gas: 151102)
+[PASS] testThresholdChangeCannotStrandCommittedLeaf() (gas: 263608)
+[PASS] testUnauthorizedLifecycle() (gas: 180896)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 277.05ms (270.30ms CPU time)
+
+Ran 1 test for test/ReservationInvariant.t.sol:ReservationInvariantTest
+[PASS] invariantReservationConservationAndNoDoublePayment() (runs: 512, calls: 131072, reverts: 0)
+
+╭--------------------+----------+-------+---------+----------╮
+| Contract           | Selector | Calls | Reverts | Discards |
++============================================================+
+| ReservationHandler | activate | 18633 | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | cancel   | 18940 | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | close    | 18777 | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | fund     | 18705 | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | guidance | 18770 | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | pay      | 18573 | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | propose  | 18674 | 0       | 0        |
+╰--------------------+----------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 37.13s (37.13s CPU time)
+
+Ran 11 test suites in 37.14s (38.90s CPU time): 94 tests passed, 0 failed, 0 skipped (94 total tests)
+2026-09-13T03:03:50.271365Z  WARN evm::traces: failed to flush signature cache err=failed to create file "/Users/m4mini/.foundry/cache/signatures": Operation not permitted (os error 1)

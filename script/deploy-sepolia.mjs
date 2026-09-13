@@ -11,14 +11,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { validateRoles, buildManifest, buildCalculatorConfig } from '../operations/deployment.js';
-import { closeProvider } from '../operations/provider.js';
+import { closeProvider, createRpcProvider } from '../operations/provider.js';
 
 const SPLITS_FACTORY = '0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4';
 const BURN = '0x000000000000000000000000000000000000dEaD';
 const SEPOLIA = 84532n;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const USAGE = `Usage: npm run deploy:sepolia -- --roles roles.json [--out deployment-sepolia.json] [--force]
+const USAGE = `Usage: npm run deploy:sepolia -- --roles roles.json [--out deployment-sepolia.json] [--resume] [--force]
 
 Deploys to Base Sepolia only. Requires RPC_URL and DEPLOYER_PRIVATE_KEY.
 
@@ -34,6 +34,7 @@ export function parseDeployArgs(args) {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--force') o.force = true;
+    else if (arg === '--resume') o.resume = true;
     else if (arg === '--help') o.help = true;
     else if (arg === '--roles' || arg === '--out') {
       const value = args[++i];
@@ -61,13 +62,17 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   if (!env.DEPLOYER_PRIVATE_KEY) throw Error('DEPLOYER_PRIVATE_KEY is required');
 
   const outPath = path.resolve(o.out);
+  const partial = `${outPath}.partial`;
+  if (fs.existsSync(partial) && !o.resume) throw Error(`${partial} exists; inspect it and use --resume to continue the same deployment`);
+  if (o.resume && !fs.existsSync(partial)) throw Error('--resume requires an existing partial deployment');
   if (fs.existsSync(outPath) && !o.force) {
     throw Error(`${o.out} already exists; a new deployment would orphan the contracts it names. Review it, then pass --force`);
   }
   const roles = JSON.parse(fs.readFileSync(o.rolesPath, 'utf8'));
   if (!roles.burnAddress) roles.burnAddress = BURN;
 
-  const provider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
+  const provider = createRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
+  provider.pollingInterval = 2000;
   try {
     const { chainId } = await provider.getNetwork();
     if (chainId !== SEPOLIA) throw Error(`deployment is restricted to Base Sepolia (84532); RPC reports ${chainId}`);
@@ -77,26 +82,57 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     if (roleErrors.length) throw Error(`role configuration rejected:\n  - ${roleErrors.join('\n  - ')}`);
 
     const balance = await provider.getBalance(deployer.address);
-    if (balance < ethers.parseEther('0.02')) {
+    if (balance < ethers.parseEther(o.resume ? '0.002' : '0.02')) {
       throw Error(`deployer ${deployer.address} holds ${ethers.formatEther(balance)} ETH; fund it before deploying`);
     }
     console.log(JSON.stringify({ type: 'deploy-start', deployer: deployer.address, chainId: String(chainId), balance: ethers.formatEther(balance) }));
 
     // Written after every deployment so a mid-run failure leaves a record of what already exists
     // instead of orphaning contracts nobody can find.
-    const contracts = {};
-    const partial = `${outPath}.partial`;
-    const record = () => fs.writeFileSync(partial, JSON.stringify({ incomplete: true, deployer: deployer.address, contracts }, null, 2));
+    const progress = o.resume ? JSON.parse(fs.readFileSync(partial, 'utf8')) :
+      { incomplete: true, chainId: 84532, deployer: deployer.address, contracts: {}, deployments: {}, actions: {} };
+    if (progress.deployer.toLowerCase() !== deployer.address.toLowerCase() || progress.chainId !== 84532
+      || !progress.deployments || !progress.actions) throw Error('partial deployment identity or recovery metadata missing');
+    const contracts = progress.contracts;
+    const json = value => JSON.stringify(value, (_key, v) => typeof v === 'bigint' ? v.toString() : v);
+    const record = () => { fs.writeFileSync(`${partial}.tmp`, JSON.stringify(progress, null, 2)); fs.renameSync(`${partial}.tmp`, partial); };
+    record();
+    const rolesHash = ethers.keccak256(ethers.toUtf8Bytes(json(roles)));
+    if (progress.rolesHash && progress.rolesHash !== rolesHash) throw Error('roles changed during deployment recovery');
+    progress.rolesHash = rolesHash; record();
+    let deploymentIndex = 0;
     const deploy = async (name, args_ = []) => {
       const a = artifact(name);
+      const key = ethers.keccak256(ethers.toUtf8Bytes(json([deploymentIndex++, name, args_])));
+      const saved = progress.deployments[key];
+      if (saved) {
+        if (saved.hash) {
+          const receipt = await provider.waitForTransaction(saved.hash, 1, 120000);
+          if (!receipt || Number(receipt.status) !== 1) throw Error(`unresolved or failed deployment ${name}: ${saved.hash}`);
+        }
+        if ((await provider.getCode(saved.address)) === '0x') throw Error(`resume contract missing: ${name}`);
+        console.log(JSON.stringify({ type: 'resumed', name, address: saved.address }));
+        return new ethers.Contract(saved.address, a.abi, deployer);
+      }
       const c = await new ethers.ContractFactory(a.abi, a.bytecode.object, deployer).deploy(...args_);
-      await c.waitForDeployment();
+      progress.deployments[key] = { name, address: c.target, hash: c.deploymentTransaction().hash }; record();
+      await c.deploymentTransaction().wait(2);
+      // Public RPC backends can briefly disagree about latest after a receipt appears.
+      // Retry only this read; never automatically resubmit a signed transaction.
+      let visible = false;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        if ((await provider.getCode(c.target)) !== '0x') { visible = true; break; }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      if (!visible) throw Error(`confirmed deployment not yet readable: ${name}; resume once RPC catches up`);
       const address = await c.getAddress();
       console.log(JSON.stringify({ type: 'deployed', name, address }));
       return c;
     };
-    const send = async (label, promise) => {
-      const receipt = await (await promise).wait();
+    const send = async (label, submit) => {
+      if (!progress.actions[label]) { const tx = await submit(); progress.actions[label] = tx.hash; record(); }
+      const receipt = await provider.waitForTransaction(progress.actions[label], 2, 120000);
+      if (!receipt) throw Error(`unresolved configuration ${label}: ${progress.actions[label]}`);
       if (Number(receipt.status) !== 1) throw Error(`${label} failed: ${receipt.hash}`);
       console.log(JSON.stringify({ type: 'configured', action: label, hash: receipt.hash }));
     };
@@ -107,7 +143,8 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     // The calculator rebuilds balances by scanning Transfer events from this block. It must be the
     // token's own deployment, not the end of the run: anything minted in between would otherwise
     // look like a transfer out of an account the scan believes is empty.
-    const tokenDeployBlock = (await dick.deploymentTransaction().wait()).blockNumber;
+    const tokenEntry = Object.values(progress.deployments).find(entry => entry.address.toLowerCase() === dick.target.toLowerCase());
+    const tokenDeployBlock = tokenEntry.blockNumber ?? (await provider.getTransactionReceipt(tokenEntry.hash)).blockNumber;
     const spcxc = await deploy('SepoliaToken', ['Test SPCXc', 'tSPCXc', 8]);
     contracts.weth = weth.target; contracts.usdc = usdc.target;
     contracts.dickbutt = dick.target; contracts.spcxc = spcxc.target; record();
@@ -121,6 +158,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     const executor = await deploy('SpcxcSwapExecutor', [weth.target, spcxc.target, router.target,
       distributor.target, usdc.target, 1, 10, ethers.parseEther('1'), 0, deployer.address]);
     contracts.executor = executor.target; record();
+    contracts.router = router.target; contracts.quoter = quoter.target; record();
 
     // Genuine Splits factory: this creates two real immutable PushSplit clones on Sepolia.
     const feeRouter = await deploy('SplitsFeeRouter', [SPLITS_FACTORY, weth.target, dick.target,
@@ -133,39 +171,40 @@ export async function main(args = process.argv.slice(2), env = process.env) {
 
     const manager = await deploy('SepoliaPositionManager');
     const locker = await deploy('SepoliaLocker', [manager.target, weth.target, dick.target, deployer.address, 7]);
-    await send('locker-position', manager.mint(locker.target, 7));
+    await send('locker-position', () => manager.mint(locker.target, 7));
     const clanker = await deploy('LockerHarvester', [locker.target, manager.target, 7, feeRouter.target, 0, deployer.address]);
-    await send('locker-handoff', locker.transferOwnership(clanker.target));
+    await send('locker-handoff', () => locker.transferOwnership(clanker.target));
     contracts.clanker = clanker.target; contracts.locker = locker.target; contracts.manager = manager.target; record();
 
-    const unlock = (await provider.getBlock('latest')).timestamp + 365 * 86400;
+    const unlock = progress.aeroUnlock ?? (await provider.getBlock('latest')).timestamp + 365 * 86400;
+    progress.aeroUnlock = unlock; record();
     const aero = await deploy('AerodromeFeeHarvester', [manager.target, 8, dick.target, spcxc.target,
       roles.burnAddress, distributor.target, unlock, 0, deployer.address]);
-    await send('aero-position', manager.mint(deployer.address, 8));
-    await send('aero-handoff', manager['safeTransferFrom(address,address,uint256)'](deployer.address, aero.target, 8));
+    await send('aero-position', () => manager.mint(deployer.address, 8));
+    await send('aero-handoff', () => manager['safeTransferFrom(address,address,uint256)'](deployer.address, aero.target, 8));
     // Realistic magnitudes: a 1000-wei fee rounds a per-1e18 swap rate to zero, so the price
     // floor and slippage paths would never actually be exercised on the testnet.
-    await send('aero-fees', manager.configureFees(dick.target, spcxc.target, ethers.parseEther('5'), 10n ** 8n));
+    await send('aero-fees', () => manager.configureFees(dick.target, spcxc.target, ethers.parseEther('5'), 10n ** 8n));
     contracts.aero = aero.target; record();
 
     // Seed the legacy Safes so the first fee cycle has all three sources to harvest.
     const module = await deploy('LegacyModuleMock');
     const safes = [await deploy('LegacySafeMock', [module.target]), await deploy('LegacySafeMock', [module.target])];
     const legacy = await deploy('LegacyFeeHarvester', [module.target, safes.map(s => s.target), dick.target, feeRouter.target]);
-    await send('legacy-handoff', module.updateTokenCreator(dick.target, legacy.target));
-    await send('legacy-seed-current', dick.mint(safes[0].target, ethers.parseEther('600')));
-    await send('legacy-seed-historic', dick.mint(safes[1].target, ethers.parseEther('500')));
+    await send('legacy-handoff', () => module.updateTokenCreator(dick.target, legacy.target));
+    await send('legacy-seed-current', () => dick.mint(safes[0].target, ethers.parseEther('600')));
+    await send('legacy-seed-historic', () => dick.mint(safes[1].target, ethers.parseEther('500')));
     contracts.legacy = legacy.target; contracts.legacySafes = safes.map(s => s.target); record();
 
     // Roles. The deployer keeps ownership only long enough to wire them, then hands to the owner.
-    await send('set-keeper', distributor.setKeeper(roles.keeper, true));
-    await send('set-proposer', distributor.setProposer(roles.proposer, true));
-    await send('set-guardian', distributor.setGuardian(roles.guardian));
-    await send('set-swap-keeper', executor.setKeeper(roles.keeper, true));
+    await send('set-keeper', () => distributor.setKeeper(roles.keeper, true));
+    await send('set-proposer', () => distributor.setProposer(roles.proposer, true));
+    await send('set-guardian', () => distributor.setGuardian(roles.guardian));
+    await send('set-swap-keeper', () => executor.setKeeper(roles.keeper, true));
     // The floor bot signs with a narrow role, never the owner key. The bound is set first so no
     // floor setter is ever approved unbounded; half the stand-in rate leaves the 5% discount room.
-    await send('set-floor-lower-bound', executor.setFloorLowerBound(10n ** 8n));
-    await send('set-floor-setter', executor.setFloorSetter(roles.ops, true));
+    await send('set-floor-lower-bound', () => executor.setFloorLowerBound(10n ** 8n));
+    await send('set-floor-setter', () => executor.setFloorSetter(roles.ops, true));
 
     const deployedAtBlock = await provider.getBlockNumber();
     const manifest = buildManifest({
@@ -187,6 +226,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     });
     const configPath = outPath.replace(/\.json$/, '') + '-calculator.json';
     fs.writeFileSync(configPath, JSON.stringify(calculatorConfig, null, 2) + '\n');
+    fs.writeFileSync(`${outPath}.receipts.json`, JSON.stringify(progress, null, 2) + '\n');
     fs.rmSync(partial, { force: true });
 
     console.log(JSON.stringify({ type: 'deploy-complete', manifest: path.relative(ROOT, outPath),
@@ -198,11 +238,11 @@ export async function main(args = process.argv.slice(2), env = process.env) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => {
-    let message = error.code ? 'deployment RPC/signing failure; inspect the .partial manifest and the chain' : error.message;
+    let message = error.shortMessage ?? error.message;
     for (const secret of [process.env.RPC_URL, process.env.DEPLOYER_PRIVATE_KEY].filter(Boolean)) {
       message = message.split(secret).join('[redacted]');
     }
-    console.error(JSON.stringify({ type: 'deploy-error', message }));
+    console.error(JSON.stringify({ type: 'deploy-error', code: error.code ?? null, action: error.action ?? null, message }));
     process.exitCode = 1;
   });
 }

@@ -1,0 +1,309 @@
+
+> dickbutt-rewards-calculator@2.0.0 test
+> node --test calculator/test/*.test.js test/golden.test.mjs keeper/test/*.test.js operations/test/*.test.js ui/test/*.test.js
+
+✔ paid N+20 and close N+22 cannot recredit at boundary N (8.550542ms)
+✔ unproposed plans reserve local funds and cancellation recredits exactly once (1.472584ms)
+✔ mismatched commitments and paid amounts fail without mutating state (0.645875ms)
+✔ finalized required by default with explicit safe opt-in and no fallback (0.19825ms)
+✔ pending and active commitments do not add local reserve or recredit (0.923375ms)
+✔ partial closed round credits unpaid recipients, validating aggregate payment (0.356125ms)
+✔ RPC failure after one round leaves all rounds and accrual unchanged (0.190125ms)
+✔ duplicate, unknown, and out-of-bound payment logs fail closed (0.602625ms)
+✔ pending mapping reserves on chain exactly once even when roundInfo is zero (0.178417ms)
+✔ a foreign root closed at our round id supersedes the plan and recredits exactly once (3.398ms)
+✔ TWAB normalizes casing, self transfers, and endpoint balances (16.074458ms)
+✔ sqrt floor including two, and huge integers (0.352042ms)
+✔ threshold inclusive, linear shares and retained dust (2.470625ms)
+✔ sqrt rewards splitting whereas linear preserves aggregate weight (3.0835ms)
+✔ untouched balances accrue full period, zero and return settles correctly (0.466584ms)
+✔ mint burn exclusion and exact opening/closing boundaries (0.9415ms)
+✔ TWAB matches discrete reference over deterministic generated transfer histories (58.440041ms)
+✔ invalid intervals, missing history and duplicate normalized accounts fail closed (0.317916ms)
+✔ weighting must be explicit, never silently choose economics (0.07575ms)
+✔ all reads pinned, huge round id preserved, recovery and local collision cannot double accrue (38.12425ms)
+✔ snapshot hash change leaves no committed period (1.506083ms)
+✔ zero-payout periods journal carried balances and rebuild without hidden inputs (53.99075ms)
+✔ config economics change and insolvency abort without advancing journal (55.571542ms)
+✔ round share cap bounds new shares and rolls the remainder into the next period (77.495042ms)
+✔ a rate-limited proposal recovers on the next scheduled run without intervention (111.024958ms)
+✔ carry pushing the payable total past the cap fails loudly rather than starving a holder (58.671125ms)
+✔ bootstrap commits balances with a zero pot and is refused after the first period (85.724458ms)
+✔ carry below the cap leaves room for the new shares so the round stays proposable (85.16725ms)
+✔ exclusive writer and journal rebuild after missing/corrupt cache (24.662709ms)
+✔ incomplete temporary entry ignored; committed tampering fails closed (39.439167ms)
+✔ commit survives cache-write crash and replay is idempotent (19.465833ms)
+✔ two independent processes cannot both acquire writer lock (263.879958ms)
+✔ CLI defaults to read-only and requires reviewed config and journal paths (0.858333ms)
+✔ CLI requires separate explicit transaction and proposal flags (0.118208ms)
+✔ CLI waits for a peer on the same signer by default and accepts an explicit bound (0.084542ms)
+✔ independent history failure stops before any transaction (91.989917ms)
+✔ dry run defaults to proposal preview with no sends (49.476916ms)
+✔ explicit proposal waits for receipt and timelock, rerun does not repropose (140.019375ms)
+✔ failed recipient stays open, rerun filters paid accounts and completes once (146.702583ms)
+✔ commitment mismatch rejects before transactions (43.728959ms)
+✔ tampered proof in a correctly rehashed journal is rejected (44.010584ms)
+✔ configuration identity and reward token mismatches reject before proposals (53.564208ms)
+✔ production execute and wrong RPC chain are rejected (36.018125ms)
+✔ cancelled or early closed round reports unpaid without reproposal (46.166125ms)
+✔ round id already consumed without matching state is rejected (38.759916ms)
+✔ reverted transaction stops without retries and releases process lock (34.741875ms)
+✔ exclusive lock prevents concurrent nonce use (37.392375ms)
+✔ changed journal snapshot fails before sending (17.646167ms)
+✔ pending commitment mismatch fails before activation (22.541ms)
+✔ unknown receipt blocks rerun until receipt is resolved (35.31ms)
+✔ proposer role, guardian pause and contract limits are checked before sending (112.743542ms)
+✔ rate limited proposal reports instead of reverting and proceeds once elapsed (28.491416ms)
+✔ a foreign root at a planned round id is reported, never paid, and does not halt the run (22.044875ms)
+✔ the execution lock waits a bounded time for a peer and then fails with the holder named (157.139709ms)
+✔ independent replay accepts valid bootstrap and holder payout periods (180.887125ms)
+✔ consistent arithmetic and a rebuilt root cannot pay a wallet absent from chain history (157.233792ms)
+✔ invented starting balances are rejected even with unchanged payouts (140.511708ms)
+✔ a period above the real finality boundary is rejected (103.298958ms)
+✔ changed block identity and missing archive data stop verification (117.564625ms)
+✔ base mainnet is not a deployable chain (4.356542ms)
+✔ roles accept the intended layout and guardian may share the owner multisig (4.534625ms)
+✔ roles reject a keeper that doubles as an administrator or deployer (1.505667ms)
+✔ roles reject missing, zero, duplicate and bot-key payees (1.929583ms)
+✔ manifest carries every address the operating CLIs read (2.278125ms)
+✔ calculator config excludes every pipeline contract and operational key (0.248208ms)
+✔ deploy CLI rejects malformed invocations (9.163125ms)
+✔ harvests available sources, splits before capped quote and swap (2.864334ms)
+✔ a lagging latest RPC read cannot hide the WETH delivered by the confirmed split (0.249958ms)
+✔ dry-run never calls writes; mainnet execute rejected (0.766542ms)
+✔ expired floor blocks swap and reports pending refresh without losing harvested fees (0.324625ms)
+✔ bad quote and reverted receipts abort (2.160125ms)
+✔ a source still awaiting its custody handoff is skipped and reported; the rest of the cycle runs (0.219875ms)
+✔ one reverting Safe is skipped and reported while the rest of the cycle completes (0.24875ms)
+✔ a legacy transaction that was broadcast and then failed stays fatal (0.099916ms)
+✔ an ambiguous legacy send or RPC error stops the cycle (0.1695ms)
+✔ an awaited handoff is quiet but a skipped Safe asks for attention (0.118667ms)
+✔ floor CLI defaults are read-only with a warning window inside the refresh window (1.572875ms)
+✔ floor CLI rejects contradictory and malformed options (0.289792ms)
+✔ floor CLI accepts fractional hours and explicit tuning (0.057708ms)
+✔ a fresh floor does no work and reports time remaining (1.584375ms)
+✔ alerts on the way to expiry and once swaps are blocked (0.364708ms)
+✔ refuses a signer that is also an approved keeper (0.541917ms)
+✔ dry-run computes the floor from a cap-sized quote without sending (0.150208ms)
+✔ execute refreshes and bounds the expiry to the contract maximum (0.422334ms)
+✔ guards the quote, the owner, the chain and reverted receipts (1.958083ms)
+✔ a wildly different quote is rejected until explicitly forced (0.184875ms)
+✔ the floor-setter role refreshes; the owner is accepted; a stranger is not (0.136375ms)
+✔ a quote that lands below the owner lower bound is refused for every signer (0.140334ms)
+✔ a healthy system reports ok and exit 0 (1.678792ms)
+✔ an expired or soon-to-expire floor asks for attention (0.547625ms)
+✔ an unfunded bot is flagged before it fails silently (0.142458ms)
+✔ a guardian pause is surfaced rather than mistaken for a dead proposer (0.33175ms)
+✔ a root the journal never produced is the alarm that matters (0.473709ms)
+✔ a round left sitting past its timelock is flagged and outstanding value is totalled (0.197375ms)
+✔ an unbounded floor setter is flagged, and an executor predating the role reads as failed (1.26975ms)
+✔ a foreign round the guardian cancelled unpaid stops alarming; one that paid does not (0.150709ms)
+✔ only accepts intended funded full-range 0.3% position (1.808959ms)
+✔ absent pool or position cannot pass preflight (0.077875ms)
+✔ deployment needs explicit distinct destinations and governance (4.54775ms)
+✔ swap route must resolve to the configured two-hop pools with liquidity (0.375125ms)
+✔ every recorded pipeline address, the locker and its pool must be in the exclusion set (1.398292ms)
+✔ teardown stops the poller and never calls destroy (1.636791ms)
+✔ teardown tolerates an absent provider (0.287125ms)
+✔ the shipped schedule keeps every key on exactly one host (11.3525ms)
+✔ a key on two hosts is rejected (0.237042ms)
+✔ the keeper key may not run on the ops host (0.19325ms)
+✔ the monitor must be keyless and live alone (0.439875ms)
+✔ cadences that contradict contract limits are rejected (0.607125ms)
+✔ the proposer job never asks for the keeper key (0.156042ms)
+✔ renderers substitute paths and mark exit 2 as non-fatal (1.09775ms)
+✔ schedule CLI validates its own options (0.826083ms)
+✔ hardcoded JS Solidity golden vectors and negative encodings (9.248458ms)
+✔ read and local commands run without the execute flag; write commands do not (2.405208ms)
+✔ a write command needs both the flag and a matching confirmation (0.693417ms)
+✔ path inputs reject traversal, absolute paths and option lookalikes (0.14625ms)
+✔ a choice input only accepts its declared choices (0.119459ms)
+✔ optional inputs may be empty and then contribute no flag (0.094041ms)
+✔ the calculator receives its data directory through the environment, not a flag (0.065333ms)
+✔ unknown commands are refused rather than guessed at (0.046458ms)
+✔ describeCommands never leaks an environment value, only its presence (1.541834ms)
+✔ every write command explains its blast radius before it can be run (0.103625ms)
+✔ flow, displayed forms and executed defaults select the same current deployment (57.359584ms)
+✔ an installation without an explicit selector retains its historical defaults (8.859583ms)
+✔ an invalid selector is rejected instead of reading outside the project or falling back (6.983584ms)
+✔ every edge connects two declared nodes (1.478708ms)
+✔ edges always run left to right, so routing never has to double back (0.42325ms)
+✔ no two node boxes overlap (0.808166ms)
+✔ every node fits inside the viewBox (0.320125ms)
+✔ no routed edge crosses a node it does not touch (2.282041ms)
+✔ edges sharing a column gap get distinct vertical channels (0.607083ms)
+✔ labels are pushed apart when they land on top of each other (0.388333ms)
+✔ every path starts at its source face and ends at its target face (0.76925ms)
+✔ a null address in the config reads as blocked (1.535584ms)
+✔ a configured address reads as done without anyone ticking a box (0.229584ms)
+✔ an absent guardian is not a blocker: it inherits the owner multisig (0.079417ms)
+✔ n/a items are excluded from the score rather than counted as done (0.133917ms)
+✔ a derived item cannot be overridden by hand (0.260916ms)
+✔ a manual item records state, note and time (0.949833ms)
+✔ unknown items and states are rejected (0.092875ms)
+✔ every item names an owner and every derived item returns a known state (0.080875ms)
+✔ the console refuses to bind anywhere but loopback (0.802917ms)
+✔ unknown and malformed options are rejected (0.074625ms)
+✖ an API call without the token is refused (6.496ms)
+✖ a cross-site request is refused even when it carries the token (1.926875ms)
+✖ state describes the flow, the checklist and the commands (0.196542ms)
+✖ a read-only console refuses to start a transaction-signing command (0.32025ms)
+✖ an execute-enabled console still requires the confirmation (0.177125ms)
+✖ a command runs, streams its output and reports its exit code (0.173791ms)
+✔ run status distinguishes "needs a human" from "crashed" (1.438875ms)
+✔ the run log is bounded so a long session cannot grow without limit (0.202042ms)
+✔ output lines are truncated and capped (3.862375ms)
+✖ static files outside the public directory are not served (0.321958ms)
+✖ a torn or oversized request body is rejected rather than parsed (0.194042ms)
+✖ the token comparison is length-guarded so it cannot throw (0.172209ms)
+✖ the session endpoint reports the mode but never hands out the token (0.227583ms)
+✔ mainnet shows this repository's contracts as undeployed, not as errors (1.948792ms)
+✔ the sepolia manifest resolves the same nodes as deployed (34.617583ms)
+✔ nodes carry the geometry the client draws with (13.257417ms)
+✔ environment reporting states presence and never the value (0.156125ms)
+✔ config edits are limited to the fields the console owns (7.820667ms)
+✔ a config edit changes only its own field and leaves the evidence intact (9.355917ms)
+✔ clearing a field writes null rather than an empty string (25.459291ms)
+✔ only indexed documents can be read (5.126792ms)
+✔ overrides round-trip through the gitignored file (3.621292ms)
+✔ the console reports the same schedule the units are rendered from (10.769333ms)
+ℹ tests 165
+ℹ suites 0
+ℹ pass 155
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1554.220625
+
+✖ failing tests:
+
+test at ui/test/server.test.js:45:1
+✖ an API call without the token is refused (6.496ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:52:1
+✖ a cross-site request is refused even when it carries the token (1.926875ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:61:1
+✖ state describes the flow, the checklist and the commands (0.196542ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:72:1
+✖ a read-only console refuses to start a transaction-signing command (0.32025ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:80:1
+✖ an execute-enabled console still requires the confirmation (0.177125ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:87:1
+✖ a command runs, streams its output and reports its exit code (0.173791ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:133:1
+✖ static files outside the public directory are not served (0.321958ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:142:1
+✖ a torn or oversized request body is rejected rather than parsed (0.194042ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:150:1
+✖ the token comparison is length-guarded so it cannot throw (0.172209ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }
+
+test at ui/test/server.test.js:159:1
+✖ the session endpoint reports the mode but never hands out the token (0.227583ms)
+  Error: listen EPERM: operation not permitted 127.0.0.1
+      at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+      at listenInCluster (node:net:1997:12)
+      at node:net:2206:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EPERM',
+    errno: -1,
+    syscall: 'listen',
+    address: '127.0.0.1'
+  }

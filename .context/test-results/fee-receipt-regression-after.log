@@ -1,0 +1,18 @@
+✔ harvests available sources, splits before capped quote and swap (1.426375ms)
+✔ a lagging latest RPC read cannot hide the WETH delivered by the confirmed split (0.174167ms)
+✔ dry-run never calls writes; mainnet execute rejected (0.221ms)
+✔ expired floor blocks swap and reports pending refresh without losing harvested fees (0.1575ms)
+✔ bad quote and reverted receipts abort (0.525041ms)
+✔ a source still awaiting its custody handoff is skipped and reported; the rest of the cycle runs (0.163958ms)
+✔ one reverting Safe is skipped and reported while the rest of the cycle completes (0.194875ms)
+✔ a legacy transaction that was broadcast and then failed stays fatal (0.087208ms)
+✔ an ambiguous legacy send or RPC error stops the cycle (0.17175ms)
+✔ an awaited handoff is quiet but a skipped Safe asks for attention (0.100334ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66.100291

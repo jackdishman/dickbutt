@@ -1,0 +1,17 @@
+
+> dickbutt-rewards-calculator@2.0.0 rehearse
+> node script/rehearse.mjs
+
+{
+  "success": true,
+  "evidence": ".context/rehearsal-run-eM5J6m",
+  "checks": [
+    "Three fee sources, actual immutable Splits percentages/dust, swap and rewards-vault funding verified",
+    "Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified",
+    "Repeated keeper execution sends no duplicate payments",
+    "Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key",
+    "Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer",
+    "Bootstrap period commits balances with a zero pot",
+    "A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it"
+  ]
+}

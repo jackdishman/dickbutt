@@ -1,3 +1,20 @@
+import http from 'node:http';
+import https from 'node:https';
+import {FetchRequest,JsonRpcProvider} from 'ethers';
+
+/** Bound concurrent sockets and reuse connections instead of opening a socket per balance read.
+ * RPC_IPV4_ONLY is an operator opt-in for hosts with unusable IPv6 routes. It changes transport
+ * only; chain checks, finality and transaction recovery rules remain at their call sites.
+ */
+export function createRpcProvider(url,network,options={}) {
+  const request=url instanceof FetchRequest?url.clone():new FetchRequest(url);
+  const Agent=new URL(request.url).protocol==='https:'?https.Agent:http.Agent;
+  const agent=new Agent({keepAlive:true,maxSockets:4,...(process.env.RPC_IPV4_ONLY==='1'?{family:4}:{})});
+  request.timeout=30000;
+  request.getUrlFunc=FetchRequest.createGetUrlFunc({agent});
+  return new JsonRpcProvider(request,network,{batchMaxCount:1,cacheTimeout:-1,...options});
+}
+
 /**
  * Shut down an ethers provider without turning a successful run into a crash.
  *

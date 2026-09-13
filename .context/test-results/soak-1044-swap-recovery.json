@@ -1,0 +1,138 @@
+{
+  "startedAt": "2026-09-13T10:50:04.327Z",
+  "mode": "reviewed-swap-only",
+  "chainId": 84532,
+  "status": "submitted",
+  "hash": "0xc7f937afbf8835994796199b4b441b34fc7d82141c0f26c470e88d03c626bf12",
+  "nonce": 31,
+  "executor": "0x0b1E15D42457BA67A550a217711C0dCF1A391E6D",
+  "distributor": "0xc0524A57cdA6558357667d41b0AB1752cD83d2D6",
+  "amount": "8000000000000000",
+  "quote": "1600000",
+  "minimum": "1584000",
+  "deadline": 1789296730,
+  "before": {
+    "block": 46764038,
+    "kc": {
+      "address": "0x80e00D628CbE20377695fe43E9d959597adFFe1B",
+      "dick": "509999999999999999999",
+      "weth": "3999999999999999",
+      "spcxc": "0"
+    },
+    "cdb": {
+      "address": "0xFee59016beD7dB11f56e5530863DCd0b2021bbF8",
+      "dick": "0",
+      "weth": "3999999999999999",
+      "spcxc": "0"
+    },
+    "burn": {
+      "address": "0x000000000000000000000000000000000000dEaD",
+      "dick": "4609999999999999999999",
+      "weth": "0",
+      "spcxc": "0"
+    },
+    "executor": {
+      "address": "0x0b1E15D42457BA67A550a217711C0dCF1A391E6D",
+      "dick": "0",
+      "weth": "8000000000000000",
+      "spcxc": "0"
+    },
+    "distributor": {
+      "address": "0xc0524A57cdA6558357667d41b0AB1752cD83d2D6",
+      "dick": "0",
+      "weth": "0",
+      "spcxc": "304000001"
+    },
+    "dickSplit": {
+      "address": "0xa2915a5910a0ae1bCf36c948eBeB8Ed92880C3d8",
+      "dick": "2",
+      "weth": "0",
+      "spcxc": "0"
+    },
+    "wethSplit": {
+      "address": "0x84Ca548690092C9E8e9c464a0a641AAd047CD053",
+      "dick": "0",
+      "weth": "2",
+      "spcxc": "0"
+    },
+    "holderA": {
+      "address": "0x64AE6c377648394431F9CC04c05060e0B99a6Ca1",
+      "dick": "7000000000000000000000000",
+      "weth": "0",
+      "spcxc": "33599999"
+    },
+    "holderB": {
+      "address": "0x6a137AA8D1E8D7ca5D265b9133642b681A6f617a",
+      "dick": "14000000000000000000000000",
+      "weth": "0",
+      "spcxc": "67199999"
+    },
+    "holderC": {
+      "address": "0x865c288785C3Be0F3514457B8F3c4C248653A3db",
+      "dick": "6800000000000000000000000",
+      "weth": "0",
+      "spcxc": "0"
+    }
+  },
+  "reconciledFeeTransactions": [
+    {
+      "action": "locker",
+      "status": 1,
+      "hash": "0x39e558d5e4d85f68b2a4ef5cbef32a06a14020976fa98cd4e915b6e272ecafa5",
+      "block": 46764026,
+      "from": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "to": "0x3f1C134ecf80155ae4A5829429e7aEdfCFb2c9C6",
+      "nonce": 25
+    },
+    {
+      "action": "aero",
+      "status": 1,
+      "hash": "0xf01a80d0c26de1f281e81169d3fd9838f7602b89a3a10b59bddaca4dc69bf0c9",
+      "block": 46764032,
+      "from": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "to": "0x39f45eE54e8D349e83345Fa1dbd59064B51f30Ba",
+      "nonce": 26
+    },
+    {
+      "action": "legacy0",
+      "status": 1,
+      "hash": "0x1e124eba06ab451767b543e75301846182450d2e0c7ea22442776a20b7b196b3",
+      "block": 46764034,
+      "from": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "to": "0xb6F5d51599B6455ED4fcF5D27259Ef1A8aC4425e",
+      "nonce": 27
+    },
+    {
+      "action": "legacy1",
+      "status": 1,
+      "hash": "0x3cc0456ccad2d928607a20171933824852d7151e063187902065c3226130f012",
+      "block": 46764035,
+      "from": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "to": "0xb6F5d51599B6455ED4fcF5D27259Ef1A8aC4425e",
+      "nonce": 28
+    },
+    {
+      "action": "split-dickbutt",
+      "status": 1,
+      "hash": "0x587cd6754a54937e63af9c9227a697f30467804d4286f1ab2b1ec06865248e11",
+      "block": 46764037,
+      "from": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "to": "0xF3Ac84Cc65D63aadF673D44d19Ff0F86E9623510",
+      "nonce": 29
+    },
+    {
+      "action": "split-weth",
+      "status": 1,
+      "hash": "0x1e3c216e2876b297ede9fb3cf7b384e97312cd830d4d3e44b99b4571a22ddb5c",
+      "block": 46764038,
+      "from": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "to": "0xF3Ac84Cc65D63aadF673D44d19Ff0F86E9623510",
+      "nonce": 30
+    }
+  ],
+  "error": {
+    "code": "CALL_EXCEPTION",
+    "action": "call",
+    "message": "missing revert data"
+  }
+}

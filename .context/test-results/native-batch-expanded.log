@@ -1,0 +1,23 @@
+Warning: This is a nightly build of Foundry. It is recommended to use the latest stable version. To mute this warning set `FOUNDRY_DISABLE_NIGHTLY_WARNING` in your environment. 
+
+Compiling 1 files with Solc 0.8.24
+Solc 0.8.24 finished in 11.22s
+Compiler run successful!
+2026-09-13T03:24:25.973913Z  WARN evm::traces::external: etherscan config not found
+
+Ran 2 tests for test/NativeBatchFork.t.sol:NativeBatchForkTest
+[PASS] testNative256RecipientBatchAndIdempotentRepeat() (gas: 19886245)
+Logs:
+  native SPCXc recipients: 256
+  distribution execution gas excluding transaction overhead: 14660698
+  fork block gas limit: 400000000
+
+[PASS] testNative400RecipientBatchExceedsCurrentTransactionGasCap() (gas: 30610462)
+Logs:
+  native SPCXc recipients: 400
+  distribution execution gas excluding transaction overhead: 23234654
+  fork block gas limit: 400000000
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 90.66s (89.54s CPU time)
+
+Ran 1 test suite in 90.67s (90.66s CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)

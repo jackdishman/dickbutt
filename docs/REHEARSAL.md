@@ -1,12 +1,12 @@
 # Deployment rehearsal
 
-`npm run rehearse` deploys the whole architecture to a **disposable local Anvil fork of Base**, drives one complete fee-to-holder cycle through the real calculator and real keeper, and writes structured evidence. It never connects a signer to mainnet and never creates a pool, claims legacy fees, or transfers custody.
+`npm run rehearse` deploys the whole architecture to a **disposable local Anvil fork of Base**, drives one complete fee-to-holder cycle through the real calculator and real keeper, and writes structured evidence. It never connects a signer to public mainnet. It simulates custody handoffs and mock legacy claims locally; separate native fork suites also exercise actual external contracts and locally create an Aerodrome position.
 
-The rehearsal is an orchestration and accounting proof. It is not a deployment receipt. Read [Evidence categories](#evidence-categories) before citing any result as production readiness.
+The rehearsal tests orchestration and accounting. It is not a deployment receipt. Read [the testing limitations](#what-the-rehearsal-does-not-prove) before citing any result as production readiness.
 
 ## Prerequisites
 
-Node 18+, `npm ci`, and Foundry binaries. `FORGE_BIN` and `ANVIL_BIN` override the default `~/.foundry/bin` paths. The runner needs a Base RPC that serves the pinned fork block; `REHEARSAL_FORK_BLOCK` overrides the default 51,218,068.
+Node 18+, `npm ci`, and Foundry binaries. `FORGE_BIN` and `ANVIL_BIN` override discovery; otherwise the runner checks `.tools/foundry`, the standard Foundry directory, then PATH. Native B20 tests require Base-compatible Foundry. The runner needs a Base RPC that serves the pinned fork block; `REHEARSAL_FORK_BLOCK` overrides the default 51,218,068.
 
 ```sh
 npm ci
@@ -15,7 +15,7 @@ forge test
 BASE_RPC_URL=https://mainnet.base.org npm run rehearse
 ```
 
-Each run picks a free loopback port, starts its own Anvil with chain ID 31337, and stops that node in a `finally` block. Results land in a fresh `.context/rehearsal-run-*` directory containing `report.json`, `progress.log`, `build.log`, `calculator-config.json` and the calculator journal. Nothing is reused between runs, so a failed run's evidence stays intact.
+Each run picks a free loopback port, starts its own Anvil with chain ID 31337, and normally stops that node in a `finally` block. `--keep-alive` retains it until stopped, records `.context/current-local.json`, and enables the Wallets tab. Five disposable HD wallets sign locally; nine wallet roles are reported. Anvil retains 4,096 historical states for independent replay. Results land in a fresh `.context/rehearsal-run-*` directory containing `report.json`, `progress.log`, `build.log`, `calculator-config.json` and the calculator journal. Nothing is reused between runs, so a failed run's evidence stays intact.
 
 ## What one rehearsal run exercises
 
@@ -34,13 +34,13 @@ The fee sources, assets and swap router are mocks with fixed amounts; the Splits
 
 **4. The executor swaps its whole allocation.** `processWeth` converts all 799 WETH at the mock router's 2× rate into 1,598 SPCXc paid straight to the distributor. Combined with the Aerodrome fees the rewards vault holds **1,615 raw SPCXc**. A keeper minimum, an owner price floor, the per-call cap and a deadline all apply; the executor verifies the actual distributor balance delta rather than the router's claimed output.
 
-**5. The real calculator produces a committed plan.** Two holders qualify against the 6.9M time-weighted threshold (7M and 14M DICKBUTT) under `linear` weighting, with every contract, treasury and burn address excluded. Shares split exactly 1:2 by time-weighted balance, and unallocated raw units are booked as dust for a later period. Integer flooring, not loss.
+**5. The real calculator produces a committed plan.** Two holders qualify against the 6.9M time-weighted threshold (7M and 14M DICKBUTT) under `linear` weighting, with every contract, treasury and burn address excluded. Shares follow 1:2 time-weighted balance, subject to integer rounding, and unallocated raw units are booked as dust for a later period. Integer flooring, not loss.
 
 **5a. A bootstrap period first.** The calculator's first run uses `--bootstrap`: balances are committed with a zero pot, no plan is produced, and the 1,615 is untouched. The first real period measures from that boundary. [Why](GOVERNANCE.md#round-1-measures-from-a-bootstrap-period).
 
 **5b. The share cap bites.** The distributor admits at most 50% of the unreserved balance per round, so the plan commits 807 of the 1,615 and the rest rolls into the next period. The guardian then pauses proposals, the keeper refuses to propose while paused, and the guardian unpauses — all without the owner key. [Roles and bounds](GOVERNANCE.md).
 
-**6. The real keeper delivers it.** With `--propose` the owner commits the root; the six-hour timelock is reported as `timelocked`; after the delay the round activates and pays in `batchSize: 1` batches. One recipient is deliberately blocked mid-round, producing a `payment-failed` event and `partial` status with one unpaid account. The block is lifted, a rerun pays only that account, and the round closes at `closed` — the already-paid recipient's balance is asserted unchanged.
+**6. The real keeper delivers it.** The rehearsal supplies a separate approved proposer and keeper. The contract's configured timelock is reported as `timelocked`; after the delay the round activates and pays in `batchSize: 1` batches. One recipient is deliberately blocked mid-round, producing a `payment-failed` event and `partial` status with one unpaid account. The block is lifted, a rerun pays only that account, and the round closes at `closed` — the already-paid recipient's balance is asserted unchanged.
 
 **7. Repetition is safe.** A fourth keeper invocation submits **zero transactions**. `totalReserved` returns to 0 and a second calculator pass marks the plan `settled` and plans the remaining half as round 2.
 
@@ -87,11 +87,11 @@ This swap route is separate from the **rewards pool** — the 0.3% full-range DI
 
 ## What the rehearsal does not prove
 
-- **No production deployment.** No contract in `src/` has a mainnet or public-testnet deployment receipt. A local fork address is not a deployment.
-- **No real fee sources.** Locker, Aerodrome manager, legacy module, Safes and the swap router are mocks in the rehearsal. Their real behavior is covered only by the separate fork suites, and the real DICKBUTT/SPCXc pool has no coverage at all because it does not exist.
-- **No custody change.** Locker ownership, legacy creator authority and LP NFT custody are three separate handoffs. None was performed or simulated against mainnet.
+- **No production deployment.** The rehearsal itself is not a public receipt. A separate fresh Base Sepolia deployment and holder payout have now completed; public production deployment has not.
+- **No real fee sources.** Locker, Aerodrome manager, legacy module, Safes and the swap router are mocks in the rehearsal. Their real behavior is covered only by the separate fork suites, including a newly added real-manager/native-token Aerodrome position created locally. The intended public production NFT remains absent.
+- **No custody change.** Locker ownership, legacy creator authority and LP NFT custody are three separate handoffs. They were simulated in local tests; no public production custody was transferred.
 - **No governance judgement.** The distributor enforces proof membership, solvency and the round bounds, not whether a root fairly represents holders. Exclusions, thresholds and weighting stay off-chain policy. The guardian only helps if somebody is alerted and acts inside the 24-hour timelock.
-- **No liveness guarantee.** The keeper processes one invocation and exits. Scheduling, gas funding, alerting and journal backup are operational work that does not exist in this repository. [Keeper behavior](KEEPER.md).
+- **No liveness guarantee.** The keeper processes one invocation and exits. Schedule rendering and monitoring exist, and an extended public test is running. Production host isolation, uptime and backup/recovery still need validation. [Keeper behavior](KEEPER.md).
 
 ## Preparing a public-testnet rehearsal
 
@@ -123,3 +123,5 @@ Preflight reports these as errors until they are resolved. Every one needs a dec
 4. **Locker ownership handoff.** Separate from the above and from NFT custody. Rehearse all three before performing any.
 5. **Independent contract review.** [AUDITOR-BRIEF.md](../AUDITOR-BRIEF.md) lists the scope and trust assumptions.
 6. **Operational plan.** Scheduler, gas funding for keeper and owner, price-floor refresh (expires within one day), monitoring on nonzero exits and unpaid recipients, and journal backup.
+
+The standard keeper now independently reconstructs every period from historical blockchain data before signing. Full evidence and the distinction between inherited features and new fixes are in [COMPLETE-DEVELOPER-REPORT.md](COMPLETE-DEVELOPER-REPORT.md).

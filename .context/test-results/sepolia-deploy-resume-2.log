@@ -1,0 +1,15 @@
+
+> dickbutt-rewards-calculator@2.0.0 deploy:sepolia
+> node script/deploy-sepolia.mjs --roles config/roles-sepolia.local.json --out config/deployment-sepolia-new.json --resume
+
+{"type":"deploy-start","deployer":"0xCD80bdF2429125e90c162E1543663721761409c7","chainId":"84532","balance":"0.019957659219439447"}
+{"type":"resumed","name":"SepoliaToken","address":"0x7e7B7B06D6765469011A81569cA38dde5058FD5E"}
+{"type":"resumed","name":"SepoliaToken","address":"0x39da4516c532088CB73F5d1F66b1E7809A850EA1"}
+{"type":"resumed","name":"SepoliaToken","address":"0xfBfB40947275dE515E83d0f2dC68fcb1f85b3bb2"}
+{"type":"resumed","name":"SepoliaToken","address":"0x080355ad197638d010203E2C56B5e090609aDA0F"}
+{"type":"resumed","name":"DickbuttRewardsDistributor","address":"0xc0524A57cdA6558357667d41b0AB1752cD83d2D6"}
+{"type":"resumed","name":"SepoliaSwapRouter","address":"0x256C186831cb8e69211E88878a16f938DC0108c5"}
+{"type":"resumed","name":"SepoliaQuoter","address":"0xB4a75B6077CAE618b6a7109e54C32D176C44358A"}
+{"type":"resumed","name":"SpcxcSwapExecutor","address":"0x0b1E15D42457BA67A550a217711C0dCF1A391E6D"}
+{"type":"deployed","name":"SplitsFeeRouter","address":"0xF3Ac84Cc65D63aadF673D44d19Ff0F86E9623510"}
+{"type":"deploy-error","code":"BAD_DATA","action":null,"message":"could not decode result data"}

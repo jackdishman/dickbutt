@@ -24,9 +24,16 @@ async function fixture(t) {
  const token={decimals:async()=>18n,filters:{Transfer:()=>1},queryFilter:async()=>[a,b].map((account,index)=>({blockNumber:1,index,args:{from:ethers.ZeroAddress,to:account,value:100n}}))};
  const record=await runCalculator({dir,provider,token,distributor,config,rewardTokenFactory:()=>({decimals:async()=>18n})});
  const activate=()=>{chain.next=2n;chain.round=[record.plan.root,BigInt(record.plan.total),0n,true,false];};
- return {dir,provider,distributor,config,signerAddress:a,chain,record,activate};
+ // These fixtures model live lifecycle state only, not historical eth_call. Independent
+ // history replay has its own tests and is exercised with real contracts in the rehearsal.
+ return {dir,provider,distributor,config,signerAddress:a,chain,record,activate,verifyHistory:async()=>({fixtureOnly:true})};
 }
 function rewrite(f,mutate){const file=path.join(f.dir,'periods','00000001.json'),row=JSON.parse(fs.readFileSync(file));mutate(row.record);row.hash=hash({previous:row.previous,record:row.record});fs.writeFileSync(file,stringify(row));}
+test('independent history failure stops before any transaction',async t=>{
+ const f=await fixture(t);f.verifyHistory=async()=>{throw Error('independent payout calculation mismatch');};
+ await assert.rejects(runKeeper({...f,execute:true,propose:true}),/independent payout calculation mismatch/);
+ assert.deepEqual(f.chain.calls,[]);
+});
 test('dry run defaults to proposal preview with no sends',async t=>{const f=await fixture(t);const r=await runKeeper(f);assert.equal(r.mode,'dry-run');assert.equal(r.rounds[0].status,'proposal-required');assert.deepEqual(f.chain.calls,[]);});
 test('explicit proposal waits for receipt and timelock, rerun does not repropose',async t=>{const f=await fixture(t);const first=await runKeeper({...f,execute:true,propose:true});assert.equal(first.rounds[0].status,'timelocked');assert.deepEqual(f.chain.calls,['propose']);await runKeeper({...f,execute:true,propose:true});assert.deepEqual(f.chain.calls,['propose']);f.chain.now+=3600;const done=await runKeeper({...f,execute:true});assert.equal(done.rounds[0].status,'closed');assert.deepEqual(f.chain.calls,['propose','activate','batch','close']);assert.equal(f.chain.waits,4);});
 test('failed recipient stays open, rerun filters paid accounts and completes once',async t=>{const f=await fixture(t);f.activate();f.chain.fail.add(b);const first=await runKeeper({...f,execute:true});assert.equal(first.rounds[0].status,'partial');assert.deepEqual(first.rounds[0].unpaid,[b]);assert.equal(first.rounds[0].failed[0].account,b);assert.equal(f.chain.round[4],false);f.chain.fail.clear();const second=await runKeeper({...f,execute:true});assert.equal(second.rounds[0].status,'closed');assert.equal(f.chain.round[2],100n);await runKeeper({...f,execute:true,propose:true});assert.deepEqual(f.chain.calls,['batch','batch','close']);});

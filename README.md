@@ -1,5 +1,12 @@
 # DICKBUTT holder rewards
 
+Latest alignment review: [claims, two-hop swap, replacement wallets, delayed NFT custody and permanent locks](docs/ALIGNMENT-RETEST-REPORT.md). The new F9 preflight fix brings the total to nine groups; final suites pass 169 application tests and 114 Solidity tests, with one production-NFT test skipped.
+
+Production targets **Base mainnet (8453)** and the **DICKBUTT** token, with separately selected production owner and bot wallets. The Sepolia deployment is a test deployment. The Aerodrome LP NFT may be handed over later, but its exact ID must be known before deploying its harvester. See [production deployment intent](docs/COMPLETE-DEVELOPER-REPORT.md) and [the staged NFT setup](AERODROME-SETUP.md).
+
+Read the [complete developer report](docs/COMPLETE-DEVELOPER-REPORT.md), [file-by-file change inventory](docs/FILE-CHANGE-INVENTORY.md) and [current results](docs/TEST-RESULTS.md). Nine fix groups are documented. Four public testnet fee cycles and one holder round have completed, including a reviewed swap-only recovery after an RPC interruption. The RPC cause, observation gaps, unfinished 48-hour test and production prerequisites remain documented limitations. Mainnet launch is not approved.
+
+
 Trading fees fund SPCXc rewards for DICKBUTT holders. Holders receive payments in their wallets; they do not claim or sign. The repository contains contracts, a time-weighted reward calculator, execution tools and a disposable deployment rehearsal.
 
 The current design uses **actual Splits PushSplit V2.2 contracts** for fee allocations and a **0.3% concentrated, full-range DICKBUTT/SPCXc position**. It includes returned legacy Clanker DICKBUTT fees. Mainnet ownership and creator authority have not been transferred by this project work.
@@ -63,7 +70,7 @@ The calculator defaults to a 6.9M DICKBUTT time-weighted minimum. `WEIGHTING` mu
 
 Harvesting, token routing, activation after the timelock and closing a fully paid round are permissionless. **Swaps and payouts require an approved keeper; each payout root requires a proposer.** Normal operation needs no multisig signature: bots propose, activate and pay, and the multisig acts only as guardian to cancel a pending round or pause proposals.
 
-A stolen proposer key cannot move tokens — payment is keeper-gated and the keeper holds proofs only for roots its own journal produced; a foreign root is reported and left alone while other rounds keep paying, and is recredited and re-planned once the guardian cancels it. On-chain bounds limit the griefing it can do: a 24-hour timelock, at most 50% of the unreserved balance per round, 12 hours between proposals, and a guardian pause. The swap executor's daily price floor is signed by a floor-setter role that can do nothing else and cannot go below an owner bound, so no hot key owns a contract. Root correctness and exclusions remain off-chain governance decisions; a Merkle proof checks conformity to the root, not whether the root fairly represents holders. [Roles, bounds and the payout-schedule tradeoff](docs/GOVERNANCE.md).
+The proposer cannot directly call keeper-only payouts. The standard keeper independently reconstructs holder eligibility and amounts from historical chain data before signing; copied journal hashes alone are insufficient. On-chain proof checks enforce the committed root, not fair allocation. A 24-hour delay, 50% default round cap, 12-hour minimum proposal interval and guardian pause bound normal proposals. The owner can appoint keepers and propose roots, so administrative authority remains broader than the bot roles. Keep the keeper code/configuration/RPC independently controlled and review multisig ownership. The floor setter is limited by the owner's lower bound; it is not an independent price oracle. [Roles and operating limits](docs/GOVERNANCE.md).
 
 Gas is funded externally. No WETH gas deduction exists. Freezing fee destinations does not remove downstream proposer, price-floor or issuer dependencies.
 
@@ -71,7 +78,7 @@ Gas is funded externally. No WETH gas deduction exists. Freezing fee destination
 
 `npm run console` opens a local panel over the same files everything else reads: the fee flow
 resolved per network, the launch checklist, the Base mainnet addresses, and the operating commands
-with streamed output.
+with streamed output. `config/console-deployment.json` selects the manifest, calculator and journal used by the testnet view and operation defaults. The supplied selector points to the current new deployment.
 
 ```sh
 npm run console                       # read-only: reads, dry runs and the local rehearsal
@@ -115,7 +122,7 @@ npm run keeper -- --config calculator-config.json --journal ./data --execute --p
 npm run keeper -- --config calculator-config.json --journal ./data --execute
 ```
 
-Four bot roles run on four hosts and never share a key: keeper (fees, payouts), ops (price floor, under the executor's floor-setter role), proposer (`--propose-only`, which refuses to start where the keeper key exists) and a keyless monitor. The fee cycle skips and names any source whose custody handoff has not happened yet, so the rollout can be staged. `npm run schedule` renders systemd units or a crontab from one validated definition, and `npm run monitor` is the keyless watchdog that catches an expired floor, an unfunded bot, a guardian pause or a root the calculator journal never produced. [Runbook](docs/RUNBOOK.md).
+The intended production arrangement uses four bot roles on separate hosts: keeper (fees, payouts), ops (price floor, under the executor's floor-setter role), proposer (`--propose-only`, which refuses to start where the keeper key exists) and a keyless monitor. The fee cycle skips and names any source whose custody handoff has not happened yet, so the rollout can be staged. `npm run schedule` renders systemd units or a crontab from one validated definition, and `npm run monitor` is the keyless watchdog that catches an expired floor, an unfunded bot, a guardian pause or a root the calculator journal never produced. [Runbook](docs/RUNBOOK.md).
 
 The swap price floor expires within one day. `npm run floor` refreshes it with an **ops key that is not a keeper**, on separate infrastructure, and its `--monitor` mode alerts before expiry without loading any key. [Price-floor bot](docs/PRICE-FLOOR.md).
 
@@ -134,4 +141,4 @@ RPC_URL=https://sepolia.base.org DEPLOYER_PRIVATE_KEY=0x… npm run deploy:sepol
 
 ## Before production
 
-Complete recipient/multisig/keeper/floor-setter configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, confirm the calculator exclusion set covers every pool and pipeline address (`npm run preflight` checks it), decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. A successful local rehearsal does not create a public-testnet deployment or approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).
+Complete recipient/multisig/keeper/floor-setter configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, confirm the calculator exclusion set covers every pool and pipeline address (`npm run preflight` checks it), decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. Public testnet receipts now exist for the new deployment; neither those nor local tests approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).

@@ -16,6 +16,10 @@ At the latest inspection used for this update, `getPool(DICKBUTT, SPCXc, 200)` o
 
 ## Setup sequence
 
+Production is on **Base mainnet (8453)** with the real **DICKBUTT** token and separately selected production owner/bot wallets. Testnet keys, role addresses and mock NFT IDs must not be reused as production configuration. Reconfirm all proposed mainnet role and recipient addresses with the owner.
+
+The NFT custody transfer can happen later. However, `positionManager` and `tokenId` are immutable in `AerodromeFeeHarvester`: the NFT ID must be known when that harvester is deployed. If the NFT has not been minted yet, prepare the other components first and deploy its harvester after the ID is known. The Aerodrome source remains inactive until it holds the configured NFT; the fee runner reports the missing custody and skips that source.
+
 1. Confirm token addresses from [config/base-mainnet.json](config/base-mainnet.json), including SPCXc's **8 decimals**. Decide exact seed amounts and starting price from current market data.
 2. Select the intended concentrated factory and 0.3% base-fee configuration. If a matching pool already exists, verify its state before depositing rather than creating a duplicate.
 3. Mint a full-range position. For spacing 200, usable extreme ticks are **-887200 and 887200**. Record pool address, manager and NFT ID. Full range avoids ordinary range maintenance; it does not remove token-policy, price or liquidity risks.
@@ -24,8 +28,10 @@ At the latest inspection used for this update, `getPool(DICKBUTT, SPCXc, 200)` o
 6. Deploy `AerodromeFeeHarvester(manager, tokenId, dickbutt, spcxc, burnAddress, distributor, unlockTime, minInterval, owner)`. Verify every immutable address and lock timestamp from the deployed contract.
 7. In rehearsal first, transfer the NFT using `safeTransferFrom`, verify `holdsPosition()`, generate fees, harvest and verify DICKBUTT goes to burn and SPCXc to the rewards distributor. Repeat with the actual new pool before production scaling.
 
-The requested seed liquidity and pool creation require the owner's assets and transactions. This repository's local rehearsal uses a mock position and never creates/seeds a mainnet pool.
+The requested seed liquidity and pool creation require the owner's assets and transactions. The signed orchestration rehearsal uses a mock position. `test/NativeAeroPositionFork.t.sol` additionally creates/seeds a local position with the real manager and tokens, trades, collects and checks payouts. Neither test creates or funds a public production pool.
 
 ## Custody and locks
 
 `unlockTime` permits owner withdrawal only after expiry. `extendLock` can only extend it. `lockForever()` permanently disables withdrawal. SPCXc destination changes are timelocked and can separately be frozen. Transferring the NFT is therefore not unconditionally permanent if an expiring lock is used, but incorrectly configured or permanent locks can strand the position. Use a reviewed multisig and verify the configuration before custody moves.
+
+The latest native staged-custody test transfers administrative ownership with acceptance, delays the NFT transfer, freezes destination and liquidity, advances past the original unlock time, confirms withdrawal still fails, then trades and harvests successfully. This is a local real-contract fork test, not a production multisig ceremony or proof of permanent uptime. [Alignment retest](docs/ALIGNMENT-RETEST-REPORT.md).

@@ -1,0 +1,37 @@
+{
+  "reviewedAt": "2026-09-13T08:33:54.662191+00:00",
+  "failedJob": {
+    "label": "payout",
+    "startedAt": "2026-09-13T08:27:36.999Z",
+    "log": "/Users/m4mini/Downloads/dickbutt-main/tested-project/.context/public-sepolia/soak-12-payout.log",
+    "pid": 69201,
+    "exitCode": 1,
+    "finishedAt": "2026-09-13T08:27:42.777Z"
+  },
+  "previousError": {
+    "at": "2026-09-13T08:27:42.777Z",
+    "message": "payout exited 1; inspect /Users/m4mini/Downloads/dickbutt-main/tested-project/.context/public-sepolia/soak-12-payout.log before rerun"
+  },
+  "cause": "RPC rejected historical eth_call because state at block #46749201 is pruned; request block tag was 46749200",
+  "previousRpc": "https://base-sepolia-rpc.publicnode.com",
+  "replacementRpc": "https://sepolia.base.org",
+  "keeperLatestNonce": 25,
+  "keeperPendingNonce": 25,
+  "lastKnownKeeperTransactionNonce": 24,
+  "noNewKeeperTransactions": true,
+  "roundClosed": true,
+  "totalReserved": "0",
+  "keylessHistoryVerification": {
+    "periods": 2,
+    "finalizedThrough": 46759360
+  },
+  "monitorExitCode": 0,
+  "resumeScope": "Only failed-job review barriers cleared after reconciliation. No transaction replayed; next scheduled tick uses the replacement RPC.",
+  "evidence": [
+    ".context/test-results/soak-0827-reconciliation.json",
+    ".context/test-results/soak-0827-read-diagnostic.log",
+    ".context/test-results/soak-0827-archive-probe.json",
+    ".context/test-results/soak-0827-archive-recheck.log",
+    ".context/test-results/soak-0827-archive-monitor.json"
+  ]
+}

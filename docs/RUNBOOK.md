@@ -31,7 +31,7 @@ The calculator journal (`periods/*.json`) has exactly one writer: the proposer h
 
 - Copy, do not share. A writable network mount joins the hosts into one blast radius and lets a compromised keeper host rewrite the record the proposer relies on. Pull a read-only copy after each proposer run: `rsync -a --delete proposer:/srv/dickbutt/data/periods/ /srv/dickbutt/data/periods/` into a staging directory, then rename it into place so the keeper never reads a half-copied file.
 - A stale copy is safe. The keeper verifies every plan against the on-chain commitment before acting; a copy that lacks the newest period simply has nothing to do for that round yet.
-- A torn or edited copy fails closed. Each record carries the hash of its predecessor and its own hash, and the keeper rebuilds every Merkle root from the payouts before it signs anything.
+- A torn copy is rejected by the journal checks. A consistently rewritten copy is checked by independent historical recalculation before signing; hashes and rebuilt Merkle proofs alone do not prove correct eligibility.
 - Back the proposer's copy up somewhere the bots cannot write. It is the only replay record; `state.json` is a cache.
 
 Locks are per host. Two hosts running the same key are not coordinated by anything here; that is why the schedule never puts one key on two hosts.
@@ -56,7 +56,7 @@ systemd units are rendered with `SuccessExitStatus=0 2` so a "needs a human" res
 
 **This is the alarm that matters.** A root exists on-chain that this pipeline did not create. Either someone holds the proposer key, or an operator worked outside the journal.
 
-A stolen proposer key **cannot move tokens on its own** — payment is keeper-gated and the keeper refuses any root its journal did not produce — so you have the full 24-hour timelock to act. Do not panic-send transactions.
+A proposer cannot directly call the keeper-only payout function. The keeper must also independently recalculate the supplied journal; checking only its hashes is insufficient. The remaining timelock provides a response window, provided the guardian is notified and acts before activation.
 
 1. **Pause proposals.** Guardian multisig, no owner key needed:
    ```sh
@@ -148,7 +148,7 @@ The payout job and the fee cycle share the keeper key and will sometimes overlap
 | Guardian | Pause proposals, cancel rounds. Denial only | `setGuardian(new)` from the owner |
 | Owner multisig | Everything above, plus roles and limits. **Cannot withdraw reward tokens** — no such function exists | Full incident; there is no higher authority |
 
-Theft of holder rewards requires the proposer key **and** the keeper key: a root only the attacker knows, and the only key that can pay against it. The journal is not a secret and is not a third factor. No single key loses funds. Before the floor-setter role existed, the ops key was the executor's owner and could approve itself as keeper, zero the floor and swap the WETH balance at a manipulated price; that is why the role is narrow and bounded now.
+A proposer cannot directly call the keeper-only payout function. That separation alone did not establish correct payouts when the keeper copied the proposer's journal. The keeper now independently recalculates chain history before every proposal or payout. Keep its executable, configuration and RPC independently controlled. Owner authority is broader: the owner can appoint keepers and propose roots, and the swap-executor owner can change limits. Do not claim that no single administrative key can lose funds; use reviewed multisig ownership and a working guardian response.
 
 ## Timing you cannot tune away
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 import "./Support.sol";
 import "../src/SplitsFeeRouter.sol";
 import "../src/SpcxcSwapExecutor.sol";
+import "../src/DickbuttRewardsDistributor.sol";
 
 interface SplitsForkVm {
     function envOr(string calldata,string calldata) external returns(string memory);
@@ -27,7 +28,8 @@ contract SplitsBaseForkTest is Support {
         if(bytes(rpc).length==0) { fv.skip(true); return; }
         fv.createSelectFork(rpc,51218068);
         w=new RewardMock(); d=new RewardMock(); s=new RewardMock(); u=new RewardMock();
-        executor=new SpcxcSwapExecutor(address(w),address(s),address(u),address(104),address(u),100,200,1000,0,address(this));
+        DickbuttRewardsDistributor distributor=new DickbuttRewardsDistributor(address(s),1,address(this));
+        executor=new SpcxcSwapExecutor(address(w),address(s),address(u),address(distributor),address(u),100,200,1000,0,address(this));
         f=new SplitsFeeRouter(FACTORY,address(w),address(d),KC,BURN,CDB,address(executor));
     }
     function testProtocolFactoryOwnerConfigAndTokenSpecificRouting() public {

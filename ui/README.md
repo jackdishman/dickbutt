@@ -33,6 +33,10 @@ block numbers, the rejected swap route — and is not editable here. It also sho
 the operating hosts rendered from `operations/schedule.js`, which environment variables are set, and
 the calculator exclusion set.
 
+**Wallets** reads nine local rehearsal wallet roles after `npm run rehearse -- --keep-alive`, showing block-consistent token balances without loading keys.
+
+`config/console-deployment.json` is the explicit testnet selection shared by the flow, operation forms and resolved command defaults. It names the manifest, calculator configuration and journal. The current selection uses `deployment-sepolia-new.json`. Without a selector, historical defaults remain; invalid selectors fail. Explicit form input can override a default.
+
 **Operate** runs the commands. **Docs** reads the repository's own markdown, with working
 cross-links.
 
@@ -66,7 +70,9 @@ land on top of each other.
 | --- | --- |
 | `flow.js` | The diagram as data: nodes, edges, layout and deterministic edge routing. Pure. |
 | `readiness.js` | The launch checklist: which items derive from the repository and which are recorded. Pure. |
-| `commands.js` | The command registry, the argv builders and the execute gate. Pure. |
+| `commands.js` | The command registry, selected deployment defaults, argv builders and execute gate. |
+| `deployment-paths.js` | Shared validated testnet manifest/calculator/journal selection. |
+| `local-wallets.js` | Keyless loopback-only local balance reads. |
 | `state.js` | Filesystem reads, config edits and the network resolution the diagram draws from. |
 | `server.mjs` | Loopback HTTP server, the API, the SSE run stream and the child-process runner. |
 | `public/` | The page. No build step, no framework, no dependencies. |
