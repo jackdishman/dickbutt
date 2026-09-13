@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {ethers} from 'ethers';import {runCalculator} from './calculator/engine.js';import {Journal,stringify} from './calculator/journal.js';import {normalize} from './calculator/core.js';import {ERC20_ABI,DISTRIBUTOR_ABI} from './calculator/chain.js';import {closeProvider} from './operations/provider.js';
+import {ethers} from 'ethers';import {runCalculator} from './calculator/engine.js';import {Journal,stringify} from './calculator/journal.js';import {normalize} from './calculator/core.js';import {ERC20_ABI,DISTRIBUTOR_ABI} from './calculator/chain.js';import {closeProvider,createRpcProvider} from './operations/provider.js';
 function integer(value,name,min=1){const n=Number(value);if(!Number.isSafeInteger(n)||n<min)throw Error(`invalid ${name}`);return n;}
 export async function main(){
  const dir=path.resolve(process.env.CALCULATOR_DATA_DIR||'.');
@@ -15,7 +15,7 @@ export async function main(){
  const bootstrap=process.argv.includes('--bootstrap');
  if(!process.env.RPC_URL)throw Error('Missing RPC_URL');
  if(!configPath)for(const name of ['DICKBUTT_ADDRESS','DISTRIBUTOR_ADDRESS','DICKBUTT_DEPLOY_BLOCK','PAYOUT_THRESHOLD_RAW','WEIGHTING'])if(!process.env[name])throw Error(`Missing ${name}`);
- const provider=new ethers.JsonRpcProvider(process.env.RPC_URL, undefined, {cacheTimeout: -1});try{
+ const provider=createRpcProvider(process.env.RPC_URL, undefined, {cacheTimeout: -1});try{
  const network=await provider.getNetwork();
  let config;
  if(configPath){
@@ -33,7 +33,9 @@ export async function main(){
  if(!['sqrt','linear'].includes(config.curve))throw Error('WEIGHTING must be sqrt or linear');
  if(BigInt(config.payoutThresholdRaw)<0n||BigInt(config.holderThresholdRaw)<0n)throw Error('negative threshold');
  const record=await runCalculator({dir,provider,token:new ethers.Contract(config.token,ERC20_ABI,provider),distributor:new ethers.Contract(config.distributor,DISTRIBUTOR_ABI,provider),config,bootstrap});
- console.log(record.unchanged?'No new finalized period.':stringify({block:record.block,curve:config.curve,bootstrap:record.bootstrap,roundId:record.roundId,root:record.root,total:record.plan?.total??'0',batches:record.plan?.batches.length??0,superseded:Object.values(record.state?.plans??{}).filter(p=>p.superseded).map(p=>p.roundId),journal:path.join(dir,'periods')}));
+ if(record.unchanged)console.log('No new finalized period.');
+ else if(record.pendingPlan)console.log(stringify({pendingPlan:true,roundId:record.roundId,root:record.plan.root,total:record.plan.total,note:'Round already planned and awaiting proposal; nothing further to calculate until it is committed.'}));
+ else console.log(stringify({block:record.block,curve:config.curve,bootstrap:record.bootstrap,roundId:record.roundId,root:record.root,total:record.plan?.total??'0',batches:record.plan?.batches.length??0,superseded:Object.values(record.state?.plans??{}).filter(p=>p.superseded).map(p=>p.roundId),journal:path.join(dir,'periods')}));
  console.log('Nothing submitted on-chain. Review the committed period plan before proposing.');
  }finally{closeProvider(provider);}
 }

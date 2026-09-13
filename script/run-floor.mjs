@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
 import { runFloorRefresh } from '../operations/floor.js';
-import { closeProvider } from '../operations/provider.js';
+import { closeProvider, createRpcProvider } from '../operations/provider.js';
 
 const USAGE = `Usage: npm run floor -- --config deployment.json [--execute] [--monitor] [--force]
                     [--lifetime-hours 20] [--refresh-before-hours 8] [--warn-before-hours 4]
@@ -65,7 +65,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   if (o.help) { console.log(USAGE); return; }
   if (!env.RPC_URL) throw Error('RPC_URL is required');
   const config = JSON.parse(fs.readFileSync(o.configPath, 'utf8'));
-  const provider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
+  const provider = createRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
   let release;
   try {
     const chainId = (await provider.getNetwork()).chainId;

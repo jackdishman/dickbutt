@@ -1,0 +1,2 @@
+{"type":"keeper-complete","rounds":[{"roundId":"1","root":"0x65f41b0a29f6592628801a3a3033ecf2dfb284ef6bae75831ba260b991b991e9","total":"100799998","status":"closed","unpaid":[],"failed":[]}],"chainId":"84532"}
+{"mode":"execute","chainId":"84532","rounds":[{"roundId":"1","root":"0x65f41b0a29f6592628801a3a3033ecf2dfb284ef6bae75831ba260b991b991e9","total":"100799998","status":"closed","unpaid":[],"failed":[]}],"transactions":[],"historyVerification":{"periods":2,"finalizedThrough":46760548}}

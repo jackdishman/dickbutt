@@ -1,0 +1,5 @@
+{
+  "manifest": "config/deployment-sepolia-new.json",
+  "calculator": "config/deployment-sepolia-new-calculator.json",
+  "journal": ".context/public-sepolia/journal"
+}

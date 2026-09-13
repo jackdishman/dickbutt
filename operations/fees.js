@@ -3,15 +3,27 @@ export async function runFeeCycle({provider,signerAddress,locker,aero,legacy,fee
   const chainId=(await provider.getNetwork()).chainId;
   if(execute&&![31337n,84532n].includes(chainId)) throw Error('production fee execution is disabled');
   if(!Number.isInteger(slippageBps)||slippageBps<0||slippageBps>1000) throw Error('slippage must be 0..1000 basis points');
-  const result={mode:execute?'execute':'dry-run',actions:[],awaitingHandoff:[],swapStatus:'not-evaluated'};
+  const result={mode:execute?'execute':'dry-run',actions:[],awaitingHandoff:[],attention:[],legacyStatus:'absent',swapStatus:'not-evaluated'};
+  let confirmedBlock;
   const now=async()=>BigInt((await provider.getBlock('latest')).timestamp);
-  async function send(action,call) {
+  async function send(action,call,{optional=false}={}) {
     const entry={action,status:execute?'submitted':'planned'}; result.actions.push(entry);
-    if(!execute) return;
-    const tx=await call();entry.hash=tx.hash;onEvent({...entry});
+    if(!execute) return true;
+    let tx;
+    try { tx=await call(); }
+    catch(error) {
+      // Only a gas-estimation revert proves nothing was broadcast. Transport failures and
+      // ambiguous send errors must stop the cycle for receipt/nonce reconciliation.
+      if(!optional||error.code!=='CALL_EXCEPTION'||error.action!=='estimateGas')throw error;
+      entry.status='skipped';entry.error=error.shortMessage??error.message;
+      result.attention.push({action,reason:entry.error});onEvent({...entry});return false;
+    }
+    entry.hash=tx.hash;onEvent({...entry});
     const receipt=await tx.wait(1);
     if(!receipt||Number(receipt.status)!==1) throw Error(`${action}: failed transaction receipt ${tx.hash}`);
+    if(Number.isSafeInteger(receipt.blockNumber))confirmedBlock=Math.max(confirmedBlock??0,receipt.blockNumber);
     entry.status='confirmed';onEvent({...entry});
+    return true;
   }
   // Each source needs its own custody handoff before it can collect. Until then it is skipped and
   // reported, so the rest of the cycle still routes and swaps whatever has already arrived. Failing
@@ -25,26 +37,32 @@ export async function runFeeCycle({provider,signerAddress,locker,aero,legacy,fee
     else result.actions.push({action:name,status:'cooldown'});
   }
   if(legacy) {
-    if(!await legacy.isTokenCreator()) skip('legacy','LegacyFeeHarvester is not the legacy tokenCreator');
+    if(!await legacy.isTokenCreator()) {skip('legacy','LegacyFeeHarvester is not the legacy tokenCreator');result.legacyStatus='awaiting-handoff';}
     else {
       const count=Number(await legacy.safeCount());
       if(!Number.isInteger(count)||count<1||count>8) throw Error('invalid legacy safe count');
-      for(let i=0;i<count;i++) await send(`legacy${i}`,()=>legacy.harvestFrom(i));
+      let harvested=0;
+      for(let i=0;i<count;i++)if(await send(`legacy${i}`,()=>legacy.harvestFrom(i),{optional:true}))harvested++;
+      result.legacyStatus=!execute?'planned':harvested===count?'harvested':harvested?'partial':'failed';
     }
   }
   await send('split-dickbutt',()=>feeRouter.splitDickbutt());
   await send('split-weth',()=>feeRouter.splitWeth());
   if(!execute) { result.swapStatus='quote-after-splits'; return result; }
-  const balance=BigInt(await weth.balanceOf(await executor.getAddress()));
+  // A load-balanced RPC can answer "latest" from a node behind the split receipt.
+  // Anchor dependent reads to the confirmed split block; a missing block must fail,
+  // rather than silently reporting an empty executor and skipping its funded swap.
+  const snapshot=confirmedBlock===undefined?{}:{blockTag:confirmedBlock};
+  const balance=BigInt(await weth.balanceOf(await executor.getAddress(),snapshot));
   if(balance===0n) {result.swapStatus='empty';return result;}
-  if(!await executor.isKeeper(signerAddress)) throw Error('swap signer is not an approved keeper');
-  const expires=BigInt(await executor.priceFloorExpiresAt());
-  if(BigInt(await executor.minSpcxcPerWeth())===0n||await now()>expires) {result.swapStatus='price-floor-refresh-required';return result;}
-  const last=BigInt(await executor.lastSwapAt()),interval=BigInt(await executor.minSwapInterval());
+  if(!await executor.isKeeper(signerAddress,snapshot)) throw Error('swap signer is not an approved keeper');
+  const expires=BigInt(await executor.priceFloorExpiresAt(snapshot));
+  if(BigInt(await executor.minSpcxcPerWeth(snapshot))===0n||await now()>expires) {result.swapStatus='price-floor-refresh-required';return result;}
+  const last=BigInt(await executor.lastSwapAt(snapshot)),interval=BigInt(await executor.minSwapInterval(snapshot));
   if(last!==0n&&await now()<last+interval){result.swapStatus='cooldown';return result;}
-  const cap=BigInt(await executor.maxSwapPerCall());
+  const cap=BigInt(await executor.maxSwapPerCall(snapshot));
   const amount=balance<cap?balance:cap;
-  const quoted=BigInt(await quote(amount));
+  const quoted=BigInt(await quote(amount,snapshot));
   if(quoted<=0n) throw Error('zero quote');
   const minOut=quoted*BigInt(10000-slippageBps)/10000n;
   if(minOut===0n) throw Error('quote rounds to zero minimum');

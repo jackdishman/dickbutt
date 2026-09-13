@@ -14,12 +14,15 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { deploymentPaths } from './deployment-paths.js';
 
 const PATH_PATTERN = /^[A-Za-z0-9._][A-Za-z0-9._/-]*$/;
 
 /** Same resolution the rehearsal uses: FORGE_BIN, else the standard foundryup location, else PATH. */
 export function forgeBinary(env = process.env) {
   if (env.FORGE_BIN) return env.FORGE_BIN;
+  const bundled = path.resolve('.tools/foundry/forge');
+  if (fs.existsSync(bundled)) return bundled;
   const standard = path.join(os.homedir(), '.foundry', 'bin', 'forge');
   return fs.existsSync(standard) ? standard : 'forge';
 }
@@ -36,6 +39,15 @@ export function validatePath(value, label) {
 const manifest = { name: 'config', label: 'Deployment manifest', type: 'path', default: 'config/deployment-sepolia.json' };
 const calculator = { name: 'calculator', label: 'Calculator config', type: 'path', default: 'config/deployment-sepolia-calculator.json' };
 const journal = { name: 'journal', label: 'Journal directory', type: 'path', default: '.context/journal' };
+
+function inputsFor(command, root) {
+  const selected = deploymentPaths(root);
+  return (command.inputs ?? []).map(input => {
+    const key = input.name === 'config' && input.default === manifest.default ? 'manifest'
+      : input.name === 'calculator' ? 'calculator' : input.name === 'journal' ? 'journal' : null;
+    return key ? { ...input, default: selected[key] } : input;
+  });
+}
 
 export const COMMANDS = [
   // --- verify ----------------------------------------------------------------
@@ -130,7 +142,7 @@ export const COMMANDS = [
       { name: 'out', label: 'Manifest output', type: 'path', default: 'config/deployment-sepolia.json' },
       { name: 'force', label: 'Overwrite an existing manifest', type: 'flag', default: false }],
     needs: ['RPC_URL', 'DEPLOYER_PRIVATE_KEY'],
-    danger: 'Deploys 14 contracts. Overwriting an existing manifest orphans the previous deployment and anything it holds — read the old one first.',
+    danger: 'Deploys a new test system. Overwriting an existing manifest orphans the previous deployment and anything it holds — read the old one first. Use the CLI --resume option for an interrupted deployment.',
     argv: o => ['npm', 'run', 'deploy:sepolia', '--', '--roles', o.roles, '--out', o.out, ...(o.force ? ['--force'] : [])],
   },
   {
@@ -148,7 +160,7 @@ export const COMMANDS = [
     needs: ['RPC_URL', 'KEEPER_PRIVATE_KEY'],
     danger: 'Signs with the keeper key and broadcasts. Keep fee cycles and keeper runs sequential for one signer.',
     argv: o => ['npm', 'run', 'fees', '--', '--config', o.config, '--execute'],
-    exits: { 2: 'the price floor needs refreshing before the swap can run' },
+    exits: { 2: 'the price floor needs refreshing or a legacy claim was skipped; inspect the reported attention items' },
   },
   {
     id: 'keeper-propose', group: 'Execute', kind: 'write', label: 'Propose a round',
@@ -173,11 +185,11 @@ export const COMMANDS = [
 export const COMMAND_GROUPS = [...new Set(COMMANDS.map(c => c.group))];
 
 /** What the browser is allowed to know: never a value, only whether a variable is set. */
-export function describeCommands({ allowWrite = false, env = {} } = {}) {
+export function describeCommands({ allowWrite = false, env = {}, root = process.cwd() } = {}) {
   return COMMANDS.map(command => ({
     id: command.id, group: command.group, kind: command.kind, label: command.label,
     summary: command.summary, note: command.note ?? null, danger: command.danger ?? null,
-    inputs: command.inputs ?? [], exits: command.exits ?? null,
+    inputs: inputsFor(command, root), exits: command.exits ?? null,
     needs: (command.needs ?? []).map(name => ({ name, present: Boolean(env[name]) })),
     runnable: command.kind !== 'write' || allowWrite,
     blockedReason: command.kind === 'write' && !allowWrite
@@ -187,7 +199,7 @@ export function describeCommands({ allowWrite = false, env = {} } = {}) {
 }
 
 /** Turn a request into an argv. Throws rather than guessing; the caller surfaces the message. */
-export function resolveCommand(id, { inputs = {}, allowWrite = false, confirm = null } = {}) {
+export function resolveCommand(id, { inputs = {}, allowWrite = false, confirm = null, root = process.cwd() } = {}) {
   const command = COMMANDS.find(c => c.id === id);
   if (!command) throw Error(`unknown command: ${id}`);
   if (command.kind === 'write') {
@@ -196,7 +208,7 @@ export function resolveCommand(id, { inputs = {}, allowWrite = false, confirm = 
     if (confirm !== id) throw Error(`confirmation required: send confirm="${id}"`);
   }
   const resolved = {};
-  for (const input of command.inputs ?? []) {
+  for (const input of inputsFor(command, root)) {
     const raw = inputs[input.name];
     if (input.type === 'flag') { resolved[input.name] = raw === true || raw === 'true'; continue; }
     if (input.type === 'choice') {

@@ -5,7 +5,7 @@ import os from 'node:os';
 import net from 'node:net';
 import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
-import {Contract,ContractFactory,JsonRpcProvider,parseEther} from 'ethers';
+import {Contract,ContractFactory,JsonRpcProvider,HDNodeWallet,parseEther} from 'ethers';
 import {runCalculator} from '../calculator/engine.js';
 import {ERC20_ABI,DISTRIBUTOR_ABI} from '../calculator/chain.js';
 import {runKeeper,KEEPER_ABI} from '../keeper/engine.js';
@@ -14,7 +14,11 @@ import {runFloorRefresh} from '../operations/floor.js';
 import {stringify} from '../calculator/journal.js';
 
 const root=path.resolve(import.meta.dirname??path.dirname(new URL(import.meta.url).pathname),'..');
-const bin=name=>process.env[name.toUpperCase()+'_BIN']||path.join(os.homedir(),'.foundry','bin',name);
+const bin=name=>process.env[name.toUpperCase()+'_BIN']||[path.join(root,'.tools','foundry',name),path.join(os.homedir(),'.foundry','bin',name)].find(p=>fs.existsSync(p))||name;
+const keepAlive=process.argv.slice(2).includes('--keep-alive');
+if(process.argv.slice(2).some(arg=>arg!=='--keep-alive'))throw Error('Usage: npm run rehearse -- [--keep-alive]');
+// Public development mnemonic. These wallets must only be used on the disposable local chain.
+const mnemonic='test test test test test test test test test test test junk';
 const rpc=process.env.BASE_RPC_URL||'https://mainnet.base.org';
 const forkBlock=Number(process.env.REHEARSAL_FORK_BLOCK||51218068);
 if(!Number.isSafeInteger(forkBlock)||forkBlock<1)throw Error('invalid fork block');
@@ -27,7 +31,7 @@ if(build.status!==0)throw Error(`Build failed; see ${output}/build.log`);
 const server=net.createServer();
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const port=server.address().port;await new Promise(resolve=>server.close(resolve));
-const node=spawn(bin('anvil'),['--host','127.0.0.1','--port',String(port),'--chain-id','31337','--fork-url',rpc,'--fork-block-number',String(forkBlock),'--silent'],{stdio:['ignore',log,log]});
+const node=spawn(bin('anvil'),['--host','127.0.0.1','--port',String(port),'--chain-id','31337','--mnemonic',mnemonic,'--fork-url',rpc,'--fork-block-number',String(forkBlock),'--prune-history','4096','--silent'],{stdio:['ignore',log,log]});
 let provider;
 const report={mode:'disposable-local-base-fork',forkBlock,chainId:31337,realDependencies:['Splits PushSplit V2.2 factory, implementation and Warehouse'],mockDependencies:['DICKBUTT/WETH/SPCXc/USDC assets','Clanker locker','Aerodrome NFT manager','legacy module and Safes','swap router'],checks:[],transactions:[]};
 try {
@@ -43,17 +47,19 @@ try {
   provider=new JsonRpcProvider(`http://127.0.0.1:${port}`,31337,{cacheTimeout:-1,batchMaxCount:1,pollingInterval:50});
   provider.pollingInterval=50;
   assert.equal((await provider.getNetwork()).chainId,31337n);
-  const signer=await provider.getSigner(0),owner=await signer.getAddress();
+  // Use actual private-key signing to exercise the wallet path used by the bot CLIs.
+  const wallet=index=>HDNodeWallet.fromPhrase(mnemonic,undefined,`m/44'/60'/0'/0/${index}`).connect(provider);
+  const signer=wallet(0),owner=await signer.getAddress();
   const alice=await (await provider.getSigner(1)).getAddress(),bob=await (await provider.getSigner(2)).getAddress();
   const kc=await (await provider.getSigner(3)).getAddress(),cdb=await (await provider.getSigner(4)).getAddress(),burn='0x000000000000000000000000000000000000dEaD';
   // Signer 0 owns the contracts and refreshes the price floor; signer 5 is the hot keeper.
   // They are deliberately distinct so one compromised host cannot both swap and set the floor.
-  const keeperSigner=await provider.getSigner(5),keeperAddress=await keeperSigner.getAddress();
+  const keeperSigner=wallet(5),keeperAddress=await keeperSigner.getAddress();
   // Signer 6 is the proposer bot; signer 7 stands in for the guardian multisig; signer 8 is the ops
   // bot that refreshes the price floor under the executor's narrow floor-setter role.
-  const proposerSigner=await provider.getSigner(6),proposerAddress=await proposerSigner.getAddress();
-  const guardianSigner=await provider.getSigner(7),guardianAddress=await guardianSigner.getAddress();
-  const opsSigner=await provider.getSigner(8),opsAddress=await opsSigner.getAddress();
+  const proposerSigner=wallet(6),proposerAddress=await proposerSigner.getAddress();
+  const guardianSigner=wallet(7),guardianAddress=await guardianSigner.getAddress();
+  const opsSigner=wallet(8),opsAddress=await opsSigner.getAddress();
   async function deploy(file,name,args=[]){
     const artifact=JSON.parse(fs.readFileSync(path.join(root,'out',file,name+'.json')));
     const c=await new ContractFactory(artifact.abi,artifact.bytecode.object,signer).deploy(...args);await c.waitForDeployment();
@@ -173,9 +179,32 @@ try {
   assert.equal(await distributor.totalReserved(),0n);
   report.checks.push('Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key','Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer','Bootstrap period commits balances with a zero pot','A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it');
   report.contracts={weth:w.target,dickbutt:d.target,spcxc:s.target,distributor:distributor.target,executor:executor.target,feeRouter:feeRouter.target,dickSplit:await feeRouter.dickSplit(),wethSplit:await feeRouter.wethSplit(),clanker:clanker.target,aero:aero.target,legacy:legacy.target};
+  report.wallets=[];
+  for(const [role,address] of Object.entries({owner,keeper:keeperAddress,proposer:proposerAddress,guardian:guardianAddress,ops:opsAddress,holderA:alice,holderB:bob,kcGreen:kc,cdbVault:cdb})) {
+    report.wallets.push({role,address,ethWei:String(await provider.getBalance(address)),dickbuttRaw:String(await d.balanceOf(address)),spcxcRaw:String(await s.balanceOf(address))});
+  }
+  report.rpcUrl=`http://127.0.0.1:${port}`;
+  report.totalReserved=String(await distributor.totalReserved());
+  report.signing='Separate HD wallets; locally signed transactions; public development mnemonic';
+  report.localManifest={chainId:31337,network:'local',deployedAtBlock:(await provider.getBlock('latest')).number,
+    contracts:report.contracts,splits:{dickSplit:await feeRouter.dickSplit(),wethSplit:await feeRouter.wethSplit()},
+    sources:{locker:locker.target,positionManager:manager.target,legacySafes:safes.map(x=>x.target)},
+    roles:{owner,keeper:keeperAddress,proposer:proposerAddress,guardian:guardianAddress,ops:opsAddress,kcGreen:kc,cdbVault:cdb,burnAddress:burn},
+    notes:['Local chain only; mock tokens, fee sources and swap router. Genuine Splits from the Base fork.']};
   report.keeper={first,partial,retry,repeat,blocked,cancelled,reproposed,paidOut};report.success=true;
   fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,(_,v)=>typeof v==='bigint'?v.toString():v,2));
   console.log(JSON.stringify({success:true,evidence:path.relative(root,output),checks:report.checks},null,2));
+  if(keepAlive){
+    fs.writeFileSync(path.join(root,'.context','current-local.json'),JSON.stringify({runnerPid:process.pid,rpcUrl:report.rpcUrl,evidence:path.relative(root,output),manifest:report.localManifest,wallets:report.wallets},null,2));
+    fs.writeFileSync(path.join(output,'local.env'),[
+      `RPC_URL=${report.rpcUrl}`,`KEEPER_PRIVATE_KEY=${keeperSigner.privateKey}`,
+      `PROPOSER_PRIVATE_KEY=${proposerSigner.privateKey}`,`OPS_PRIVATE_KEY=${opsSigner.privateKey}`,
+      `OWNER_PRIVATE_KEY=${signer.privateKey}`,`GUARDIAN_PRIVATE_KEY=${guardianSigner.privateKey}`,
+      `HOLDER_A_PRIVATE_KEY=${wallet(1).privateKey}`,`HOLDER_B_PRIVATE_KEY=${wallet(2).privateKey}`,
+    ].join('\n')+'\n',{mode:0o600});
+    console.log(JSON.stringify({type:'local-running',rpcUrl:report.rpcUrl,chainId:31337,evidence:path.relative(root,output),note:'Local development wallets only. Stop with Ctrl-C.'}));
+    await new Promise(resolve=>{process.once('SIGINT',resolve);process.once('SIGTERM',resolve);node.once('exit',resolve);});
+  }
 } catch(error) {
   report.success=false;report.error=error.shortMessage||error.message;
   fs.writeFileSync(path.join(output,'report.json'),stringify(report));

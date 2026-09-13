@@ -1,0 +1,48 @@
+{
+  "chainId": 84532,
+  "network": "base-sepolia",
+  "deployedAtBlock": 46748588,
+  "tokenDeployBlock": 46747885,
+  "quoter": "0xB4a75B6077CAE618b6a7109e54C32D176C44358A",
+  "contracts": {
+    "weth": "0x7e7B7B06D6765469011A81569cA38dde5058FD5E",
+    "usdc": "0x39da4516c532088CB73F5d1F66b1E7809A850EA1",
+    "dickbutt": "0xfBfB40947275dE515E83d0f2dC68fcb1f85b3bb2",
+    "spcxc": "0x080355ad197638d010203E2C56B5e090609aDA0F",
+    "distributor": "0xc0524A57cdA6558357667d41b0AB1752cD83d2D6",
+    "executor": "0x0b1E15D42457BA67A550a217711C0dCF1A391E6D",
+    "feeRouter": "0xF3Ac84Cc65D63aadF673D44d19Ff0F86E9623510",
+    "clanker": "0x3f1C134ecf80155ae4A5829429e7aEdfCFb2c9C6",
+    "aero": "0x39f45eE54e8D349e83345Fa1dbd59064B51f30Ba",
+    "legacy": "0xb6F5d51599B6455ED4fcF5D27259Ef1A8aC4425e"
+  },
+  "splits": {
+    "dickSplit": "0xa2915a5910a0ae1bCf36c948eBeB8Ed92880C3d8",
+    "wethSplit": "0x84Ca548690092C9E8e9c464a0a641AAd047CD053"
+  },
+  "sources": {
+    "locker": "0x23f2164F50cC70da48102cdd9C35Da02d796B3A8",
+    "positionManager": "0x1e08Ba71D115405365E394C5B013e3e72979d4A8",
+    "legacySafes": [
+      "0xfEB869819544f50da781a1d79B7Eec07CAA8877e",
+      "0x05472b9aCA0A12BEE74C5Be252fBe61262016C32"
+    ]
+  },
+  "roles": {
+    "owner": "0xCD80bdF2429125e90c162E1543663721761409c7",
+    "guardian": "0xCD80bdF2429125e90c162E1543663721761409c7",
+    "proposer": "0x266aEFad823F421fffAF9462B45167c587F440a1",
+    "keeper": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+    "ops": "0x76F6C999d66f3544D5388870A9a9b0664b8AF3d7",
+    "kcGreen": "0x80e00D628CbE20377695fe43E9d959597adFFe1B",
+    "cdbVault": "0xFee59016beD7dB11f56e5530863DCd0b2021bbF8",
+    "burnAddress": "0x000000000000000000000000000000000000dEaD"
+  },
+  "notes": [
+    "Base Sepolia rehearsal deployment. Not a launch.",
+    "Splits factory, implementation and Warehouse are the GENUINE protocol contracts.",
+    "Swap router, quoter, tokens, Clanker locker, Aerodrome manager and legacy module are stand-ins.",
+    "Tokens are open faucets: anyone can mint, so balances prove nothing about the pipeline economics.",
+    "Ownership transfer to the owner multisig is a separate, deliberate step; see docs/SEPOLIA.md."
+  ]
+}

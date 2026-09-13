@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ethers } from 'ethers';
 import { Journal, hash, stringify } from '../calculator/journal.js';
 import { buildPlan, normalize } from '../calculator/core.js';
+import { verifyPayoutHistory } from './verify-history.js';
 
 export const KEEPER_ABI = [
  'function rewardToken() view returns(address)',
@@ -84,7 +85,7 @@ async function inspect(distributor,plan) {
 
 /** Consume authentic calculator Journal records; all transaction dependencies are injected. */
 export async function runKeeper({dir,provider,distributor,config,execute=false,propose=false,proposeOnly=false,signerAddress,
- ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,lockWaitSeconds=0,onEvent=()=>{}}) {
+ ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,lockWaitSeconds=0,onEvent=()=>{},verifyHistory=verifyPayoutHistory}) {
  // proposeOnly lets the proposer bot run without the keeper key on its host. It commits roots and
  // stops; activation is permissionless and payment belongs to the keeper.
  if (proposeOnly&&!propose) throw Error('proposeOnly requires propose');
@@ -112,6 +113,9 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
    const plan=verifyPlan(record,config);
    if (plan) { if(seen.has(plan.roundId))throw Error('duplicate journal plan round id');seen.add(plan.roundId);plans.push(plan); }
   }
+  // Proposer-host journal copies are untrusted calculation results. Recompute their
+  // eligibility, balances and payouts independently before approving any mutation.
+  result.historyVerification=await verifyHistory({rows,config,provider});
   // Check every commitment before the first mutation, including older closed rounds.
   for (const plan of plans) await inspect(distributor,plan);
   if (execute && propose && normalize(await ownerDistributor.getAddress())!==normalize(config.distributor)) throw Error('owner distributor does not match config');

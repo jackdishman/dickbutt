@@ -1,0 +1,58 @@
+Warning: This is a nightly build of Foundry. It is recommended to use the latest stable version. To mute this warning set `FOUNDRY_DISABLE_NIGHTLY_WARNING` in your environment. 
+
+No files changed, compilation skipped
+2026-09-13T06:48:02.104603Z  WARN evm::traces::external: etherscan config not found
+
+Ran 1 test for test/BaseFork.t.sol:BaseForkTest
+[PASS] testForkSpcxcRealTransferAndPush() (gas: 2053572)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 549.74ms (2.87ms CPU time)
+
+Ran 1 test for test/RealSwapFork.t.sol:RealSwapForkTest
+[PASS] testNativeSpcxcActualTwoHopSwap() (gas: 2544454)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 550.45ms (3.58ms CPU time)
+
+Ran 1 test for test/NativeAeroPositionFork.t.sol:NativeAeroPositionForkTest
+[PASS] testNativeNewAeroPositionTradesCollectBurnAndRewardPush() (gas: 4936412)
+Logs:
+  locally created real-manager NFT: 6001197
+  swap fee pips: 3000
+  unstaked fee pips: 0
+  actual Aero DICK burned: 3000000000000000076689
+  actual Aero SPCXc to distributor: 299999
+  actual Aero SPCXc holder payment: 149999
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 657.70ms (5.19ms CPU time)
+
+Ran 1 test for test/NativePipelineFork.t.sol:NativePipelineForkTest
+[PASS] testNativeClankerLegacySplitsSwapAndHolderPushTogether() (gas: 7858084)
+Logs:
+  gross DICK from real Clanker position: 2241304228970307376150905137
+  gross WETH from real Clanker position: 10117052674954033686
+  legacy DICK claimed: 1344782537382184425690543082
+  KC DICK: 224130422897030737615090513
+  DICK burned: 2017173806073276638535814622
+  KC WETH: 404682106998161347
+  CDB WETH: 404682106998161347
+  WETH actually swapped: 3237456855985290779
+  SPCXc received from real swap: 5409577133
+  SPCXc holder A: 901596188
+  SPCXc holder B: 1803192376
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 660.86ms (8.36ms CPU time)
+
+Ran 2 tests for test/NativeBatchFork.t.sol:NativeBatchForkTest
+[PASS] testNative256RecipientBatchAndIdempotentRepeat() (gas: 19886245)
+Logs:
+  native SPCXc recipients: 256
+  distribution execution gas excluding transaction overhead: 14660698
+  fork block gas limit: 400000000
+
+[PASS] testNative400RecipientBatchExceedsCurrentTransactionGasCap() (gas: 30610462)
+Logs:
+  native SPCXc recipients: 400
+  distribution execution gas excluding transaction overhead: 23234654
+  fork block gas limit: 400000000
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 693.59ms (68.53ms CPU time)
+
+Ran 5 test suites in 702.19ms (3.11s CPU time): 6 tests passed, 0 failed, 0 skipped (6 total tests)

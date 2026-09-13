@@ -1,0 +1,5 @@
+
+> dickbutt-rewards-calculator@2.0.0 deploy:sepolia
+> node script/deploy-sepolia.mjs --roles config/roles-sepolia.local.json --out config/deployment-sepolia-new.json --resume
+
+{"type":"deploy-error","message":"deployment RPC/signing failure; inspect the .partial manifest and the chain"}

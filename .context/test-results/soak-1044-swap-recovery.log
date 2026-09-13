@@ -1,0 +1,10 @@
+{
+  "status": "attention",
+  "error": {
+    "code": "CALL_EXCEPTION",
+    "action": "call",
+    "message": "missing revert data"
+  },
+  "report": ".context/test-results/soak-1044-swap-recovery.json"
+}
+

@@ -12,7 +12,12 @@ export async function runCalculator({dir='.',provider,token,distributor,config,b
  // Metadata is also read at the snapshot; never call latest through a helper.
  const reward=rewardTokenFactory(rewardToken);
  const rewardDecimals=Number(await reward.decimals({blockTag}));
- const roundId=BigInt(next).toString();if(state.plans[roundId])throw Error(`unproposed local plan already reserves round ${roundId}`);
+ const roundId=BigInt(next).toString(),held=state.plans[roundId];
+ // A plan that is built but not yet proposed is the ordinary gap between the calculate and propose
+ // steps, not a fault. Throwing made the scheduled job unrecoverable: the keeper run that clears the
+ // plan by proposing it is the only thing that can unjam this, and it only ran on a zero exit.
+ if(held&&!held.settled)return {pendingPlan:true,roundId,plan:held};
+ if(held)throw Error(`settled local plan still occupies the next round id ${roundId}`);
  const availableRaw=BigInt(available),carry=sum(state.accrued),roundCap=BigInt(maxProposable);
  let pot=availableRaw-carry-localReserved;if(pot<0n)throw Error('insolvent local accrual/reservations');
  // Balances have to be rebuilt from the token's first block, so without this the first period's

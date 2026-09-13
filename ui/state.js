@@ -9,6 +9,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { NODES, EDGES, VIEWBOX, LANES, route, boxes } from './flow.js';
 import { buildReadiness } from './readiness.js';
+import { deploymentPaths } from './deployment-paths.js';
 import { JOBS, hostPlan, validateSchedule, CONTRACT_LIMITS } from '../operations/schedule.js';
 
 const get = (object, keyPath) => keyPath.split('.').reduce((value, key) => (value == null ? value : value[key]), object);
@@ -94,14 +95,14 @@ const TONES = {
   external: ['muted', 'off-chain'],
 };
 
-export function resolveFlow(network, { mainnet, sepolia, legacy }) {
-  const onManifest = network === 'base-sepolia';
+export function resolveFlow(network, { mainnet, sepolia, legacy, local }) {
+  const onManifest = network === 'base-sepolia' || network === 'local';
   const files = { mainnet, sepolia, legacy };
   const nodes = NODES.map(node => {
     const ours = node.kind === 'contract' || node.kind === 'split';
     let keyPath = onManifest ? node.manifest : node.address;
     // A few mainnet facts live in their own evidence file rather than the deployment config.
-    let source = onManifest ? sepolia : mainnet;
+    let source = network === 'local' ? local : onManifest ? sepolia : mainnet;
     if (!onManifest && keyPath?.includes(':')) {
       const [file, rest] = keyPath.split(':');
       source = files[file];
@@ -134,7 +135,9 @@ function countRehearsals(root) {
 
 export function loadState(root, { env = process.env } = {}) {
   const mainnet = readJson(root, 'config/base-mainnet.json');
-  const sepolia = readJson(root, 'config/deployment-sepolia.json');
+  const selectedDeployment = deploymentPaths(root);
+  const sepolia = readJson(root, selectedDeployment.manifest);
+  const local = readJson(root, '.context/current-local.json')?.manifest ?? null;
   const legacy = readJson(root, 'config/legacy-fees.json');
   const splits = readJson(root, 'config/splits.json');
   const overrides = readJson(root, OVERRIDES_FILE) ?? {};
@@ -148,8 +151,11 @@ export function loadState(root, { env = process.env } = {}) {
         writable: false, note: 'The operating CLIs refuse to send transactions here. Reads only.' },
       { id: 'base-sepolia', label: 'Base Sepolia', chainId: 84532, role: 'rehearsal',
         writable: true, note: sepolia ? `Live deployment recorded at block ${sepolia.deployedAtBlock}.` : 'No deployment manifest yet.' },
+      ...(local ? [{ id: 'local', label: 'Local wallets', chainId: 31337, role: 'local rehearsal', writable: false,
+        note: 'Disposable Base fork. Open Wallets to verify that the node is running and read balances.' }] : []),
     ],
-    config: { mainnet, sepolia, legacy, splits },
+    config: { mainnet, sepolia, legacy, splits, local },
+    selectedDeployment,
     readiness,
     docs: docIndex(root),
     rehearsalRuns: countRehearsals(root),

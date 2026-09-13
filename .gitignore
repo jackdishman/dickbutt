@@ -12,3 +12,4 @@ periods/
 *.tmp
 ui/checklist.local.json
 .context/
+.tools/

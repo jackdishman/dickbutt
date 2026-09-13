@@ -1,0 +1,8 @@
+{
+  "checkedAt": "2026-09-13T08:31:49.962Z",
+  "rpc": "https://sepolia.base.org",
+  "chainId": "84532",
+  "historicalBlock": 46749200,
+  "blockHash": "0x70bd33a45411aacaa5543ad90f2bdbbee6e78c965327873ce6996dbf515ea214",
+  "historicalCallResult": "0x0000000000000000000000000000000000000000000000000000000000000001"
+}

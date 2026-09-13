@@ -1,0 +1,59 @@
+{
+  "chainId": "84532",
+  "timestamp": "1789300746",
+  "severity": "ok",
+  "exitCode": 0,
+  "attention": [],
+  "outstandingRewards": "0",
+  "checks": [
+    {
+      "name": "price-floor",
+      "severity": "ok",
+      "detail": "floor active",
+      "secondsRemaining": 36792
+    },
+    {
+      "name": "floor-lower-bound",
+      "severity": "ok",
+      "detail": "floor setters are bounded",
+      "lowerBound": "100000000"
+    },
+    {
+      "name": "gas",
+      "severity": "ok",
+      "detail": "keeper funded",
+      "role": "keeper",
+      "address": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+      "balance": "19981390001018738"
+    },
+    {
+      "name": "gas",
+      "severity": "ok",
+      "detail": "proposer funded",
+      "role": "proposer",
+      "address": "0x266aEFad823F421fffAF9462B45167c587F440a1",
+      "balance": "3000000000000000"
+    },
+    {
+      "name": "gas",
+      "severity": "ok",
+      "detail": "ops funded",
+      "role": "ops",
+      "address": "0x76F6C999d66f3544D5388870A9a9b0664b8AF3d7",
+      "balance": "3000000000000000"
+    },
+    {
+      "name": "gas",
+      "severity": "ok",
+      "detail": "owner funded",
+      "role": "owner",
+      "address": "0xCD80bdF2429125e90c162E1543663721761409c7",
+      "balance": "17910656591586886"
+    },
+    {
+      "name": "proposals",
+      "severity": "ok",
+      "detail": "proposals enabled"
+    }
+  ]
+}

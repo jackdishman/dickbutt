@@ -1,0 +1,140 @@
+{
+  "incomplete": true,
+  "deployer": "0xCD80bdF2429125e90c162E1543663721761409c7",
+  "contracts": {
+    "weth": "0x7e7B7B06D6765469011A81569cA38dde5058FD5E",
+    "usdc": "0x39da4516c532088CB73F5d1F66b1E7809A850EA1",
+    "dickbutt": "0xfBfB40947275dE515E83d0f2dC68fcb1f85b3bb2",
+    "spcxc": "0x080355ad197638d010203E2C56B5e090609aDA0F",
+    "distributor": "0xc0524A57cdA6558357667d41b0AB1752cD83d2D6",
+    "executor": "0x0b1E15D42457BA67A550a217711C0dCF1A391E6D",
+    "router": "0x256C186831cb8e69211E88878a16f938DC0108c5",
+    "quoter": "0xB4a75B6077CAE618b6a7109e54C32D176C44358A",
+    "feeRouter": "0xF3Ac84Cc65D63aadF673D44d19Ff0F86E9623510",
+    "dickSplit": "0xa2915a5910a0ae1bCf36c948eBeB8Ed92880C3d8",
+    "wethSplit": "0x84Ca548690092C9E8e9c464a0a641AAd047CD053",
+    "clanker": "0x3f1C134ecf80155ae4A5829429e7aEdfCFb2c9C6",
+    "locker": "0x23f2164F50cC70da48102cdd9C35Da02d796B3A8",
+    "manager": "0x1e08Ba71D115405365E394C5B013e3e72979d4A8",
+    "aero": "0x39f45eE54e8D349e83345Fa1dbd59064B51f30Ba",
+    "legacy": "0xb6F5d51599B6455ED4fcF5D27259Ef1A8aC4425e",
+    "legacySafes": [
+      "0xfEB869819544f50da781a1d79B7Eec07CAA8877e",
+      "0x05472b9aCA0A12BEE74C5Be252fBe61262016C32"
+    ]
+  },
+  "chainId": 84532,
+  "deployments": {
+    "0xef8ff47db8fedd07d47775703a7ac64b8ca525b1ba293d1f2911a5f13633abe0": {
+      "name": "SepoliaToken",
+      "address": "0x7e7B7B06D6765469011A81569cA38dde5058FD5E",
+      "hash": "0x5b5a49fcbd435db91c69b26e251e5d2772f72308b2a65446a73e858137afd1c5",
+      "blockNumber": 46747882
+    },
+    "0x87e39fdb170f49e8a703856bc65cb5adb989d6ab7aa2de2604e3492f6bd74659": {
+      "name": "SepoliaToken",
+      "address": "0x39da4516c532088CB73F5d1F66b1E7809A850EA1",
+      "hash": "0x9b6bec4abbca5027b1d14130adfca551ce31e7e9a7ac8915a72b9bb0b9a48df9",
+      "blockNumber": 46747883
+    },
+    "0x1b72f2f5a976f593233bf125e95bb82ed8aee64161d5d3f429ef35fb99673f24": {
+      "name": "SepoliaToken",
+      "address": "0xfBfB40947275dE515E83d0f2dC68fcb1f85b3bb2",
+      "hash": "0xccde9f81e6f270d6f1be5009672f7e5b6d2e17472cb11ae5d9a00729bda59252",
+      "blockNumber": 46747885
+    },
+    "0x533e2134bc166e387541c26a237f939e207bce4fc068ba9f466c334eeaa43d11": {
+      "name": "SepoliaToken",
+      "address": "0x080355ad197638d010203E2C56B5e090609aDA0F",
+      "hash": "0x72964e0dacf0928e3d4241024a06f54dc4f46bf571a24bbd38e9384bbfd5a543",
+      "blockNumber": 46747888
+    },
+    "0x4e6b5e69dc1d5fc88bdc05361712cbcfb3523d5ff56895d44cd75885aee55f95": {
+      "name": "DickbuttRewardsDistributor",
+      "address": "0xc0524A57cdA6558357667d41b0AB1752cD83d2D6",
+      "hash": "0x62bfa7552cd5a86f806e9b7884676e99eaa9c66ae8a5719051bb50077e362999",
+      "blockNumber": 46747890
+    },
+    "0xe446b768a18fdf7f5fcec55523d3adfcb7a28f21d58eba5ffc3137471b1a4926": {
+      "name": "SepoliaSwapRouter",
+      "address": "0x256C186831cb8e69211E88878a16f938DC0108c5",
+      "hash": "0xb8462068555d62f5b62f13af075cae4578dc56c4391f07445030303670f5b380",
+      "blockNumber": 46747891
+    },
+    "0x294b4ad16b184cc9da818ef9e8df204a469558aa4cdc66694af7b7c8ff8bc366": {
+      "name": "SepoliaQuoter",
+      "address": "0xB4a75B6077CAE618b6a7109e54C32D176C44358A",
+      "hash": "0x95291dadecd8a62bdd3d1e56d379a57a17ca350a2ea5a1e23336526d2dfa9eb4",
+      "blockNumber": 46747893
+    },
+    "0x00fc248263845c27bb0642ee99dd967c54a372d28c3dc13589202933655da621": {
+      "name": "SpcxcSwapExecutor",
+      "address": "0x0b1E15D42457BA67A550a217711C0dCF1A391E6D",
+      "hash": "0x87af91cb8f451249be5006c8e255928358190fa319badb428c9b66a77fed4cb0",
+      "blockNumber": 46747896
+    },
+    "0xd5a33f0e5cbd53e51c4767b412e790ef4a454939f18759a7591595c9d71c33ac": {
+      "name": "SplitsFeeRouter",
+      "address": "0xF3Ac84Cc65D63aadF673D44d19Ff0F86E9623510",
+      "hash": "0xd4da7d7c5b2d4dae59209230fa4090fe6ae444172f8b1390dc8f11d8c70cf9ce"
+    },
+    "0x1d17069fa4a14dd56aa49646e50fc0a002a5d8941e1726b44bd43af626a3eb99": {
+      "name": "SepoliaPositionManager",
+      "address": "0x1e08Ba71D115405365E394C5B013e3e72979d4A8",
+      "hash": "0xdafbc9cf0123f326098799e5e4556fa9ef154fb1bbbee2faef9c02059a831f14"
+    },
+    "0x7bfceee8cb4fa4dd4b6a00da6e2adbca010fb3c1c0b83d03ef7a4e2258b6fced": {
+      "name": "SepoliaLocker",
+      "address": "0x23f2164F50cC70da48102cdd9C35Da02d796B3A8",
+      "hash": "0x7bae2ebb5e8df40209737f154a73ae1e6735f16092de8bbdf3135e1def11191b"
+    },
+    "0x57ef9d0bbe911f4ea4d925496e32395de5159117999b1549d98896ae2323f683": {
+      "name": "LockerHarvester",
+      "address": "0x3f1C134ecf80155ae4A5829429e7aEdfCFb2c9C6",
+      "hash": "0x6a73c5502b8da8497c7bd050934e5d56f6179ce721700cb8926ea8328cc49f06"
+    },
+    "0x471f629730ea925717c402d9269766ef1739a023d65592a01f85a185e8de62dc": {
+      "name": "AerodromeFeeHarvester",
+      "address": "0x39f45eE54e8D349e83345Fa1dbd59064B51f30Ba",
+      "hash": "0x9e34667f9be55f08c4b6e40af5f85eeab6e22676892478282b93f8d97d8b1c7e"
+    },
+    "0xfc538f9298c25adb57213d27e2fcf3c3274192804ed547020c1679eda844586f": {
+      "name": "LegacyModuleMock",
+      "address": "0xc1Eda2A9a463Dc8e81BEC0150A5cdAEDF3C8B966",
+      "hash": "0xd1af46c753904e3f4c85e106c846e3cb7128690a1de2e1c251d154287786d0c3"
+    },
+    "0x4d5672319b5a8f5180fca2e066e667f4ec44e359ca4134f605ba92c561a30c99": {
+      "name": "LegacySafeMock",
+      "address": "0xfEB869819544f50da781a1d79B7Eec07CAA8877e",
+      "hash": "0x9188f97511438726e5c7f2e2862ab8cf6088c822de1f9446a901d5ad2aeafaba"
+    },
+    "0xc31dff35b58b9841b09457a778a1550d43a6a5061a7ea028fc8b96c481d5b74c": {
+      "name": "LegacySafeMock",
+      "address": "0x05472b9aCA0A12BEE74C5Be252fBe61262016C32",
+      "hash": "0xccaa0a892e80d082a657657a7dff319663edc82463e751ecb919a8a566caf75f"
+    },
+    "0x4d9330b407e5688b06fc3c161ad42a98db61c1e19b451e8b35ac67cfa7bc4c9e": {
+      "name": "LegacyFeeHarvester",
+      "address": "0xb6F5d51599B6455ED4fcF5D27259Ef1A8aC4425e",
+      "hash": "0x3f9b0dad52a1875127197bb072531884b1dae48e5cf520e68ade5f53847fad53"
+    }
+  },
+  "actions": {
+    "locker-position": "0x9c2a63abe66a00420a02d6fcc329f8ac3aea0497b32520bff126dcf268bfbe8a",
+    "locker-handoff": "0x19cfc962379fe6c07272735deddda381ad5bb5306a02a54e0c25c3680cf21599",
+    "aero-position": "0xceb4eb695a64bc4fb150a7a1e58f4a60112f8efe7f5ea69ab1f3fedde9959e2a",
+    "aero-handoff": "0xcffffb841849992bf19fc8184c51f9c849d1598be1095ec142fb2a99fce9e180",
+    "aero-fees": "0x4b5ef26dcf4e1f3eeecaff191797b5e07f8c01975e39fab0a718e73499f9b612",
+    "legacy-handoff": "0xfe0fba6da0eb4b037ee7b8a54dbeb45d8d9f201387ab7c34748242329b369076",
+    "legacy-seed-current": "0x8b0a5e78a7e48e8f97090b29697824dd6ab871d0ef0b08cdd9122c15ecb175c4",
+    "legacy-seed-historic": "0x5fcbca3c11c61a50ef09c099048040cec9f0b3f0915a01a343438bf214ab02f5",
+    "set-keeper": "0x950b9a13b8bbfeb9f50df327e72358f25b3ce2025014a36e4984bbcf9843d503",
+    "set-proposer": "0xb7fad0ec00689f9ce08c1976d1420ad79efb23ec3de0aafbd3d6c67b88426acf",
+    "set-guardian": "0x5c0014a6e58876218338c594aa1c6a3c76bf0355430a086c334edf4e25ee8429",
+    "set-swap-keeper": "0x0c3afa6efc2d055a1e6ef0a3bc26ec2eb83971fc3350c300c027c957e2cf9390",
+    "set-floor-lower-bound": "0x6f3916bc50dc82ac9c69e3b652e6ef9343dd4c39d5ca805a78b6ff84ea96b4ec",
+    "set-floor-setter": "0xb4db27babccda817a6323e67bf5c6d2f184c14bc8222eb56316acd7c537f3aa8"
+  },
+  "rolesHash": "0xf186d6fd2013316b0f60b756b6f5ca7053b5ce332d03322e6d59073f486015dc",
+  "aeroUnlock": 1820801318
+}

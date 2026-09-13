@@ -19,7 +19,7 @@ const readHash = () => {
 
 const app = {
   token: null, allowExecute: false, data: null,
-  network: localStorage.getItem('network') ?? 'base-mainnet',
+  network: new URL(location.href).searchParams.get('network') ?? localStorage.getItem('network') ?? 'base-mainnet',
   tab: readHash().tab,
   node: readHash().tab === 'flow' ? readHash().selection : null,
   command: readHash().tab === 'operate' ? readHash().selection : null,
@@ -81,6 +81,7 @@ const TABS = [
   { id: 'checklist', label: 'Checklist' },
   { id: 'configure', label: 'Configure' },
   { id: 'operate', label: 'Operate' },
+  { id: 'wallets', label: 'Wallets' },
   { id: 'docs', label: 'Docs' },
 ];
 
@@ -489,9 +490,31 @@ function renderDocs() {
 }
 
 /* ------------------------------------------------------------------- render */
+async function renderWallets() {
+  const section = document.getElementById('tab-wallets');
+  section.replaceChildren(h('p', {}, 'Reading local wallet balances…'));
+  try {
+    const result = await api('/api/local-wallets');
+    if (!result.running) { section.replaceChildren(h('div', { class: 'detail' }, h('h2', {}, 'Local wallets'), h('p', {}, result.message))); return; }
+    section.replaceChildren(h('div', { class: 'detail' },
+      h('h2', {}, 'Local wallet rehearsal'),
+      h('p', {}, `Chain ${result.chainId} · block ${result.block} · ${result.rpcUrl}`),
+      h('p', {}, 'Live balances from the disposable Base fork. Eligible holders receive rewards automatically; they do not connect a wallet or sign a claim. These tokens and ETH are for local testing.'),
+      h('button', { type: 'button', onclick: renderWallets }, 'Refresh balances'),
+      h('div', { class: 'wallet-scroll' }, h('table', { class: 'wallet-table' },
+        h('thead', {}, h('tr', {}, ...['Role', 'Wallet address', 'Test ETH', 'DICKBUTT', 'SPCXc', 'SPCXc raw units'].map(x => h('th', {}, x)))),
+        h('tbody', {}, ...result.wallets.map(w => h('tr', {},
+          h('td', {}, w.role), h('td', {}, h('code', {}, w.address)), h('td', {}, w.eth),
+          h('td', {}, w.dickbutt), h('td', {}, w.spcxc), h('td', {}, w.spcxcRaw))))
+      )),
+      h('p', {}, `Transaction and accounting evidence: ${result.evidence}/report.json`)
+    ));
+  } catch (error) { section.replaceChildren(h('p', {}, error.message)); }
+}
+
 function render() {
   renderShell();
-  ({ flow: renderFlow, checklist: renderChecklist, configure: renderConfigure, operate: renderOperate, docs: renderDocs }[app.tab] ?? renderFlow)();
+  ({ flow: renderFlow, checklist: renderChecklist, configure: renderConfigure, operate: renderOperate, wallets: renderWallets, docs: renderDocs }[app.tab] ?? renderFlow)();
 }
 
 async function refresh() {

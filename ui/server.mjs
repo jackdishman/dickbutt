@@ -28,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { loadState, resolveFlow, readDoc, saveOverrides, readJson, updateConfigField, EDITABLE_FIELDS, OVERRIDES_FILE } from './state.js';
 import { applyOverride } from './readiness.js';
 import { describeCommands, resolveCommand } from './commands.js';
+import { localWallets } from './local-wallets.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -172,6 +173,10 @@ export function createServer({ token, allowExecute = false, root = ROOT, runs = 
 
       if (!authorized(request, url)) return json(response, 403, { error: 'unauthorized console request' });
 
+      if (url.pathname === '/api/local-wallets' && request.method === 'GET') {
+        return json(response, 200, await localWallets(root));
+      }
+
       if (url.pathname === '/api/state' && request.method === 'GET') {
         const state = loadState(root);
         const network = url.searchParams.get('network') ?? 'base-mainnet';
@@ -179,7 +184,7 @@ export function createServer({ token, allowExecute = false, root = ROOT, runs = 
           ...state,
           allowExecute,
           flow: resolveFlow(network, state.config),
-          commands: describeCommands({ allowWrite: allowExecute, env: process.env }),
+          commands: describeCommands({ allowWrite: allowExecute, env: process.env, root }),
           runs: runs.summary(),
           editableFields: EDITABLE_FIELDS,
         });
@@ -205,7 +210,7 @@ export function createServer({ token, allowExecute = false, root = ROOT, runs = 
 
       if (url.pathname === '/api/run' && request.method === 'POST') {
         const body = await readBody(request);
-        const { command, argv, env } = resolveCommand(body.id, { inputs: body.inputs ?? {}, allowWrite: allowExecute, confirm: body.confirm ?? null });
+        const { command, argv, env } = resolveCommand(body.id, { inputs: body.inputs ?? {}, allowWrite: allowExecute, confirm: body.confirm ?? null, root });
         const entry = runs.create(command, argv);
         // No shell: argv goes to the binary verbatim, so nothing in it can be reinterpreted.
         const child = spawn(argv[0], argv.slice(1), { cwd: root, shell: false, env: { ...process.env, ...env, FORCE_COLOR: '0' } });

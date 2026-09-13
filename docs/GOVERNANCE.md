@@ -17,7 +17,7 @@ The swap executor's owner is the multisig too. Its daily floor refresh is signed
 
 ## What a stolen proposer key can and cannot do
 
-**It cannot move a token.** `distributeBatch` is keeper-gated and pays only amounts inside the committed root, and the keeper holds proofs only for roots its own calculator journal produced. A root it did not produce is reported as `foreign-commitment` and left untouched while every other round keeps paying. Theft requires the proposer key **and** the keeper key.
+The proposer role cannot call `distributeBatch`; a keeper is required to pay a committed root. The keeper now independently rebuilds the complete payout history from chain data before signing. Merely checking a copied journal and its own hashes was insufficient: a proposer host could supply a consistent but incorrect plan. Keep the keeper code, configuration and RPC independently controlled. The owner remains able to appoint keepers and propose roots, so its broader authority requires separate multisig review.
 
 What a stolen proposer key *can* do is grief: reserve the pool against real rounds, or take a round id the calculator had already planned. The on-chain bounds limit the first. The second recovers on its own once the guardian cancels the foreign round: the calculator recredits the abandoned plan and re-plans it under the next id. [Runbook](RUNBOOK.md#unknown-commitment--treat-as-a-compromised-proposer-key).
 
@@ -36,13 +36,13 @@ Cancelling is a race against a compromised proposer re-proposing; **pausing ends
 
 **This is an economic decision, not just a safety knob.** The calculator plans the whole distributable pot each round. With a cap below 100%, each round pays at most that share and the remainder rolls into the next period, so a permanent buffer accumulates in the distributor.
 
-The local rehearsal shows it directly at the 50% default: 1,615 raw SPCXc available, cap 807, plan 807, and 808 carried forward. In steady state the undistributed buffer settles at roughly `inflow / maxRoundBps`.
+The local rehearsal shows it directly at the 50% default: 1,615 raw SPCXc available, cap 807, plan 807, and 808 carried forward. For a simplified model with constant inflow `I` per round, immediate payout and share fraction `p = maxRoundBps / 10000`, the steady balance immediately after payout is `I * (1 - p) / p`; the available balance just before the next payout is `I / p`. At 50%, those are respectively one and two rounds of inflow. The actual timelocked, concurrent-round system also holds pending obligations and below-threshold accrual, so its raw vault balance is not predicted by this simple model alone.
 
-| `maxRoundBps` | Buffer held back | Notes |
+| `maxRoundBps` | Simplified balance after payout | Notes |
 | --- | --- | --- |
 | 10000 | none | Cap disabled. Timelock, interval and guardian still apply |
-| 5000 | ~2× inflow | **Current default.** Halves a single bad round at a modest backlog |
-| 2500 | ~4× inflow | Tighter cap, noticeably slower payouts |
+| 5000 | ~1× inflow | **Current default.** Halves a single bad round at a modest backlog |
+| 2500 | ~3× inflow | Tighter cap, noticeably slower payouts |
 
 50% is the default because a stolen proposer key cannot move tokens at all — the cap only limits griefing, so paying a shorter backlog for a tighter bound is a poor trade. Raise or lower it with `setRoundLimits`; the calculator reads the live value every period.
 
@@ -58,7 +58,7 @@ The calculator has to rebuild balances from the token's first block, so without 
 
 ## Key isolation
 
-Four bot keys, none of which should share a host with another:
+Three bot signing keys and a keyless monitor, with separately controlled hosts:
 
 - **Keeper** — `processWeth`, `distributeBatch`
 - **Proposer** — `proposeRound`. `PROPOSER_PRIVATE_KEY`; the keeper CLI refuses it when it equals `KEEPER_PRIVATE_KEY`
@@ -83,7 +83,15 @@ Splits' own [Swapper](https://splits.org/protocol/docs/core/swapper) product pri
 
 So the split of responsibilities is deliberate:
 
-- **Splits protocol** does the percentage fan-out only — immutable PushSplit V2.2 clones paying KC Green, the burn address and the CDB vault. No custom splitting implementation exists in this repository.
+- **Splits protocol** does the percentage fan-out only — immutable PushSplit V2.2 clones paying KC Green, the burn address and the CDB vault. The earlier custom `FeeSplitter.sol` remains for regression coverage; it is not the selected production splitter.
 - **`SpcxcSwapExecutor`** does the swap, because the route is Aerodrome and the destination token is B20. Its protections are its own: a per-call cap, cooldown, deadline, keeper gate, and an owner price floor that expires within a day.
 
 Reconsider Swapper only if the reward token and route ever move to a Uniswap V3 pair with a usable oracle. [Splits behaviour and exact rounding](SPLITS-INTEGRATION.md).
+
+## Ownership and role rotation
+
+Administrative ownership transfers require acceptance by the pending owner. Existing keeper, proposer and floor-setter approvals are separate storage entries and are not removed by ownership transfer. Explicitly revoke obsolete approvals and grant the final roles on every relevant contract. The distributor guardian follows the old owner only if it has not been separately assigned. Validate the actual post-transfer role set. The new native pipeline test exercises this with different simulated owner and bot wallets; it is not an actual multisig integration test.
+
+The calculator journal binds its configuration, including excluded addresses. Before first calculation, fill the final production exclusion set. After rewards have started, changing that set for role rotation needs an explicit migration/replay procedure; simply editing the JSON causes the existing checker to refuse the changed configuration. Never delete accrued balances or payout history to get around that check.
+
+Ownership, permanent destination freezing and permanent NFT locking are separate decisions. In particular, the legacy adapter cannot relay its creator authority to a replacement, and its fixed receiver leads through a router and executor with other fixed destinations. See [the permanence review](ALIGNMENT-RETEST-REPORT.md) before assigning any production custody or creator role.

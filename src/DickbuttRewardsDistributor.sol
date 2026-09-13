@@ -244,8 +244,9 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     /// @notice Pay a batch for a specific round. Re-runnable: accounts
     /// already paid in this round are skipped, so a partially-failed batch
     /// can be resubmitted verbatim with no double-payment risk.
-    /// @dev Keep batches around 250-400 recipients to stay inside the block
-    /// gas limit. Batches for different rounds can be interleaved freely.
+    /// @dev Estimate each batch with the actual token and proofs, leaving margin below
+    /// the chain's per-transaction gas cap. The block limit alone is insufficient.
+    /// Batches for different rounds can be interleaved freely.
     function distributeBatch(
         uint256 roundId,
         address[] calldata accounts,

@@ -1,8 +1,12 @@
 # Base Sepolia deployment
 
+The current test run uses `config/deployment-sepolia-new.json`, with its receipt ledger alongside it. Seventeen contracts were directly deployed and the router created two genuine Split clones. The console selector points to this deployment. See [the developer handoff](DEVELOPER-HANDOFF.md) for the new run's status. The historical deployment section below is evidence supplied with the project, not a claim that this task ran those earlier transactions.
+
+Deployment now supports `--resume` from a partial receipt ledger. It refuses to start a new run over existing partial progress; review the ledger before resuming.
+
 `npm run deploy:sepolia` deploys the whole architecture to Base Sepolia (84532) and emits the two manifests the operating CLIs consume. It refuses any other chain, including Base mainnet.
 
-This is where the system runs against real block times, a real scheduler and keys held on separate hosts for days at a stretch. The local rehearsal proves accounting in seconds; only a testnet deployment proves the bots survive a weekend.
+This deployment exercises real block times and scheduled invocations. The current test uses one machine with separate role-key environments; it is not evidence of independent hosts or uninterrupted weekend operation. The 48-hour observation is still incomplete.
 
 ## What is genuine and what is a stand-in
 
@@ -49,12 +53,14 @@ Role validation runs **before the first transaction**. The keeper must be a sepa
 
 The deployer needs at least 0.02 ETH. Each deployed address is written to `<manifest>.partial` as it happens, so a mid-run failure leaves a record instead of orphaning contracts nobody can find. The script refuses to overwrite an existing manifest without `--force`, for the same reason.
 
-Two files come out:
+Three persistent outputs come out:
 
 - `deployment-sepolia.json` — addresses for `npm run fees`, `npm run floor`. Its `sources` block also records the locker, position manager and legacy Safes, which the CLIs read on-chain but an operator debugging a harvest should not have to reconstruct from transaction history.
 - `deployment-sepolia-calculator.json` — the **exact** object the calculator hashes and the keeper verifies
 
-Pass the second one straight through with `--config`. Rebuilding it from environment variables is possible but one stray value produces a journal the keeper rejects as a configuration identity mismatch.
+- `<manifest>.receipts.json` — the retained deployment/configuration transaction ledger
+
+Pass the calculator configuration straight through with `--config`. Rebuilding it from environment variables is possible but one stray value produces a journal the keeper rejects as a configuration identity mismatch.
 
 ## Operate
 
@@ -73,9 +79,9 @@ KEEPER_PRIVATE_KEY=0x… npm run fees -- --config deployment-sepolia.json --exec
 # Calculator host: build a plan from finalized state.
 CALCULATOR_DATA_DIR=./data node calculate-rewards.js --config deployment-sepolia-calculator.json
 
-# Propose with the bot proposer key, then pay after the 24-hour timelock.
-KEEPER_PRIVATE_KEY=0x… PROPOSER_PRIVATE_KEY=0x… \
-  npm run keeper -- --config deployment-sepolia-calculator.json --journal ./data --execute --propose
+# On the proposer host with no keeper key loaded; pay later from the keeper host.
+PROPOSER_PRIVATE_KEY=0x… \
+  npm run keeper -- --config deployment-sepolia-calculator.json --journal ./data --execute --propose-only
 KEEPER_PRIVATE_KEY=0x… \
   npm run keeper -- --config deployment-sepolia-calculator.json --journal ./data --execute
 
@@ -93,7 +99,9 @@ The script leaves `owner` on every contract as the deploying key and prints `own
 
 The keeper, proposer, guardian and floor-setter roles are wired to the configured addresses immediately and work from the start; the ops host never needs the deployer key.
 
-## Verified end to end
+## Earlier rehearsal described in the supplied project
+
+This subsection and the historical deployment below are supplied history. Current executed counts, addresses and completion evidence are in [COMPLETE-DEVELOPER-REPORT.md](COMPLETE-DEVELOPER-REPORT.md).
 
 A full run against a local fork of Base Sepolia (chain ID 84532, genuine Splits contracts) completed:
 
@@ -106,9 +114,9 @@ A full run against a local fork of Base Sepolia (chain ID 84532, genuine Splits 
 7. Both holders received exactly their planned amounts
 8. `setFeeAmounts` still worked after `owner` moved to the harvester, and a non-admin key was rejected from `setBlocked`
 
-## Live deployment
+## Historical deployment supplied with the project
 
-The scripts have been run twice against **public Base Sepolia**. The current deployment, from block 46743220, carries the executor's floor-setter role and `floorLowerBound`, the guardian-follows-owner fix and the fee cycle's handoff checks. Addresses are in [config/deployment-sepolia.json](../config/deployment-sepolia.json); throwaway keys, nothing of value at stake.
+The supplied document reports two earlier **public Base Sepolia** runs. Its then-current deployment, from block 46743220, carries the executor's floor-setter role and `floorLowerBound`, the guardian-follows-owner fix and the fee cycle's handoff checks. Addresses are in [config/deployment-sepolia.json](../config/deployment-sepolia.json); throwaway keys, nothing of value at stake.
 
 | | |
 | --- | --- |

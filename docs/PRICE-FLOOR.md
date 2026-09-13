@@ -1,6 +1,6 @@
 # Price-floor bot
 
-`SpcxcSwapExecutor`'s price floor expires within one day (`MAX_FLOOR_LIFETIME`). When it lapses, `processWeth` reverts and fee conversion stops until the owner refreshes it. `script/run-floor.mjs` automates that refresh and reports how long the current floor has left.
+`SpcxcSwapExecutor`'s price floor expires within one day (`MAX_FLOOR_LIFETIME`). When it lapses, `processWeth` reverts and fee conversion stops until an approved floor setter or owner refreshes it. `script/run-floor.mjs` automates that refresh and reports how long the current floor has left.
 
 It is **a separate operational role from the keeper** and is built to run on separate infrastructure.
 

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {Contract,JsonRpcProvider,Wallet} from 'ethers';
 import {runFeeCycle} from '../operations/fees.js';
-import { closeProvider } from '../operations/provider.js';
+import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import {acquireExecutionLock} from '../keeper/engine.js';
 const args=process.argv.slice(2),execute=args.includes('--execute');
 if(args.includes('--help')) {
@@ -14,7 +14,7 @@ let configPath;
 for(let i=0;i<args.length;i++){if(args[i]==='--config')configPath=args[++i];else if(args[i]!=='--execute')throw Error('unknown option');}
 if(!configPath||!process.env.RPC_URL)throw Error('--config and RPC_URL required');
 const config=JSON.parse(fs.readFileSync(configPath));
-const provider=new JsonRpcProvider(process.env.RPC_URL,undefined,{batchMaxCount:1,cacheTimeout:-1});
+const provider=createRpcProvider(process.env.RPC_URL,undefined,{batchMaxCount:1,cacheTimeout:-1});
 let release;
 try {
   const chainId=(await provider.getNetwork()).chainId;
@@ -50,7 +50,7 @@ try {
   };
   const result=await runFeeCycle({provider,signerAddress:address,execute,
     locker:c.clanker?at('LockerHarvester',c.clanker):null,aero:c.aero?at('AerodromeFeeHarvester',c.aero):null,legacy:c.legacy?at('LegacyFeeHarvester',c.legacy):null,
-    feeRouter,executor,weth:new Contract(c.weth,['function balanceOf(address) view returns(uint256)'],provider),quote:async amount=>(await quoter.quoteExactInput.staticCall(swapPath,amount))[0],onEvent});
-  console.log(JSON.stringify(result));if(result.swapStatus==='price-floor-refresh-required')process.exitCode=2;
+    feeRouter,executor,weth:new Contract(c.weth,['function balanceOf(address) view returns(uint256)'],provider),quote:async (amount,snapshot)=>(await quoter.quoteExactInput.staticCall(swapPath,amount,snapshot))[0],onEvent});
+  console.log(JSON.stringify(result));if(result.swapStatus==='price-floor-refresh-required'||result.attention?.length)process.exitCode=2;
 } catch(e) {console.error(e.code?'Fee operation failed; inspect transaction events and RPC status':e.message);process.exitCode=1;}
 finally {release?.();closeProvider(provider);}

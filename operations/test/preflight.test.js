@@ -17,15 +17,36 @@ test('absent pool or position cannot pass preflight',()=>{
 });
 test('deployment needs explicit distinct destinations and governance',()=>{
  assert.ok(validateDeployment({}).length);
- const addresses={kcGreen:a,cdbVault:b,burnAddress:f,owner:'0x0000000000000000000000000000000000000004',keeper:'0x0000000000000000000000000000000000000005',floorSetter:'0x0000000000000000000000000000000000000006'};
+ const addresses={kcGreen:a,cdbVault:b,burnAddress:f,owner:'0x0000000000000000000000000000000000000004',keeper:'0x0000000000000000000000000000000000000005',floorSetter:'0x0000000000000000000000000000000000000006',proposer:'0x0000000000000000000000000000000000000007',guardian:'0x0000000000000000000000000000000000000004'};
  assert.deepEqual(validateDeployment(addresses),[]);
  assert.ok(validateDeployment({...addresses,cdbVault:a}).some(e=>e.includes('distinct')));
  assert.ok(validateDeployment({...addresses,owner:'0x0000000000000000000000000000000000000000'}).length);
  assert.ok(validateDeployment({...addresses,floorSetter:addresses.keeper}).some(e=>e.includes('floorSetter must not be the keeper')));
  // An unfilled template reports only the missing addresses; absent values are not duplicates.
  const template={kcGreen:null,cdbVault:null,burnAddress:f,owner:null,keeper:null,floorSetter:null};
- assert.equal(validateDeployment(template).length,5);
+ assert.equal(validateDeployment(template).length,7);
  assert.ok(!validateDeployment(template).some(e=>e.includes('distinct')));
+});
+
+const productionRoles={kcGreen:a,cdbVault:b,burnAddress:f,owner:'0x0000000000000000000000000000000000000004',keeper:'0x0000000000000000000000000000000000000005',floorSetter:'0x0000000000000000000000000000000000000006',proposer:'0x0000000000000000000000000000000000000007',guardian:'0x0000000000000000000000000000000000000004'};
+test('production preflight requires an explicit proposer and guardian',()=>{
+ for(const name of ['proposer','guardian']){
+  for(const value of [undefined,null,'0x0000000000000000000000000000000000000000']){
+   const errors=validateDeployment({...productionRoles,[name]:value});
+   assert.ok(errors.some(e=>e.includes(`deployment.${name}`)),`${name}=${value} must not pass`);
+  }
+ }
+ assert.deepEqual(validateDeployment(productionRoles),[],'guardian may share the owner multisig');
+});
+test('production preflight rejects keeper administrators and treasury recipients that are bot wallets',()=>{
+ for(const name of ['owner','proposer','guardian','floorSetter']){
+  assert.ok(validateDeployment({...productionRoles,[name]:productionRoles.keeper}).length,`keeper cannot double as ${name}`);
+ }
+ for(const recipient of ['kcGreen','cdbVault']){
+  for(const bot of ['keeper','proposer','floorSetter']){
+   assert.ok(validateDeployment({...productionRoles,[recipient]:productionRoles[bot]}).some(e=>e.includes('operational bot key')),`${recipient} cannot be ${bot}`);
+  }
+ }
 });
 
 test('swap route must resolve to the configured two-hop pools with liquidity',()=>{

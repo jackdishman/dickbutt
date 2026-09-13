@@ -17,15 +17,21 @@
     "schedule": "node script/render-schedule.mjs",
     "deploy:sepolia": "node script/deploy-sepolia.mjs",
     "preflight": "node script/preflight.mjs",
-    "inspect:legacy": "node script/inspect-legacy.mjs"
+    "inspect:legacy": "node script/inspect-legacy.mjs",
+    "wallets:check": "node script/check-wallets.mjs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.0.2",
-    "@openzeppelin/merkle-tree": "1.0.7",
+    "@openzeppelin/merkle-tree": "1.0.8",
     "dotenv": "16.4.5",
-    "ethers": "6.13.4"
+    "ethers": "6.17.0"
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "@metamask/utils": {
+      "uuid": "11.1.1"
+    }
   }
 }

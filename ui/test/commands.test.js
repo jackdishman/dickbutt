@@ -14,7 +14,7 @@ test('read and local commands run without the execute flag; write commands do no
 test('a write command needs both the flag and a matching confirmation', () => {
   assert.throws(() => resolveCommand('fees-execute', { allowWrite: true }), /confirmation required/);
   assert.throws(() => resolveCommand('fees-execute', { allowWrite: true, confirm: 'yes' }), /confirmation required/);
-  const { argv } = resolveCommand('fees-execute', { allowWrite: true, confirm: 'fees-execute' });
+  const { argv } = resolveCommand('fees-execute', { allowWrite: true, confirm: 'fees-execute', inputs: { config: 'config/deployment-sepolia.json' } });
   assert.deepEqual(argv, ['npm', 'run', 'fees', '--', '--config', 'config/deployment-sepolia.json', '--execute']);
 });
 

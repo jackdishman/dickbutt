@@ -1,0 +1,152 @@
+{
+  "at": "2026-09-13T10:53:30.896Z",
+  "kind": "reviewed-retained-swap-recovery",
+  "failedJob": {
+    "label": "fees",
+    "startedAt": "2026-09-13T10:45:25.608Z",
+    "log": "/Users/m4mini/Downloads/dickbutt-main/tested-project/.context/public-sepolia/soak-18-fees.log",
+    "pid": 80623,
+    "exitCode": 1,
+    "finishedAt": "2026-09-13T10:46:02.835Z",
+    "result": {
+      "action": "split-weth",
+      "status": "confirmed",
+      "hash": "0x1e3c216e2876b297ede9fb3cf7b384e97312cd830d4d3e44b99b4571a22ddb5c"
+    }
+  },
+  "previousError": {
+    "at": "2026-09-13T10:46:02.836Z",
+    "message": "fees exited 1; inspect /Users/m4mini/Downloads/dickbutt-main/tested-project/.context/public-sepolia/soak-18-fees.log before rerun"
+  },
+  "completedFeeCycle": 2,
+  "totalPublicFeeCycles": 4,
+  "transactions": [
+    {
+      "action": "locker",
+      "status": "confirmed",
+      "hash": "0x39e558d5e4d85f68b2a4ef5cbef32a06a14020976fa98cd4e915b6e272ecafa5"
+    },
+    {
+      "action": "aero",
+      "status": "confirmed",
+      "hash": "0xf01a80d0c26de1f281e81169d3fd9838f7602b89a3a10b59bddaca4dc69bf0c9"
+    },
+    {
+      "action": "legacy0",
+      "status": "confirmed",
+      "hash": "0x1e124eba06ab451767b543e75301846182450d2e0c7ea22442776a20b7b196b3"
+    },
+    {
+      "action": "legacy1",
+      "status": "confirmed",
+      "hash": "0x3cc0456ccad2d928607a20171933824852d7151e063187902065c3226130f012"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "confirmed",
+      "hash": "0x587cd6754a54937e63af9c9227a697f30467804d4286f1ab2b1ec06865248e11"
+    },
+    {
+      "action": "split-weth",
+      "status": "confirmed",
+      "hash": "0x1e3c216e2876b297ede9fb3cf7b384e97312cd830d4d3e44b99b4571a22ddb5c"
+    },
+    {
+      "action": "swap",
+      "status": "confirmed",
+      "hash": "0xc7f937afbf8835994796199b4b441b34fc7d82141c0f26c470e88d03c626bf12"
+    }
+  ],
+  "keeperNonces": {
+    "latest": 32,
+    "pending": 32
+  },
+  "checks": {
+    "payout": {
+      "mode": "dry-run",
+      "chainId": "84532",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x65f41b0a29f6592628801a3a3033ecf2dfb284ef6bae75831ba260b991b991e9",
+          "total": "100799998",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        }
+      ],
+      "transactions": [],
+      "historyVerification": {
+        "periods": 2,
+        "finalizedThrough": 46763586
+      }
+    },
+    "monitor": {
+      "chainId": "84532",
+      "timestamp": "1789296708",
+      "severity": "ok",
+      "exitCode": 0,
+      "attention": [],
+      "outstandingRewards": "0",
+      "checks": [
+        {
+          "name": "price-floor",
+          "severity": "ok",
+          "detail": "floor active",
+          "secondsRemaining": 40830
+        },
+        {
+          "name": "floor-lower-bound",
+          "severity": "ok",
+          "detail": "floor setters are bounded",
+          "lowerBound": "100000000"
+        },
+        {
+          "name": "gas",
+          "severity": "ok",
+          "detail": "keeper funded",
+          "role": "keeper",
+          "address": "0x3247FA7409373FFb3A332233fa38F3b6A8d7710b",
+          "balance": "19981390001018738"
+        },
+        {
+          "name": "gas",
+          "severity": "ok",
+          "detail": "proposer funded",
+          "role": "proposer",
+          "address": "0x266aEFad823F421fffAF9462B45167c587F440a1",
+          "balance": "3000000000000000"
+        },
+        {
+          "name": "gas",
+          "severity": "ok",
+          "detail": "ops funded",
+          "role": "ops",
+          "address": "0x76F6C999d66f3544D5388870A9a9b0664b8AF3d7",
+          "balance": "3000000000000000"
+        },
+        {
+          "name": "gas",
+          "severity": "ok",
+          "detail": "owner funded",
+          "role": "owner",
+          "address": "0xCD80bdF2429125e90c162E1543663721761409c7",
+          "balance": "17910656591586886"
+        },
+        {
+          "name": "proposals",
+          "severity": "ok",
+          "detail": "proposals enabled"
+        }
+      ]
+    }
+  },
+  "remainingIssue": "Original generic fee-run error was not captured precisely. A later post-swap read raised CALL_EXCEPTION/action call/missing revert data, then independent reads passed. Exact RPC cause remains undetermined; production operational reliability is unproven.",
+  "evidence": [
+    ".context/test-results/soak-1044-reconciliation.json",
+    ".context/test-results/soak-1044-swap-recovery.json",
+    ".context/test-results/soak-1044-swap-verification.json",
+    ".context/test-results/soak-1044-keeper-recheck.log",
+    ".context/test-results/soak-1044-monitor-recheck.json"
+  ]
+}

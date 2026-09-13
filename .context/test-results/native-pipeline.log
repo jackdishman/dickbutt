@@ -1,0 +1,25 @@
+Warning: This is a nightly build of Foundry. It is recommended to use the latest stable version. To mute this warning set `FOUNDRY_DISABLE_NIGHTLY_WARNING` in your environment. 
+
+Compiling 1 files with Solc 0.8.24
+Solc 0.8.24 finished in 21.51s
+Compiler run successful!
+2026-09-13T02:55:32.588402Z  WARN evm::traces::external: etherscan config not found
+
+Ran 1 test for test/NativePipelineFork.t.sol:NativePipelineForkTest
+[PASS] testNativeClankerLegacySplitsSwapAndHolderPushTogether() (gas: 7858084)
+Logs:
+  gross DICK from real Clanker position: 2241304228970307376150905137
+  gross WETH from real Clanker position: 10117052674954033686
+  legacy DICK claimed: 1344782537382184425690543082
+  KC DICK: 224130422897030737615090513
+  DICK burned: 2017173806073276638535814622
+  KC WETH: 404682106998161347
+  CDB WETH: 404682106998161347
+  WETH actually swapped: 3237456855985290779
+  SPCXc received from real swap: 5409577133
+  SPCXc holder A: 901596188
+  SPCXc holder B: 1803192376
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 64.83s (64.20s CPU time)
+
+Ran 1 test suite in 64.84s (64.83s CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)

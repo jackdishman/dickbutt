@@ -1,16 +1,13 @@
 import {isAddress, ZeroAddress} from 'ethers';
+import {validateRoles} from './deployment.js';
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
 export function validateDeployment(config) {
-  const errors=[];
-  for(const name of ['kcGreen','cdbVault','burnAddress','owner','keeper','floorSetter']) {
-    if(!isAddress(config[name]??'')||same(config[name],ZeroAddress)) errors.push(`deployment.${name} must be an explicit nonzero address`);
-  }
-  // Compare only well-formed addresses; absent ones already reported above and must not read as duplicates.
-  const recipients=['kcGreen','cdbVault','burnAddress'].map(k=>config[k]).filter(v=>isAddress(v??'')).map(v=>v.toLowerCase());
-  if(new Set(recipients).size!==recipients.length) errors.push('KC Green, CDB and burn recipients must be distinct');
-  // The executor enforces this too; say it here before a deployment reverts on it.
-  if(isAddress(config.floorSetter??'')&&same(config.floorSetter,config.keeper)) errors.push('deployment.floorSetter must not be the keeper');
-  return errors;
+  // Keep production checks aligned with deployment's explicit roles and key separation.
+  // Mainnet configuration names the ops role floorSetter; map only that schema difference.
+  return validateRoles({...config,ops:config.floorSetter}).map(error=>error
+    .replaceAll('roles.','deployment.')
+    .replaceAll('ops (floor setter)','floorSetter')
+    .replace(/\bops\b/g,'floorSetter'));
 }
 /// Every address that holds or receives DICKBUTT outside a real holder's wallet must be excluded, or it
 /// earns SPCXc on the machinery's own balance. The pool behind the locker is the largest such balance.

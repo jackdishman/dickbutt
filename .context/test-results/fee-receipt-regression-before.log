@@ -1,0 +1,39 @@
+✔ harvests available sources, splits before capped quote and swap (1.497792ms)
+✖ a lagging latest RPC read cannot hide the WETH delivered by the confirmed split (0.757125ms)
+✔ dry-run never calls writes; mainnet execute rejected (0.237833ms)
+✔ expired floor blocks swap and reports pending refresh without losing harvested fees (0.164375ms)
+✔ bad quote and reverted receipts abort (0.544917ms)
+✔ a source still awaiting its custody handoff is skipped and reported; the rest of the cycle runs (0.174541ms)
+✔ one reverting Safe is skipped and reported while the rest of the cycle completes (0.223417ms)
+✔ a legacy transaction that was broadcast and then failed stays fatal (0.089875ms)
+✔ an ambiguous legacy send or RPC error stops the cycle (0.173833ms)
+✔ an awaited handoff is quiet but a skipped Safe asks for attention (0.11375ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.306292
+
+✖ failing tests:
+
+test at operations/test/fees.test.js:17:1
+✖ a lagging latest RPC read cannot hide the WETH delivered by the confirmed split (0.757125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'empty'
+  - 'processed'
+  
+      at TestContext.<anonymous> (file:///Users/m4mini/Downloads/dickbutt-main/tested-project/operations/test/fees.test.js:22:9)
+      at async Test.run (node:internal/test_runner/test:1116:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:786:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'empty',
+    expected: 'processed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
