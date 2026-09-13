@@ -139,6 +139,12 @@ RPC_URL=https://sepolia.base.org DEPLOYER_PRIVATE_KEY=0x… npm run deploy:sepol
 
 [Full deployment and operating guide](docs/SEPOLIA.md).
 
+For Base mainnet, `npm run deploy:mainnet` deploys these same six contracts against the real tokens,
+Splits factory, Aerodrome router, Clanker locker and legacy module — no stand-ins. It is a dry run
+until `--execute`, every production magnitude must be stated rather than defaulted, and it performs
+no custody handoff: ownership is nominated for the multisig to accept, and the legacy claim, creator
+authority, locker ownership and LP NFT transfer stay manual. [Mainnet deployment](docs/MAINNET-DEPLOY.md).
+
 ## Before production
 
 Complete recipient/multisig/keeper/floor-setter configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, confirm the calculator exclusion set covers every pool and pipeline address (`npm run preflight` checks it), decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. Public testnet receipts now exist for the new deployment; neither those nor local tests approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).

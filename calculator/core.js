@@ -15,7 +15,10 @@ export function computeTWAB(start,transfers,timestamps,startTs,endTs,excluded=[]
 export function computeShares(twab,threshold,pot,curve){
  if(!['sqrt','linear'].includes(curve))throw Error('WEIGHTING must be sqrt or linear');if(threshold<0n||pot<0n)throw Error('negative threshold/pot');const rows=Object.entries(amounts(twab)).filter(([,v])=>v>=threshold),weights=rows.map(([a,v])=>[a,curve==='sqrt'?bigIntSqrt(v):v]),total=sum(Object.fromEntries(weights)),shares={};if(total)for(const[a,w]of weights){const v=w*pot/total;if(v)shares[a]=v;}return {shares,qualifying:rows.length,dust:pot-sum(shares)};
 }
-export function buildPlan(roundId,payouts,batchSize=250){
- if(!Number.isSafeInteger(batchSize)||batchSize<1)throw Error('invalid batch size');roundId=BigInt(roundId).toString();const total=sum(payouts);if(!total)return null;
+export function buildPlan(roundId,payouts,batchSize){
+ // No default: 250 was the old contract comment's unsupported figure, and 256 native recipients
+ // already measured 14.66M execution gas against Base's 16,777,216 per-transaction cap. A config
+ // that forgets batchSize must fail here, not silently build batches that cannot be mined.
+ if(!Number.isSafeInteger(batchSize)||batchSize<1)throw Error('invalid batch size: set batchSize explicitly from measured gas');roundId=BigInt(roundId).toString();const total=sum(payouts);if(!total)return null;
  const tree=StandardMerkleTree.of(Object.entries(amounts(payouts)).sort(([a],[b])=>a.localeCompare(b)).map(([a,v])=>[roundId,a,v.toString()]),['uint256','address','uint256']);const recipients=[...tree.entries()].map(([i,v])=>({account:v[1],amount:v[2],proof:tree.getProof(i)})),batches=[];for(let i=0;i<recipients.length;i+=batchSize){const rows=recipients.slice(i,i+batchSize);batches.push({roundId,accounts:rows.map(r=>r.account),amounts:rows.map(r=>r.amount),proofs:rows.map(r=>r.proof)});}return {roundId,root:tree.root,total:total.toString(),payouts,tree:tree.dump(),batches};
 }

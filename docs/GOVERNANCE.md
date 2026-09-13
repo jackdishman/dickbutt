@@ -69,7 +69,7 @@ The local rehearsal runs owner, keeper, proposer and guardian as four distinct s
 
 ## Operating checklist
 
-1. Deploy with the multisig as `owner` of every contract, the executor included. `guardian` defaults to it and follows it if ownership moves.
+1. Deploy with the multisig as `owner` of every contract, the executor included. `guardian` defaults to it on-chain and follows it if ownership moves, but write the address into `deployment.guardian` anyway: preflight refuses a null there rather than assuming the inheritance.
 2. `setProposer(bot, true)` and `setKeeper(bot, true)` with **different** addresses. On the executor, `setFloorLowerBound(bound)` first, then `setFloorSetter(ops, true)` with a third address; the contract rejects the keeper, and rejects any setter while the bound is zero.
 3. Confirm or change `setRoundLimits(maxRoundBps, minRoundInterval)` against the payout schedule above. Defaults are 5000 and 12 hours.
 3b. Run the calculator once with `--bootstrap` before the first scheduled run, if round 1 should measure from launch rather than from the token's genesis.

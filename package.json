@@ -16,6 +16,7 @@
     "monitor": "node script/run-monitor.mjs",
     "schedule": "node script/render-schedule.mjs",
     "deploy:sepolia": "node script/deploy-sepolia.mjs",
+    "deploy:mainnet": "node script/deploy-mainnet.mjs",
     "preflight": "node script/preflight.mjs",
     "inspect:legacy": "node script/inspect-legacy.mjs",
     "wallets:check": "node script/check-wallets.mjs"

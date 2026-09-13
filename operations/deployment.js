@@ -2,8 +2,13 @@ import { isAddress, ZeroAddress } from 'ethers';
 
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
 
-/** Chains this repository is allowed to deploy to. Base mainnet is deliberately absent. */
-export const DEPLOYABLE_CHAINS = { 84532: 'base-sepolia', 31337: 'local' };
+/**
+ * Chains this repository is allowed to deploy to. Base mainnet is present so script/deploy-mainnet.mjs
+ * can emit a manifest, and that is the ONLY gate it opens: the operating CLIs (operations/fees.js,
+ * operations/floor.js, script/run-keeper.mjs) still refuse to execute on 8453. Deploying contracts
+ * and running fee cycles against them are separate decisions with separate reviews.
+ */
+export const DEPLOYABLE_CHAINS = { 8453: 'base-mainnet', 84532: 'base-sepolia', 31337: 'local' };
 
 /**
  * Validate the role assignment before a single transaction is sent. Key isolation is cheap to get

@@ -24,13 +24,15 @@ test('a configured address reads as done without anyone ticking a box', () => {
   assert.equal(items.find(item => item.id === 'pool.tokenId').state, 'done');
 });
 
-test('an absent guardian is not a blocker: it inherits the owner multisig', () => {
+test('an absent guardian blocks: preflight requires the address written out', () => {
   const { items } = buildReadiness(configured);
-  assert.equal(items.find(item => item.id === 'cfg.guardian').state, 'n/a');
+  assert.equal(items.find(item => item.id === 'cfg.guardian').state, 'blocked');
 });
 
+// No derived item returns n/a any more, so the exclusion is exercised through a manual one.
 test('n/a items are excluded from the score rather than counted as done', () => {
-  const { summary } = buildReadiness(configured);
+  const overrides = applyOverride({}, 'custody.lpNft', 'n/a', 'no LP NFT in this configuration');
+  const { summary } = buildReadiness({ ...configured, overrides });
   assert.equal(summary.total, ITEMS.length - 1);
   assert.ok(summary.percent < 100);
 });

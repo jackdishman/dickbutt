@@ -13,10 +13,11 @@ const contracts = {
   dickSplit: addr(20), wethSplit: addr(21),
 };
 
-test('base mainnet is not a deployable chain', () => {
-  assert.equal(DEPLOYABLE_CHAINS[8453], undefined);
+test('base mainnet is deployable, but only deployment: the operating CLIs are gated separately', () => {
+  assert.equal(DEPLOYABLE_CHAINS[8453], 'base-mainnet');
   assert.equal(DEPLOYABLE_CHAINS[84532], 'base-sepolia');
-  assert.throws(() => buildManifest({ chainId: 8453, quoter: addr(9), contracts, roles }), /not a deployable chain/);
+  assert.equal(buildManifest({ chainId: 8453, quoter: addr(9), contracts, roles }).network, 'base-mainnet');
+  assert.throws(() => buildManifest({ chainId: 1, quoter: addr(9), contracts, roles }), /not a deployable chain/);
 });
 
 test('roles accept the intended layout and guardian may share the owner multisig', () => {
