@@ -15,13 +15,22 @@ Deployment and custody are separate, and the script performs none of the custody
 - Accepting ownership. Every ownable contract here is `Ownable2Step`, so the script calls
   `transferOwnership` and stops. Ownership stays with the deploying key until the multisig sends
   `acceptOwnership`. A wrong owner address is recoverable up to that moment and not after it.
-- Claiming outstanding legacy fees. Clanker returns the token side to the **current** creator, so
-  this has to happen before creator authority moves.
+- Claiming outstanding legacy fees. The current creator may claim first, or the adapter can claim
+  its configured Safes after the separate creator-authority handoff. Claiming first is optional.
 - Assigning legacy `tokenCreator` authority. Permanent: the adapter has no relay to update it.
 - Transferring locker ownership to `LockerHarvester`.
-- Transferring the rewards pool LP NFT to `AerodromeFeeHarvester`.
+- Transferring unstaked rewards-pool ERC-20 LP tokens to the new `AerodromeVammHarvester`.
+  The old `AerodromeFeeHarvester` accepts a Slipstream NFT and is not the vAMM custody destination.
 
 Each is printed as a remaining step when the run completes.
+
+## Current candidate
+
+The selected rewards pool kind is `vamm`. The actual new pool and LP-holder wallet remain unset;
+the driver must fail until they are recorded and verified. Historical manifests without a kind use
+the original Slipstream NFT adapter. New manifests record `sources.aerodromeKind`, `rewardsPool` and
+`rewardsFactory`; the fee CLI validates the vAMM immutable path. Runtime mainnet gates remain closed.
+The new adapter does not resolve the separate open calculator, scheduling and fee-runner audit findings.
 
 ## Inputs
 
@@ -51,7 +60,7 @@ npm run deploy:mainnet -- --params params.json --execute
 ```
 
 Run preflight first. This script re-checks roles, exclusions and pool identity, but preflight is the
-one that re-quotes the swap route against live liquidity.
+one that checks swap-route pool identity and active liquidity. Re-quoting execution prices is a separate required check.
 
 The dry run prints the exact constructor arguments and role transactions an execute run would send,
 in order. Read it. Constructor arguments to `SplitsFeeRouter` become **immutable Split recipients**:
@@ -63,9 +72,26 @@ harvester.
 Answered from files, before the RPC is contacted: role completeness and key separation, calculator
 exclusions, and every params field.
 
+The complete compiled build is loaded before signing. Each artifact's compiler-recorded source
+hashes must match the current source and imported dependencies; stale or missing artifacts require
+`forge build`. The dry run prints a build hash, and recovery refuses a different or unrecorded build.
+This checks build consistency, not whether the code has passed an independent security audit.
+
+The plan explicitly calls `setRoundDelay` and `setRoundLimits` from `config.roundLimits`; it does not
+rely on whichever constructor defaults happen to be compiled. The selected settings are zero extra
+review delay, a six-hour minimum proposal interval and a 50% round cap. The constructor still
+defaults to 24 hours; the deployment's explicit `setRoundDelay(0)` selects immediate activation.
+This removes the guaranteed cancellation window. Review this changed policy before deployment;
+the earlier 24-hour-delay audit snapshot does not represent this candidate.
+
+The emitted calculator config includes both the Clanker and rewards pool addresses, all entries
+approved in `calculatorExclusions.required`, and the deployed pipeline/bot addresses. Check that
+generated file before bootstrapping the journal: changing exclusions after journaling requires a
+reviewed migration.
+
 Answered on-chain at a finalized block: code exists at every external address; DICKBUTT is 18
-decimals and SPCXc is 8; the rewards pool matches its factory, fee, tick spacing and full-range
-position; the Aerodrome unlock time is in the future; and `dickbuttDeployBlock` really is DICKBUTT's
+decimals and SPCXc is 8; the selected vAMM matches its factory registry, volatile flag, token pair,
+expected fee, positive reserves and funded unstaked LP wallet (historical Slipstream plans use their NFT checks); the Aerodrome unlock time is in the future and within the constructor's 100-year maximum; and `dickbuttDeployBlock` really is DICKBUTT's
 creation block — checked by requiring no code at the preceding block and code at that one, which is
 why an archive RPC is needed. The calculator trusts that block absolutely: it scans `Transfer`
 events from there and treats what it finds as the complete holder history.
@@ -76,9 +102,14 @@ The deploying key is also rejected if it holds any lasting role.
 
 Progress is written to `<manifest>.partial` after every deployment and every configuration
 transaction, keyed by step index and arguments. `--resume` continues the same deployment; it refuses
-to continue if the deployer identity, the chain or the plan hash has changed. A resume never
-resubmits a signed transaction — it waits for the recorded hash and fails if that transaction
-failed.
+to continue if the deployer identity, the chain, plan hash, compiled build hash or input hash has changed.
+The input hash includes all address configuration, exclusions, eligibility and payout parameters,
+legacy sources, Splits configuration and resolved quoter. Changing only off-chain payout inputs is
+still a different deployment. JSON object key order does not change this identity; array order does.
+Old partial files without these recorded hashes require manual inspection and cannot be resumed automatically.
+For a transaction whose hash was recorded, a resume waits for that hash rather than submitting it
+again. If a process/RPC failed after broadcast but before recording the hash, inspect the deployer's
+nonce and transaction history before recovery; the partial file alone cannot settle that ambiguity.
 
 ## What is still gated
 

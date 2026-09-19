@@ -1,0 +1,56 @@
+No files changed, compilation skipped
+
+Ran 5 tests for test/NativeBatchFork.t.sol:NativeBatchForkTest
+[PASS] testNative256RecipientBatchAndIdempotentRepeat() (gas: 20670260)
+Logs:
+  configured extra review seconds: 86400
+  native SPCXc recipients: 256
+  payout batches: 1
+  maximum batch execution gas excluding transaction overhead: 14834769
+  maximum call gas plus conservative intrinsic gas: 16432281
+  distribution execution gas excluding transaction overhead: 14834769
+  fork block gas limit: 400000000
+
+[PASS] testNative3000RecipientRoundAt200PerBatch() (gas: 283937016)
+Logs:
+  configured extra review seconds: 86400
+  native SPCXc recipients: 3000
+  payout batches: 15
+  maximum batch execution gas excluding transaction overhead: 11888967
+  maximum call gas plus conservative intrinsic gas: 13552015
+  distribution execution gas excluding transaction overhead: 178127265
+  fork block gas limit: 400000000
+
+[PASS] testNative3000RecipientRoundAt200PerBatchWithZeroDelay() (gas: 284098853)
+Logs:
+  configured extra review seconds: 0
+  native SPCXc recipients: 3000
+  payout batches: 15
+  maximum batch execution gas excluding transaction overhead: 11888984
+  maximum call gas plus conservative intrinsic gas: 13552032
+  distribution execution gas excluding transaction overhead: 178127520
+  fork block gas limit: 400000000
+
+[PASS] testNative3000RecipientRoundInBatchesAndIdempotentRepeat() (gas: 283966329)
+Logs:
+  configured extra review seconds: 86400
+  native SPCXc recipients: 3000
+  payout batches: 12
+  maximum batch execution gas excluding transaction overhead: 15213425
+  maximum call gas plus conservative intrinsic gas: 17335225
+  distribution execution gas excluding transaction overhead: 178129200
+  fork block gas limit: 400000000
+
+[PASS] testNative400RecipientBatchExceedsCurrentTransactionGasCap() (gas: 31997654)
+Logs:
+  configured extra review seconds: 86400
+  native SPCXc recipients: 400
+  payout batches: 1
+  maximum batch execution gas excluding transaction overhead: 23327357
+  maximum call gas plus conservative intrinsic gas: 26014405
+  distribution execution gas excluding transaction overhead: 23327357
+  fork block gas limit: 400000000
+
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.71s (2.15s CPU time)
+
+Ran 1 test suite in 1.71s (1.71s CPU time): 5 tests passed, 0 failed, 0 skipped (5 total tests)

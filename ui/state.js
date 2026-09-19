@@ -97,8 +97,14 @@ const TONES = {
 
 export function resolveFlow(network, { mainnet, sepolia, legacy, local }) {
   const onManifest = network === 'base-sepolia' || network === 'local';
+  const selected = network === 'local' ? local : onManifest ? sepolia : mainnet;
+  const vamm = (onManifest ? selected?.sources?.aerodromeKind : mainnet?.rewardsPool?.kind) === 'vamm';
   const files = { mainnet, sepolia, legacy };
   const nodes = NODES.map(node => {
+    if (vamm && node.id === 'rewardsPool') node = { ...node, label: 'DICKBUTT/SPCXc vAMM', sub: 'basic volatile · ERC-20 LP', manifest: 'sources.rewardsPool',
+      detail: 'Unstaked ERC-20 LP tokens earn their share of pool fees. The actual production pool, fee and wallet balance must pass preflight.', caveat: 'actual pool verification required' };
+    if (vamm && node.id === 'aeroHarvester') node = { ...node, contract: 'src/AerodromeVammHarvester.sol', sub: 'holds ERC-20 LP tokens',
+      detail: 'Claims pool fees as the LP holder without consuming LP principal. Burns all DICKBUTT fees and forwards all SPCXc fees to the distributor. LP withdrawals obey its lock.', caveat: 'ERC-20 LP custody handoff outstanding' };
     const ours = node.kind === 'contract' || node.kind === 'split';
     let keyPath = onManifest ? node.manifest : node.address;
     // A few mainnet facts live in their own evidence file rather than the deployment config.
@@ -177,7 +183,7 @@ export function saveOverrides(root, overrides) {
 const ADDRESS_FIELDS = new Set([
   'deployment.owner', 'deployment.proposer', 'deployment.guardian', 'deployment.keeper', 'deployment.floorSetter',
   'deployment.kcGreen', 'deployment.cdbVault', 'deployment.burnAddress',
-  'rewardsPool.pool',
+  'rewardsPool.pool', 'rewardsPool.lpOwner',
 ]);
 
 /**
@@ -192,6 +198,7 @@ export function updateConfigField(root, field, value) {
   const relative = 'config/base-mainnet.json';
   const config = readJson(root, relative);
   if (!config) throw Error('config/base-mainnet.json is missing');
+  if (field === 'rewardsPool.tokenId' && config.rewardsPool?.kind === 'vamm') throw Error('vAMM uses ERC-20 LP tokens, not an NFT id');
   const trimmed = typeof value === 'string' ? value.trim() : value;
   const next = trimmed === '' || trimmed == null ? null : String(trimmed);
   if (next && ADDRESS_FIELDS.has(field) && !/^0x[0-9a-fA-F]{40}$/.test(next)) throw Error('expected a 20-byte hex address');

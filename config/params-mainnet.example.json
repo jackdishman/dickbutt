@@ -10,10 +10,10 @@
   "_payoutThresholdRaw": "Minimum SPCXc a recipient must earn to be included in a round, in raw units (8 decimals).",
   "payoutThresholdRaw": null,
 
-  "_minPayoutRaw": "DickbuttRewardsDistributor constructor. On-chain floor below which an individual recipient transfer is skipped, in SPCXc raw units.",
+  "_minPayoutRaw": "Calculator guidance stored in DickbuttRewardsDistributor, in SPCXc raw units. The calculator uses the larger of this and payoutThresholdRaw; committed payouts are paid exactly on-chain without a minimum filter.",
   "minPayoutRaw": null,
 
-  "_batchSize": "Recipients per distributeBatch call. Estimate from real gas with margin: 256 native SPCXc recipients measured 14.66M execution gas against Base's 16,777,216 per-transaction cap, before transaction overhead. The public test used 50.",
+  "_batchSize": "Recipients per distributeBatch call. In the 3,000-holder native fork, 200 recipients had a conservative 13,552,027 gas envelope; 256 had 17,335,237, above Base's 16,777,216 transaction cap. Estimate exact production calldata/state before choosing. No default.",
   "batchSize": null,
 
   "_chunkSize": "Event scan window in blocks. Sized to what the production RPC will serve without rejecting the range; Sepolia used 2000.",

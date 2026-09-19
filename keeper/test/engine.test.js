@@ -17,7 +17,7 @@ async function fixture(t) {
  const provider={getNetwork:async()=>({chainId:chain.id}),getBlock:async n=>({number:n==='finalized'||n==='latest'?10:n,hash:blockHash,timestamp:n==='latest'?chain.now:(n==='finalized'?10:n)*10}),getCode:async()=> '0x01'};
  const tx=(name,fn)=>{chain.calls.push(name);return {hash:'0x'+'12'.repeat(32),wait:async()=>{chain.waits++;fn();return {status:1,hash:'0x'+'12'.repeat(32),logs:chain.logs??[]};}};};
  const distributor={getAddress:async()=>distributorAddress,rewardToken:async()=>rewardAddress,nextRoundId:async()=>chain.next,availableForNextRound:async()=>100n,minPayout:async()=>1n,roundInfo:async()=>[...chain.round],pending:async()=>[...chain.pending],paid:async(_id,account)=>chain.paid.has(account),isKeeper:async()=>chain.allowed,owner:async()=>a,isProposer:async()=>chain.proposer??false,proposalsPaused:async()=>chain.paused??false,maxProposableTotal:async()=>chain.maxTotal??(1n<<128n),nextProposalAllowedAt:async()=>chain.allowedAt??0n,
- proposeRound:async(root,total)=>tx('propose',()=>{chain.next++;chain.pending=[root,BigInt(total),BigInt(chain.now+3600)];}),
+ proposeRound:async(root,total)=>tx('propose',()=>{chain.next++;chain.pending=[root,BigInt(total),BigInt(chain.now+(chain.reviewDelay??3600))];}),
  activateRound:async()=>tx('activate',()=>{chain.round=[chain.pending[0],chain.pending[1],0n,true,false];chain.pending=[ethers.ZeroHash,0n,0n];}),
  distributeBatch:async(_id,accounts,amounts)=>tx('batch',()=>{chain.logs=[];for(let i=0;i<accounts.length;i++){if(chain.fail.has(accounts[i])){chain.logs.push({address:distributorAddress,parsed:{name:'PaymentFailed',args:{roundId:1n,account:accounts[i],amount:BigInt(amounts[i])}}});continue;}assert.ok(!chain.paid.has(accounts[i]),'executor must filter already-paid accounts');chain.paid.add(accounts[i]);chain.round[2]+=BigInt(amounts[i]);}}),
  closeRound:async()=>tx('close',()=>{assert.equal(chain.round[2],chain.round[1]);chain.round[3]=false;chain.round[4]=true;}),interface:{parseLog:log=>log.parsed}};
@@ -36,6 +36,18 @@ test('independent history failure stops before any transaction',async t=>{
 });
 test('dry run defaults to proposal preview with no sends',async t=>{const f=await fixture(t);const r=await runKeeper(f);assert.equal(r.mode,'dry-run');assert.equal(r.rounds[0].status,'proposal-required');assert.deepEqual(f.chain.calls,[]);});
 test('explicit proposal waits for receipt and timelock, rerun does not repropose',async t=>{const f=await fixture(t);const first=await runKeeper({...f,execute:true,propose:true});assert.equal(first.rounds[0].status,'timelocked');assert.deepEqual(f.chain.calls,['propose']);await runKeeper({...f,execute:true,propose:true});assert.deepEqual(f.chain.calls,['propose']);f.chain.now+=3600;const done=await runKeeper({...f,execute:true});assert.equal(done.rounds[0].status,'closed');assert.deepEqual(f.chain.calls,['propose','activate','batch','close']);assert.equal(f.chain.waits,4);});
+test('zero-delay proposer stops after committing; keeper pays and retries without time travel or duplicates',async t=>{
+ const f=await fixture(t);f.chain.reviewDelay=0;
+ const proposal=await runKeeper({...f,execute:true,propose:true,proposeOnly:true});
+ assert.equal(proposal.rounds[0].status,'activation-ready');assert.deepEqual(f.chain.calls,['propose']);
+ f.chain.fail.add(b);
+ const partial=await runKeeper({...f,execute:true});assert.equal(partial.rounds[0].status,'partial');
+ f.chain.fail.clear();
+ const complete=await runKeeper({...f,execute:true});assert.equal(complete.rounds[0].status,'closed');
+ assert.equal(f.chain.now,100);assert.equal(f.chain.round[2],100n);
+ const repeat=await runKeeper({...f,execute:true});assert.deepEqual(repeat.transactions,[]);
+ assert.deepEqual(f.chain.calls,['propose','activate','batch','batch','close']);
+});
 test('failed recipient stays open, rerun filters paid accounts and completes once',async t=>{const f=await fixture(t);f.activate();f.chain.fail.add(b);const first=await runKeeper({...f,execute:true});assert.equal(first.rounds[0].status,'partial');assert.deepEqual(first.rounds[0].unpaid,[b]);assert.equal(first.rounds[0].failed[0].account,b);assert.equal(f.chain.round[4],false);f.chain.fail.clear();const second=await runKeeper({...f,execute:true});assert.equal(second.rounds[0].status,'closed');assert.equal(f.chain.round[2],100n);await runKeeper({...f,execute:true,propose:true});assert.deepEqual(f.chain.calls,['batch','batch','close']);});
 test('commitment mismatch rejects before transactions',async t=>{const f=await fixture(t);f.activate();f.chain.round[0]=ethers.ZeroHash;await assert.rejects(runKeeper({...f,execute:true}),/commitment/);assert.deepEqual(f.chain.calls,[]);});
 test('tampered proof in a correctly rehashed journal is rejected',async t=>{const f=await fixture(t);rewrite(f,r=>{r.plan.batches[0].proofs[0]=[ethers.ZeroHash];});await assert.rejects(runKeeper({...f,execute:true,propose:true}),/plan|Merkle|batch/);assert.deepEqual(f.chain.calls,[]);});

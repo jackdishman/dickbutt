@@ -21,16 +21,28 @@ The proposer role cannot call `distributeBatch`; a keeper is required to pay a c
 
 What a stolen proposer key *can* do is grief: reserve the pool against real rounds, or take a round id the calculator had already planned. The on-chain bounds limit the first. The second recovers on its own once the guardian cancels the foreign round: the calculator recredits the abandoned plan and re-plans it under the next id. [Runbook](RUNBOOK.md#unknown-commitment--treat-as-a-compromised-proposer-key).
 
-| Bound | Default | Effect |
+| Bound | Selected deployment setting | Effect |
 | --- | --- | --- |
 | `maxRoundBps` | 5000 (50%) | One round may commit at most this share of the unreserved balance |
-| `minRoundInterval` | 12 hours | Spacing between proposals. A cancellation does **not** refund the slot |
-| `roundDelay` | 24 hours | Timelock before a pending round can activate |
+| `minRoundInterval` | 6 hours | Spacing between proposals. A cancellation does **not** refund the slot |
+| `roundDelay` | 0 seconds | A newly proposed round can activate immediately; no guaranteed guardian review window |
 | `proposalsPaused` | false | Guardian switch that stops new proposals outright |
 
 Cancelling is a race against a compromised proposer re-proposing; **pausing ends the race**. Pause never strands owed rewards — activation and payment of already-committed rounds continue.
 
-`roundDelay` is 24 hours rather than the original 6. Routine operation needs no human signature, so the only cost of a longer delay is latency, while the guardian needs time to wake up, notice and act. It is adjustable between 1 hour and 3 days.
+The constructor retains a 24-hour default. The selected deployment plan explicitly calls
+`setRoundDelay(0)` at the user's request. The owner may set a delay from zero through three days;
+the change affects only future proposals. Existing pending rounds retain their original `readyAt`.
+At zero delay anyone may activate immediately, so cancelling a bad proposal is a race with no
+guaranteed response window. Pausing proposals still stops future commitments, and the independent
+keeper still reconstructs eligibility and amounts before paying. Neither protection is a substitute
+for the removed review window, and the owner can still appoint keepers and propose arbitrary roots.
+
+New reward rounds are scheduled every 6 hours with no extra review wait after proposal. The payout
+job checks every minute; it sends no transaction when nothing is ready. The six-hour target depends
+on successful proposals, available finalized rewards, eligibility and bot operation. An early job
+can still hit the on-chain proposal interval and need a retry. Finality, journal replication and
+transaction processing add latency; removing the timelock does not remove those dependencies.
 
 ## The share cap changes the payout schedule
 
@@ -46,7 +58,11 @@ The local rehearsal shows it directly at the 50% default: 1,615 raw SPCXc availa
 
 50% is the default because a stolen proposer key cannot move tokens at all — the cap only limits griefing, so paying a shorter backlog for a tighter bound is a poor trade. Raise or lower it with `setRoundLimits`; the calculator reads the live value every period.
 
-The calculator reads `maxProposableTotal()` and caps new shares to it, so a plan is always proposable. Without that it would build rounds the contract always rejects and nothing would ever pay. Carry from earlier periods can still push the payable total past the cap; that **fails loudly** rather than silently deferring a specific holder, and is fixed by raising `maxRoundBps` or lowering the payout threshold.
+The calculator reads `maxProposableTotal()` and caps new shares to it. Carry from earlier periods
+can still push the payable total past the cap; that **fails loudly**. Zero review delay does not
+remove this limitation. Recovery needs sufficient new funding or a deliberate owner-approved cap
+change. Changing the payout threshold after journaling also requires a reviewed configuration
+migration; editing the file alone is rejected by the existing journal integrity check.
 
 A share cap that floors to zero against a dust balance blocks proposals entirely — at 50%, a single raw unit. `maxProposableTotal()` returns 0 in that case so operators can see it before hitting a revert.
 
@@ -71,7 +87,7 @@ The local rehearsal runs owner, keeper, proposer and guardian as four distinct s
 
 1. Deploy with the multisig as `owner` of every contract, the executor included. `guardian` defaults to it on-chain and follows it if ownership moves, but write the address into `deployment.guardian` anyway: preflight refuses a null there rather than assuming the inheritance.
 2. `setProposer(bot, true)` and `setKeeper(bot, true)` with **different** addresses. On the executor, `setFloorLowerBound(bound)` first, then `setFloorSetter(ops, true)` with a third address; the contract rejects the keeper, and rejects any setter while the bound is zero.
-3. Confirm or change `setRoundLimits(maxRoundBps, minRoundInterval)` against the payout schedule above. Defaults are 5000 and 12 hours.
+3. Confirm or change `setRoundLimits(maxRoundBps, minRoundInterval)` against the payout schedule above. Defaults are 5000 and 6 hours. This default applies to newly deployed contracts; an existing deployment retains its current setting until its owner changes it.
 3b. Run the calculator once with `--bootstrap` before the first scheduled run, if round 1 should measure from launch rather than from the token's genesis.
 4. Fund every bot key with ETH on Base. An unfunded key fails exactly like a compromised one is stopped — silently, until something alerts.
 5. Alert on keeper exit 2 (`partial`, `closed-unpaid`, `proposal-rate-limited`), on floor-bot exit 2, and on any `RoundProposed` the calculator journal did not produce. `npm run monitor` checks the last of these directly; see the [runbook](RUNBOOK.md).

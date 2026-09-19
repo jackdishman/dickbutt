@@ -14,7 +14,7 @@ export async function main(){
  // token's whole history. Only valid before any period has been journaled; see calculator/README.md.
  const bootstrap=process.argv.includes('--bootstrap');
  if(!process.env.RPC_URL)throw Error('Missing RPC_URL');
- if(!configPath)for(const name of ['DICKBUTT_ADDRESS','DISTRIBUTOR_ADDRESS','DICKBUTT_DEPLOY_BLOCK','PAYOUT_THRESHOLD_RAW','WEIGHTING'])if(!process.env[name])throw Error(`Missing ${name}`);
+ if(!configPath)for(const name of ['DICKBUTT_ADDRESS','DISTRIBUTOR_ADDRESS','DICKBUTT_DEPLOY_BLOCK','PAYOUT_THRESHOLD_RAW','WEIGHTING','BATCH_SIZE'])if(!process.env[name])throw Error(`Missing ${name}`);
  const provider=createRpcProvider(process.env.RPC_URL, undefined, {cacheTimeout: -1});try{
  const network=await provider.getNetwork();
  let config;
@@ -28,7 +28,7 @@ export async function main(){
  } else {
   const excluded=(process.env.EXCLUDED_ADDRESSES||'').split(',').map(a=>a.trim()).filter(Boolean).map(normalize).sort();if(!excluded.length)throw Error('EXCLUDED_ADDRESSES must include pools and burn addresses');
   const curve=process.env.WEIGHTING;if(!['sqrt','linear'].includes(curve))throw Error('WEIGHTING must be sqrt or linear');
-  config={chainId:network.chainId.toString(),token:normalize(process.env.DICKBUTT_ADDRESS),distributor:normalize(process.env.DISTRIBUTOR_ADDRESS),deployBlock:integer(process.env.DICKBUTT_DEPLOY_BLOCK,'deploy block'),holderThresholdRaw:ethers.parseUnits(process.env.HOLDER_THRESHOLD||'6900000',18).toString(),payoutThresholdRaw:BigInt(process.env.PAYOUT_THRESHOLD_RAW).toString(),curve,excluded,batchSize:integer(process.env.BATCH_SIZE||250,'batch size'),chunkSize:integer(process.env.SCAN_CHUNK_SIZE||2000,'scan chunk'),finalityTag:process.env.FINALITY_TAG||'finalized'};
+  config={chainId:network.chainId.toString(),token:normalize(process.env.DICKBUTT_ADDRESS),distributor:normalize(process.env.DISTRIBUTOR_ADDRESS),deployBlock:integer(process.env.DICKBUTT_DEPLOY_BLOCK,'deploy block'),holderThresholdRaw:ethers.parseUnits(process.env.HOLDER_THRESHOLD||'6900000',18).toString(),payoutThresholdRaw:BigInt(process.env.PAYOUT_THRESHOLD_RAW).toString(),curve,excluded,batchSize:integer(process.env.BATCH_SIZE,'batch size'),chunkSize:integer(process.env.SCAN_CHUNK_SIZE||2000,'scan chunk'),finalityTag:process.env.FINALITY_TAG||'finalized'};
  }
  if(!['sqrt','linear'].includes(config.curve))throw Error('WEIGHTING must be sqrt or linear');
  if(BigInt(config.payoutThresholdRaw)<0n||BigInt(config.holderThresholdRaw)<0n)throw Error('negative threshold');

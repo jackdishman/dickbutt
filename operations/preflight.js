@@ -1,5 +1,6 @@
 import {isAddress, ZeroAddress} from 'ethers';
 import {validateRoles} from './deployment.js';
+import {rewardsPoolKind} from './aerodrome.js';
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
 export function validateDeployment(config) {
   // Keep production checks aligned with deployment's explicit roles and key separation.
@@ -14,6 +15,10 @@ export function validateDeployment(config) {
 export function validateExclusions(config) {
   const listed=new Set((config.calculatorExclusions?.required??[]).flatMap(e=>Array.isArray(e.address)?e.address:[e.address]).filter(v=>isAddress(v??'')).map(v=>v.toLowerCase()));
   const errors=[];
+  for (const entry of config.calculatorExclusions?.required ?? []) {
+    const addresses = Array.isArray(entry.address) ? entry.address : [entry.address];
+    if (!addresses.length || addresses.some(a => !isAddress(a ?? ''))) errors.push('calculatorExclusions.required contains an invalid address');
+  }
   const need=[['clankerLocker',config.clankerLocker],['clankerPool',config.clankerPool],['rewardsPool.pool',config.rewardsPool?.pool]];
   for(const name of ['burnAddress','kcGreen','cdbVault','keeper','floorSetter','proposer','owner','guardian']) need.push([`deployment.${name}`,config.deployment?.[name]]);
   for(const [name,value] of need) {
@@ -37,10 +42,12 @@ export function validateSwapRoute(facts,expected) {
   return errors;
 }
 export function validatePoolFacts(facts,expected) {
+  if(rewardsPoolKind(expected)==='vamm') return validateVammPoolFacts(facts,expected);
   if(!facts) return ['Rewards pool and funded NFT position have not been configured'];
   const errors=[];
   const pair=[facts.token0,facts.token1];
   if(!expected.tokens.every(t=>pair.some(a=>same(a,t)))) errors.push('Rewards pool token pair mismatch');
+  if(facts.discoveredPool && !same(facts.discoveredPool,expected.pool)) errors.push('Configured pool differs from factory discovery');
   if(!same(facts.factory,expected.factory)||!same(facts.managerFactory,expected.factory)) errors.push('Rewards pool/manager factory mismatch');
   if(Number(facts.fee)!==expected.swapFee) errors.push(`Current swap fee must be ${expected.swapFee} (0.3%), observed ${facts.fee}`);
   if(Number(facts.tickSpacing)!==expected.tickSpacing) errors.push('Rewards pool tick spacing mismatch');
@@ -50,5 +57,18 @@ export function validatePoolFacts(facts,expected) {
   const bound=Math.floor(887272/expected.tickSpacing)*expected.tickSpacing;
   if(Number(facts.tickLower)!==-bound||Number(facts.tickUpper)!==bound) errors.push('NFT is not full range');
   if(Number(facts.unstakedFee)!==0) errors.push(`Unstaked fee is ${facts.unstakedFee}; confirm economics before accepting this position`);
+  return errors;
+}
+
+export function validateVammPoolFacts(facts,expected) {
+  if(!facts) return ['Rewards vAMM pool and funded unstaked LP wallet have not been configured'];
+  const errors=[],pair=[facts.token0,facts.token1];
+  if(!expected.tokens.every(t=>pair.some(a=>same(a,t)))) errors.push('Rewards pool token pair mismatch');
+  if(!same(facts.factory,expected.factory)||facts.registered!==true||!same(facts.discoveredPool,expected.pool)) errors.push('Rewards vAMM pool is not the registered pool in the configured factory');
+  if(facts.stable!==false) errors.push('Rewards vAMM must be a basic volatile pool');
+  if(facts.paused!==false) errors.push('Aerodrome factory is paused or pause state is unknown');
+  if(Number(facts.feeBps)!==expected.swapFeeBps) errors.push(`Current vAMM fee must be ${expected.swapFeeBps} basis points; observed ${facts.feeBps}`);
+  if(BigInt(facts.reserve0??0)<=0n||BigInt(facts.reserve1??0)<=0n||BigInt(facts.totalSupply??0)<=0n) errors.push('Rewards vAMM pool has no funded liquidity');
+  if(!same(facts.lpOwner,expected.lpOwner)||BigInt(facts.lpBalance??0)<=0n) errors.push('Configured LP wallet holds no transferable unstaked pool tokens');
   return errors;
 }

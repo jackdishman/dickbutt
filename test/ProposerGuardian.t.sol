@@ -30,7 +30,7 @@ contract ProposerGuardianTest is Support {
     function testDefaultsAreTheAgreedPolicy() public view {
         eq(d.roundDelay(), 24 hours);
         eq(d.maxRoundBps(), 5000);
-        eq(d.minRoundInterval(), 12 hours);
+        eq(d.minRoundInterval(), 6 hours);
         require(d.guardian() == GUARDIAN, "guardian");
         // Owner is implicitly a proposer so the multisig never depends on a bot.
         require(!d.isProposer(address(this)), "owner is not listed");
@@ -66,7 +66,7 @@ contract ProposerGuardianTest is Support {
     function testRateLimitSpacesProposalsAndCancelDoesNotRefundTheSlot() public {
         vm.prank(PROPOSER);
         d.proposeRound(leaf(1, ALICE, 100), 100);
-        eq(d.nextProposalAllowedAt(), block.timestamp + 12 hours);
+        eq(d.nextProposalAllowedAt(), block.timestamp + 6 hours);
 
         vm.prank(PROPOSER);
         vm.expectRevert(bytes("round interval not elapsed"));
@@ -79,9 +79,43 @@ contract ProposerGuardianTest is Support {
         vm.expectRevert(bytes("round interval not elapsed"));
         d.proposeRound(leaf(2, ALICE, 100), 100);
 
-        vm.warp(block.timestamp + 12 hours);
+        vm.warp(block.timestamp + 6 hours - 1);
+        vm.prank(PROPOSER);
+        vm.expectRevert(bytes("round interval not elapsed"));
+        d.proposeRound(leaf(2, ALICE, 100), 100);
+
+        vm.warp(block.timestamp + 1);
         vm.prank(PROPOSER);
         d.proposeRound(leaf(2, ALICE, 100), 100);
+    }
+
+    function testSixHourRoundsPaySixHoursApartAfterEachTwentyFourHourDelay() public {
+        // A fixed origin avoids the optimizer rematerializing block.timestamp after vm.warp.
+        uint256 start = 1_000_000;
+        for (uint256 i; i < 3; ++i) {
+            vm.warp(start + i * 6 hours);
+            vm.prank(PROPOSER);
+            d.proposeRound(leaf(i + 1, ALICE, 100), 100);
+        }
+        eq(d.totalReserved(), 300);
+        eq(token.balanceOf(ALICE), 0);
+
+        address[] memory accounts = new address[](1); accounts[0] = ALICE;
+        uint256[] memory amounts = new uint256[](1); amounts[0] = 100;
+        bytes32[][] memory proofs = new bytes32[][](1); proofs[0] = new bytes32[](0);
+        for (uint256 i; i < 3; ++i) {
+            uint256 readyAt = start + i * 6 hours + 24 hours;
+            vm.warp(readyAt - 1);
+            vm.expectRevert(bytes("still timelocked"));
+            d.activateRound(i + 1);
+
+            vm.warp(readyAt);
+            d.activateRound(i + 1);
+            d.distributeBatch(i + 1, accounts, amounts, proofs);
+            d.closeRound(i + 1);
+            eq(token.balanceOf(ALICE), (i + 1) * 100);
+        }
+        eq(d.totalReserved(), 0);
     }
 
     function testGuardianPauseEndsTheCancelRace() public {
@@ -101,6 +135,57 @@ contract ProposerGuardianTest is Support {
         d.pauseProposals(false);
         vm.prank(PROPOSER);
         d.proposeRound(leaf(1, ALICE, 100), 100);
+    }
+
+    function testZeroDelayPaysAtSixAndTwelveHoursWithoutAnotherWait() public {
+        uint256 start = 1_000_000;
+        vm.warp(start);
+        vm.prank(STRANGER); vm.expectRevert(); d.setRoundDelay(0);
+        d.setRoundDelay(0);
+        address[] memory accounts = new address[](1); accounts[0] = ALICE;
+        uint256[] memory amounts = new uint256[](1); amounts[0] = 100;
+        bytes32[][] memory proofs = new bytes32[][](1); proofs[0] = new bytes32[](0);
+        for (uint256 id = 1; id <= 2; ++id) {
+            uint256 payoutTime = start + id * 6 hours;
+            vm.warp(payoutTime);
+            vm.prank(PROPOSER); d.proposeRound(leaf(id, ALICE, 100), 100);
+            (,, uint256 readyAt) = d.pending(id);
+            eq(readyAt, payoutTime);
+            vm.prank(STRANGER); d.activateRound(id);
+            vm.prank(PROPOSER); vm.expectRevert(bytes("not a keeper"));
+            d.distributeBatch(id, accounts, amounts, proofs);
+            d.distributeBatch(id, accounts, amounts, proofs);
+            d.distributeBatch(id, accounts, amounts, proofs);
+            d.closeRound(id);
+            eq(token.balanceOf(ALICE), id * 100);
+            eq(block.timestamp, payoutTime);
+            vm.prank(PROPOSER); vm.expectRevert(bytes("round interval not elapsed"));
+            d.proposeRound(leaf(id + 1, ALICE, 100), 100);
+        }
+        eq(d.totalReserved(), 0);
+    }
+
+    function testZeroDelayHasNoGuaranteedGuardianCancellationWindow() public {
+        d.setRoundDelay(0);
+        vm.prank(PROPOSER); d.proposeRound(leaf(1, ALICE, 100), 100);
+        vm.prank(STRANGER); d.activateRound(1);
+        vm.prank(GUARDIAN); d.pauseProposals(true);
+        vm.prank(GUARDIAN); vm.expectRevert(bytes("nothing pending")); d.cancelPendingRound(1);
+        // Pause still blocks future proposals, but cannot undo an already activated round.
+        vm.warp(block.timestamp + 6 hours);
+        vm.prank(PROPOSER); vm.expectRevert(bytes("proposals paused"));
+        d.proposeRound(leaf(2, ALICE, 100), 100);
+    }
+
+    function testZeroDelayAppliesOnlyToNewProposals() public {
+        uint256 start = 1_000_000; vm.warp(start);
+        vm.prank(PROPOSER); d.proposeRound(leaf(1, ALICE, 100), 100);
+        vm.warp(start + 6 hours); d.setRoundDelay(0);
+        vm.prank(PROPOSER); d.proposeRound(leaf(2, ALICE, 100), 100);
+        d.activateRound(2);
+        vm.expectRevert(bytes("still timelocked")); d.activateRound(1);
+        (,, uint256 oldReadyAt) = d.pending(1); eq(oldReadyAt, start + 24 hours);
+        vm.warp(oldReadyAt); d.activateRound(1);
     }
 
     function testPauseNeverStrandsAlreadyCommittedRewards() public {
@@ -149,7 +234,7 @@ contract ProposerGuardianTest is Support {
 
         // Revoking a proposer takes effect immediately.
         d.setProposer(PROPOSER, false);
-        vm.warp(block.timestamp + 12 hours);
+        vm.warp(block.timestamp + 6 hours);
         vm.prank(PROPOSER);
         vm.expectRevert(bytes("not a proposer"));
         d.proposeRound(leaf(2, ALICE, 100), 100);

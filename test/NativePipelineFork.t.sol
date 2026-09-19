@@ -32,10 +32,13 @@ contract NativePipelineForkTest {
         vm.createSelectFork(rpc,51223062);
     }
     function testNativeClankerLegacySplitsSwapAndHolderPushTogether() public {
-        exercisePipeline(false);
+        exercisePipeline(false, false);
     }
     function testNativeStagedCustodyNewOwnerAndSeparateBots() public {
-        exercisePipeline(true);
+        exercisePipeline(true, false);
+    }
+    function testNativeZeroDelayClankerLegacySwapAndIndependentKeeperPush() public {
+        exercisePipeline(true, true);
     }
     function acceptNewOwner(Ownable2Step target,address newOwner) internal {
         target.transferOwnership(newOwner);
@@ -44,7 +47,7 @@ contract NativePipelineForkTest {
         vm.prank(newOwner);target.acceptOwnership();
         require(target.owner()==newOwner&&target.pendingOwner()==address(0),"ownership acceptance failed");
     }
-    function exercisePipeline(bool staged) internal {
+    function exercisePipeline(bool staged, bool immediate) internal {
         require(block.chainid==8453,"wrong fork");
         address admin=staged?address(0xA1101):address(this);
         address keeper=staged?address(0xA1102):address(this);
@@ -52,6 +55,7 @@ contract NativePipelineForkTest {
         address proposer=staged?address(0xA1104):address(this);
         uint256 supplyBefore=IERC20(DICK).totalSupply();
         DickbuttRewardsDistributor distributor=new DickbuttRewardsDistributor(SPCXC,1,address(this));
+        if(immediate)distributor.setRoundDelay(0);
         SpcxcSwapExecutor executor=new SpcxcSwapExecutor(WETH,SPCXC,0x698Cb2b6dd822994581fEa6eA4Fc755d1363A92F,address(distributor),USDC,1,10,1000 ether,0,address(this));
         executor.setKeeper(address(this),true);distributor.setKeeper(address(this),true);
         SplitsFeeRouter router=new SplitsFeeRouter(0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4,WETH,DICK,KC,BURN,CDB,address(executor));
@@ -131,6 +135,17 @@ contract NativePipelineForkTest {
         require(IERC20(USDC).balanceOf(address(executor))==0,"intermediate token stranded at executor");
         require(IERC20(SPCXC).balanceOf(address(distributor))==received,"SPCXc missing at distributor");
         require(IERC20(WETH).balanceOf(address(executor))==0&&IERC20(WETH).allowance(address(executor),address(executor.router()))==0,"input or allowance remains");
+        pushRewards(distributor,received,keeper,proposer,immediate);
+        require(distributor.totalReserved()==0,"reserved funds remain");
+        emit log_named_uint("gross DICK from real Clanker position",grossD);emit log_named_uint("gross WETH from real Clanker position",grossW);
+        emit log_named_uint("legacy DICK claimed",claimed+historicClaimed);emit log_named_uint("KC DICK",kcDDelta);emit log_named_uint("DICK burned",burnDelta);
+        emit log_named_uint("KC WETH",kcWDelta);emit log_named_uint("CDB WETH",cdbDelta);emit log_named_uint("WETH actually swapped",toSwap);
+        emit log_named_uint("SPCXc received from real swap",received);
+        emit log_named_uint("USDC actually transferred between swap pools",usdcFromFirst);
+    }
+    // Keep payout proof construction separate from the large fee-accounting fixture so solc's
+    // optimizer does not need every swap balance and Merkle temporary on its stack together.
+    function pushRewards(DickbuttRewardsDistributor distributor,uint256 received,address keeper,address proposer,bool immediate) internal {
         address[] memory accounts=new address[](2);accounts[0]=address(0xBEEF1);accounts[1]=address(0xBEEF2);
         uint256[] memory amounts=new uint256[](2);amounts[0]=received/6;amounts[1]=amounts[0]*2;
         uint256 beforeA=IERC20(SPCXC).balanceOf(accounts[0]);uint256 beforeB=IERC20(SPCXC).balanceOf(accounts[1]);
@@ -138,15 +153,14 @@ contract NativePipelineForkTest {
         bytes32 b=keccak256(bytes.concat(keccak256(abi.encode(uint256(1),accounts[1],amounts[1]))));
         bytes32 root=a<b?keccak256(abi.encodePacked(a,b)):keccak256(abi.encodePacked(b,a));
         bytes32[][] memory proofs=new bytes32[][](2);proofs[0]=new bytes32[](1);proofs[0][0]=b;proofs[1]=new bytes32[](1);proofs[1][0]=a;
-        vm.prank(proposer);distributor.proposeRound(root,amounts[0]+amounts[1]);vm.warp(block.timestamp+24 hours);distributor.activateRound(1);
-        if(staged){vm.expectRevert();distributor.distributeBatch(1,accounts,amounts,proofs);}
+        vm.prank(proposer);distributor.proposeRound(root,amounts[0]+amounts[1]);
+        if(immediate){(,,uint256 readyAt)=distributor.pending(1);require(readyAt==block.timestamp,"unexpected extra reward wait");}
+        vm.warp(block.timestamp+distributor.roundDelay());distributor.activateRound(1);
+        if(keeper!=address(this)){vm.expectRevert();distributor.distributeBatch(1,accounts,amounts,proofs);}
         vm.prank(keeper);distributor.distributeBatch(1,accounts,amounts,proofs);distributor.closeRound(1);
         require(IERC20(SPCXC).balanceOf(accounts[0])-beforeA==amounts[0]&&IERC20(SPCXC).balanceOf(accounts[1])-beforeB==amounts[1],"actual holder receipt mismatch");
         require(distributor.totalReserved()==0,"reserved funds remain");
-        emit log_named_uint("gross DICK from real Clanker position",grossD);emit log_named_uint("gross WETH from real Clanker position",grossW);
-        emit log_named_uint("legacy DICK claimed",claimed+historicClaimed);emit log_named_uint("KC DICK",kcDDelta);emit log_named_uint("DICK burned",burnDelta);
-        emit log_named_uint("KC WETH",kcWDelta);emit log_named_uint("CDB WETH",cdbDelta);emit log_named_uint("WETH actually swapped",toSwap);
-        emit log_named_uint("SPCXc received from real swap",received);emit log_named_uint("SPCXc holder A",amounts[0]);emit log_named_uint("SPCXc holder B",amounts[1]);
-        emit log_named_uint("USDC actually transferred between swap pools",usdcFromFirst);
+        emit log_named_uint("configured extra review seconds",distributor.roundDelay());
+        emit log_named_uint("SPCXc holder A",amounts[0]);emit log_named_uint("SPCXc holder B",amounts[1]);
     }
 }

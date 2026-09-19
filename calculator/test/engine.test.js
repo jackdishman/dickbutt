@@ -52,7 +52,7 @@ test('a rate-limited proposal recovers on the next scheduled run without interve
  assert.equal(recovered.plan.total,'200');
  assert.equal(journal.entries().length,2);
 });
-test('carry pushing the payable total past the cap fails loudly rather than starving a holder',async()=>{
+test('carry above the cap pays an instalment and preserves unpaid credit',async()=>{
  const f=fixture();
  f.config.payoutThresholdRaw='50';
  f.distributor.maxProposableTotal=async()=>40n;
@@ -61,7 +61,9 @@ test('carry pushing the payable total past the cap fails loudly rather than star
  assert.equal(sum(first.endingAccrual),40n);
  f.advance();
  // Second period lifts the holder to 80, which is payable but larger than one round's cap.
- await assert.rejects(runCalculator(f),/exceeds the distributor round share cap/);
+ const next=await runCalculator(f);
+ assert.equal(next.plan.total,'40');assert.equal(next.endingAccrual[a],40n);
+ assert.equal(new Journal(f.dir).entries().length,2);
 });
 
 test('bootstrap commits balances with a zero pot and is refused after the first period',async()=>{
@@ -90,4 +92,26 @@ test('carry below the cap leaves room for the new shares so the round stays prop
  // Room under the cap is 50 minus the 5 carried, so only 45 of new shares are allocated: a 40, b 4.
  // b's 9 is now payable and the round totals 49, inside the cap. Without the room it would be 55 and fail.
  assert.equal(second.pot,45n);assert.equal(second.plan.total,'49');assert.equal(second.payouts[b],9n);
+});
+
+test('capped carry advances the journal and new funding supports the next instalment',async t=>{
+ const f=fixture();t.after(()=>fs.rmSync(f.dir,{recursive:true,force:true}));
+ let available=100n;
+ f.config.payoutThresholdRaw='60';
+ f.distributor.availableForNextRound=async()=>available;
+ f.distributor.maxProposableTotal=async()=>available/2n;
+ const first=await runCalculator(f);
+ assert.equal(first.plan,null);assert.equal(first.endingAccrual[a],50n);
+ const journal=new Journal(f.dir), saved=fs.readFileSync(path.join(f.dir,'periods','00000001.json'));
+ f.advance();const second=await runCalculator(f);
+ assert.equal(second.plan.total,'50');assert.equal(second.endingAccrual[a],50n);
+ assert.deepEqual(fs.readFileSync(path.join(f.dir,'periods','00000001.json')),saved);
+ // Confirm the exact commitment was paid before adding another fee inflow.
+ f.distributor.nextRoundId=async()=>9007199254740994n;
+ f.distributor.roundInfo=async()=>[second.plan.root,50n,50n,false,true];
+ f.distributor.filters={Paid:()=>1};
+ f.distributor.queryFilter=async()=>[{blockNumber:11,index:0,args:{account:a,amount:50n}}];
+ available=200n;f.advance();const third=await runCalculator(f);
+ assert.equal(third.plan.total,'100');assert.equal(sum(third.endingAccrual),0n);
+ assert.equal(journal.entries().length,3);
 });

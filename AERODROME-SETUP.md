@@ -1,37 +1,34 @@
-# DICKBUTT/SPCXc pool setup
+# Aerodrome basic volatile vAMM setup
 
-The selected pool is **0.3% concentrated liquidity (Slipstream), full range**, with approximately $30k initial TVL as the intended seed size. This supersedes the earlier vAMM wording and the 1% alternative. Seed roughly equal market value on each side after verifying the starting price; a wrong price is immediately arbitrageable.
+Current local candidate: **DICKBUTT/SPCXc basic volatile vAMM**, represented by ERC-20 LP tokens. `AerodromeVammHarvester` holds those LP tokens unstaked and calls the pool's `claimFees()`. No NFT ID is needed. This candidate is not deployed or cleared for production; the security review has unresolved operating findings.
 
-This pool is the **rewards pool** that the harvester collects from. It is distinct from the swap route used to convert fee WETH into SPCXc, which is the existing two-hop **WETH → USDC → SPCXc** path through `0x4e392fBfE4D0557C82D2F97F02ec39daA31516dd` and `0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E`. The one direct WETH/SPCXc pool is too shallow to use; see [route evidence](docs/REHEARSAL.md#swap-route).
+## Fee behavior
 
-The routing goal is USDC → SPCXc → DICKBUTT. This offers aggregators an alternative to the Uniswap/WETH route. Routing still depends on executable depth, prices, total path fees and gas. More liquidity can help; the project cannot force aggregators to select the pool. The 0.3% is a swap fee on the input amount, not two simultaneous 0.3% charges.
+- The harvester earns only the fee share belonging to the LP tokens it holds. Other liquidity providers keep their shares.
+- Claiming does not withdraw liquidity or consume LP tokens. Every DICKBUTT fee token goes to the burn address; every SPCXc fee token goes to the distributor. KC and CDB retain their existing allocations from the Clanker/legacy path.
+- Fees earned before the LP transfer remain claimable by the previous holder. Transferring LP ownership does not transfer those past fee entitlements.
+- Later LP contributions are possible. They inherit the same lock and give the contributor no withdrawal right. Sending raw DICKBUTT or SPCXc to the harvester does not add liquidity; those balances are routed on harvest.
+- Keep LP tokens **unstaked**. The harvester has no gauge staking, approval or liquidity-removal function. It receives no AERO gauge emissions through this design.
+- The owner may transfer LP tokens after the chosen unlock timestamp. `lockForever()` permanently removes that ability, including for the Safe owner. Fee claims continue. Rescue cannot transfer LP, DICKBUTT or SPCXc.
 
-## Verify the intended deployment
+## Steps, with deployment still pending
 
-The selected current-generation manager is `0xe1f8cd9AC4e4A65F54f38a5CdAfCA44f6dD68b53`; factory is `0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef`. Source: [official Slipstream deployments](https://github.com/aerodrome-finance/slipstream/blob/main/README.md).
+1. Create or locate the actual DICKBUTT/SPCXc **basic volatile** pool on Base. Verify both token addresses, initial price and amounts before adding liquidity. A DICKBUTT/WETH pool is a different pair and cannot be substituted.
+2. Keep the ERC-20 LP tokens in your wallet. Record the pool link/address and the wallet holding the LP; no private key or recovery phrase is needed for inspection.
+3. Record `rewardsPool.kind = "vamm"`, the canonical basic factory `0x420DD381b31aEf6683db6B902084cB0FFECe40Da`, actual `pool`, `lpOwner`, `stable = false`, `staking = "unstaked"` and expected `swapFeeBps` in `config/base-mainnet.json`. The carried-over intended 0.3% fee is **30 basis points**, not Slipstream's 3000-unit notation. Verify the actual fee; upstream governance can change it.
+4. Run read-only preflight and a local fork test against that actual pool. Check registry membership, both tokens, reserves, positive unstaked wallet LP balance, fee economics, pool accounting and fee delivery. Add the actual pool to calculator exclusions.
+5. Complete the security review, production settings, wallet checks and bot readiness. Review the unsigned deployment plan. The selected deployment must name `AerodromeVammHarvester(factory, pool, dickbutt, spcxc, burnAddress, distributor, unlockTime, minInterval, owner)`.
+6. After deployment is authorized and confirmed, verify the deployed code and immutable values and have the Safe accept administrative ownership. Record the **new production vAMM harvester address** from the deployment manifest and receipt. No existing test address is a substitute.
+7. Only after the preceding checks, transfer the agreed ERC-20 LP amount to that verified harvester address. Check its received balance and fee routing. An ERC-20 transfer has no receiver hook: sending LP to the wrong contract can strand it. Never send it to the NFT adapter, distributor, burn address or this assistant.
+8. Rehearse the separate Clanker locker and legacy creator-authority handoffs. They are not part of the LP transfer. Existing verified legacy safes may be claimed by their current creator before handoff or by the adapter afterwards; the adapter's creator handoff is permanent in the current design.
+9. Start the reviewed, gas-funded operating services only after the runtime launch gates are intentionally addressed. The selected payout period remains six hours with no extra review wait. A funded working bot, sufficient rewards and successful transactions are required; a contract does not wake itself up.
 
-The factory's `tickSpacingToFee(200)` returns 3000 (0.3%) at the inspected block. The configured dynamic fee module is `0x87D8f999BBa9343E8099552426775B51C338E8CB`. Pool fee settings are **not permanently fixed by tick spacing**. Check `pool.fee()` and `factory.getUnstakedFee(pool)` at a recent finalized block; review the fee module before assuming trades always execute at the base rate. The [factory source](https://github.com/aerodrome-finance/slipstream/blob/main/contracts/core/CLFactory.sol) distinguishes base, effective and unstaked fees.
+## Evidence and limits
 
-At the latest inspection used for this update, `getPool(DICKBUTT, SPCXc, 200)` on this factory returned zero. That is an observation about this generation and spacing, not a claim that the pair has never existed anywhere.
+`test/NativeVammFork.t.sol` uses the actual Base Aerodrome factory/pool and token implementations in a disposable local Base-native fork. It creates/funds a test pool locally, simulates trades in both directions, claims across three six-hour time advances, routes fees, pushes a committed reward to a test holder, checks LP conservation, verifies prior-holder fees and later LP additions, and tests lock behavior. It uses locally impersonated accounts and a constructed one-holder reward root; it does not prove live wallet access, production pool identity, TWAB eligibility, live scheduling or permanent availability.
 
-## Setup sequence
+`test/VammHarvester.t.sol` covers token order, invalid pools, atomic reverts, LP protection, governance, timing and final fees after withdrawal. The application preflight, deployer and runtime manifest select the vAMM adapter explicitly. Historical rehearsal and Sepolia manifests still select the NFT adapter and do not become vAMM test evidence.
 
-Production is on **Base mainnet (8453)** with the real **DICKBUTT** token and separately selected production owner/bot wallets. Testnet keys, role addresses and mock NFT IDs must not be reused as production configuration. Reconfirm all proposed mainnet role and recipient addresses with the owner.
+The separate WETH → USDC → SPCXc swap route continues to use its verified Slipstream pools. Choosing a vAMM rewards pool does not change that route.
 
-The NFT custody transfer can happen later. However, `positionManager` and `tokenId` are immutable in `AerodromeFeeHarvester`: the NFT ID must be known when that harvester is deployed. If the NFT has not been minted yet, prepare the other components first and deploy its harvester after the ID is known. The Aerodrome source remains inactive until it holds the configured NFT; the fee runner reports the missing custody and skips that source.
-
-1. Confirm token addresses from [config/base-mainnet.json](config/base-mainnet.json), including SPCXc's **8 decimals**. Decide exact seed amounts and starting price from current market data.
-2. Select the intended concentrated factory and 0.3% base-fee configuration. If a matching pool already exists, verify its state before depositing rather than creating a duplicate.
-3. Mint a full-range position. For spacing 200, usable extreme ticks are **-887200 and 887200**. Record pool address, manager and NFT ID. Full range avoids ordinary range maintenance; it does not remove token-policy, price or liquidity risks.
-4. Keep the position unstaked for the current harvester model. It collects from the NFT position manager, not an Aerodrome gauge. If a gauge introduces an unstaked fee, the economics must be reconsidered; the preflight deliberately fails this condition. Routing all of a pool's fees is not possible: the harvester receives only the managed position's share. Other LPs keep their own fees unless their positions are separately integrated.
-5. Fill `rewardsPool.pool` and `rewardsPool.tokenId` in the reviewed configuration. Run `npm run preflight -- --config config/base-mainnet.json --strict`. Confirm pair, factory, effective fee, liquidity, NFT pair/spacing, full-range ticks and NFT owner.
-6. Deploy `AerodromeFeeHarvester(manager, tokenId, dickbutt, spcxc, burnAddress, distributor, unlockTime, minInterval, owner)`. Verify every immutable address and lock timestamp from the deployed contract.
-7. In rehearsal first, transfer the NFT using `safeTransferFrom`, verify `holdsPosition()`, generate fees, harvest and verify DICKBUTT goes to burn and SPCXc to the rewards distributor. Repeat with the actual new pool before production scaling.
-
-The requested seed liquidity and pool creation require the owner's assets and transactions. The signed orchestration rehearsal uses a mock position. `test/NativeAeroPositionFork.t.sol` additionally creates/seeds a local position with the real manager and tokens, trades, collects and checks payouts. Neither test creates or funds a public production pool.
-
-## Custody and locks
-
-`unlockTime` permits owner withdrawal only after expiry. `extendLock` can only extend it. `lockForever()` permanently disables withdrawal. SPCXc destination changes are timelocked and can separately be frozen. Transferring the NFT is therefore not unconditionally permanent if an expiring lock is used, but incorrectly configured or permanent locks can strand the position. Use a reviewed multisig and verify the configuration before custody moves.
-
-The latest native staged-custody test transfers administrative ownership with acceptance, delays the NFT transfer, freezes destination and liquidity, advances past the original unlock time, confirms withdrawal still fails, then trades and harvests successfully. This is a local real-contract fork test, not a production multisig ceremony or proof of permanent uptime. [Alignment retest](docs/ALIGNMENT-RETEST-REPORT.md).
+Official accounting: [Aerodrome Pool.sol](https://github.com/aerodrome-finance/contracts/blob/main/contracts/Pool.sol) (`claimFees`, transfer accounting) and [PoolFactory.sol](https://github.com/aerodrome-finance/contracts/blob/main/contracts/factories/PoolFactory.sol) (registry and fee settings). Historical concentrated-position setup is preserved in [the earlier Slipstream document](docs/AERODROME-SLIPSTREAM-HISTORICAL.md).

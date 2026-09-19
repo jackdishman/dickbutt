@@ -8,9 +8,9 @@ Four hosts. A shared host is a shared blast radius, so none of these keys may be
 
 | Host | Jobs | Key | Cadence |
 | --- | --- | --- | --- |
-| `keeper` | fee-cycle, payout | `KEEPER_PRIVATE_KEY` | 6h, 15m |
+| `keeper` | fee-cycle, payout | `KEEPER_PRIVATE_KEY` | 6h, 1m |
 | `ops` | floor-refresh | `OPS_PRIVATE_KEY` (the executor's floor setter) | 1h |
-| `proposer` | calculate-and-propose | `PROPOSER_PRIVATE_KEY` | 12h |
+| `proposer` | calculate-and-propose, propose-pending | `PROPOSER_PRIVATE_KEY` | 6h, 1m |
 | `monitor` | monitor | **none** | 5m |
 
 ```sh
@@ -50,19 +50,33 @@ systemd units are rendered with `SuccessExitStatus=0 2` so a "needs a human" res
 
 ## Triage
 
+Always supply `--journal` in production. Without it, the monitor reports `journal: absent` and
+skips unknown-root detection; its exit status then describes only the remaining checks. An empty
+but supplied journal still alarms on every non-cancelled commitment. The monitor checks overdue
+pending rounds, reserves outside its five-round window and stalled active payouts. It persists public
+round observations beside the deployment manifest in `monitor-progress-<chain>-<distributor>.json`.
+The first observation of an unpaid active round reports unknown age (attention); six hours without
+a subsequent payment reports stalled progress. Keep this file across scheduler runs. Corrupt or
+regressing observations fail closed. This is not a scheduler heartbeat: independently alert when
+any scheduled job stops running or no new rounds appear despite incoming rewards.
+
 ### `unknown-commitment` — treat as a compromised proposer key
 
 > round N carries a pending root the calculator journal never produced
 
 **This is the alarm that matters.** A root exists on-chain that this pipeline did not create. Either someone holds the proposer key, or an operator worked outside the journal.
 
-A proposer cannot directly call the keeper-only payout function. The keeper must also independently recalculate the supplied journal; checking only its hashes is insufficient. The remaining timelock provides a response window, provided the guardian is notified and acts before activation.
+A proposer cannot directly call the keeper-only payout function. The keeper must independently
+recalculate the supplied journal; checking only its hashes is insufficient. The selected zero
+review delay gives the guardian no guaranteed cancellation window: anyone may activate immediately.
+Pause future proposals and revoke compromised keeper roles promptly; pending cancellation may
+already be unavailable by the time the Safe acts.
 
 1. **Pause proposals.** Guardian multisig, no owner key needed:
    ```sh
    cast send $DISTRIBUTOR "pauseProposals(bool)" true --rpc-url $RPC_URL
    ```
-2. **Cancel the pending round** before its timelock expires:
+2. **Cancel the round if it is still pending.** With zero review delay, activation can win this race:
    ```sh
    cast send $DISTRIBUTOR "cancelPendingRound(uint256)" $ROUND_ID --rpc-url $RPC_URL
    ```
@@ -70,7 +84,7 @@ A proposer cannot directly call the keeper-only payout function. The keeper must
 3. **Confirm the keeper never paid it.** `paid(roundId, account)` should be false throughout. If the foreign round took a round id the calculator had already planned, the keeper reports that round as `foreign-commitment` (exit 2) and keeps paying every other round; it holds no proofs for a foreign root and cannot pay it.
 4. Rotate the proposer key, `setProposer(old, false)` and `setProposer(new, true)` from the owner, then unpause.
 5. **Let the pipeline recover the collided round.** Once the foreign round is cancelled (or, if it was activated, closed early by the owner), the keeper reports the local plan as `superseded` and the next calculator run recredits every recipient of that plan and re-plans them under the next free round id. The run log shows the recredits and `superseded: ["N"]`.
-6. The recredited carry is about half the pot and so is the share cap, so the recovery round usually cannot fit under `maxRoundBps`. The calculator then fails loudly with `exceeds the distributor round share cap`. Raise the cap for one round from the owner, `setRoundLimits(10000, minRoundInterval)`, let the round propose, then restore it.
+6. The calculator spreads otherwise-payable accrual proportionally across the permitted round budget and preserves unpaid balances. No temporary cap increase is needed. Largest raw-unit remainders break ties by address. The payout threshold selects eligible accrued balances; an individual cap-limited instalment can be smaller than that threshold. Remaining credit is checked against the threshold again in later periods.
 
 If the root turns out to be a legitimate out-of-band proposal that should stand, leave it; the calculator refuses to run while a foreign round is pending or active at a planned id, so cancel or close it before the next period. The pipeline cannot adopt a root it did not compute.
 
@@ -112,6 +126,18 @@ cast send $DISTRIBUTOR "activateRound(uint256)" $ROUND_ID --rpc-url $RPC_URL
 ```
 
 Then find out why the keeper did not. Usually gas, a held lock, or an unresolved transaction.
+
+### `round-progress` — unknown age or stalled active payment
+
+On a first observation, inspect the unpaid round and keeper; the monitor cannot infer prior payment age. Later observations report attention after six hours with no increase in distributed rewards. A successful payment resets that clock. An observation file is not a substitute for a separate alert on a silent/crashed monitor.
+
+### proposer `proposal-rate-limited`
+
+The six-hour job calculates periods. `propose-pending` retries the same journal plan each minute, on the same proposer host/key, without calculating another period. A retry before `nextProposalAllowedAt` is expected; repeated lateness after that timestamp needs investigation. The journal must reach the keeper independently before payments can proceed.
+
+### fee cycle `cooldown-race` or `reverted`
+
+Another caller may harvest after readiness was read. A conclusively unsent estimate revert with a newly advanced cooldown skips that one call and continues the independent fee steps. A broadcast failure continues only after the exact failed receipt is confirmed and the source cooldown advance is observed; it reports attention because gas was spent. Transport errors, missing receipts and unproven reverts stop the cycle for reconciliation.
 
 ### fee cycle `awaiting-handoff`
 
@@ -156,7 +182,11 @@ A proposer cannot directly call the keeper-only payout function. That separation
 
 - A fee cycle does not show up in a reward plan until finality passes it. A calculator run right after a harvest legitimately reports `No new finalized period.`
 - A freshly funded holder needs a full period *after* finality catches up before their time-weighted balance qualifies. `roundId: null` on a first run is normal.
-- Total latency from fee collection to payout is finality lag, plus the calculator period, plus the 24-hour timelock. Budget a day, not an hour.
+- The selected zero review delay adds no wait after proposal. Finality lag, calculator scheduling,
+  journal replication, the next one-minute payout check and transaction processing still take time.
+  Fee and calculator jobs on separate hosts must be coordinated: fees not yet finalized at the
+  calculation snapshot wait for a later plan. Six-hour job intervals do not establish exact
+  wall-clock delivery to each holder.
 
 This is deliberate. An unfinalized snapshot could be reorged out from under a committed Merkle root, and the root is what the contract pays against.
 

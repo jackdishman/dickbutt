@@ -12,11 +12,14 @@ import {runKeeper,KEEPER_ABI} from '../keeper/engine.js';
 import {runFeeCycle} from '../operations/fees.js';
 import {runFloorRefresh} from '../operations/floor.js';
 import {stringify} from '../calculator/journal.js';
+import {resolveRoundLimits} from '../operations/mainnet-deploy.js';
 
 const root=path.resolve(import.meta.dirname??path.dirname(new URL(import.meta.url).pathname),'..');
+const rewardPolicy=resolveRoundLimits(JSON.parse(fs.readFileSync(path.join(root,'config/base-mainnet.json'))).roundLimits);
 const bin=name=>process.env[name.toUpperCase()+'_BIN']||[path.join(root,'.tools','foundry',name),path.join(os.homedir(),'.foundry','bin',name)].find(p=>fs.existsSync(p))||name;
 const keepAlive=process.argv.slice(2).includes('--keep-alive');
-if(process.argv.slice(2).some(arg=>arg!=='--keep-alive'))throw Error('Usage: npm run rehearse -- [--keep-alive]');
+const vamm=process.argv.slice(2).includes('--vamm');
+if(process.argv.slice(2).some(arg=>!['--keep-alive','--vamm'].includes(arg)))throw Error('Usage: npm run rehearse -- [--keep-alive] [--vamm]');
 // Public development mnemonic. These wallets must only be used on the disposable local chain.
 const mnemonic='test test test test test test test test test test test junk';
 const rpc=process.env.BASE_RPC_URL||'https://mainnet.base.org';
@@ -33,7 +36,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const port=server.address().port;await new Promise(resolve=>server.close(resolve));
 const node=spawn(bin('anvil'),['--host','127.0.0.1','--port',String(port),'--chain-id','31337','--mnemonic',mnemonic,'--fork-url',rpc,'--fork-block-number',String(forkBlock),'--prune-history','4096','--silent'],{stdio:['ignore',log,log]});
 let provider;
-const report={mode:'disposable-local-base-fork',forkBlock,chainId:31337,realDependencies:['Splits PushSplit V2.2 factory, implementation and Warehouse'],mockDependencies:['DICKBUTT/WETH/SPCXc/USDC assets','Clanker locker','Aerodrome NFT manager','legacy module and Safes','swap router'],checks:[],transactions:[]};
+const report={mode:'disposable-local-base-fork',forkBlock,chainId:31337,realDependencies:['Splits PushSplit V2.2 factory, implementation and Warehouse'],mockDependencies:['DICKBUTT/WETH/SPCXc/USDC assets','Clanker locker',vamm?'Aerodrome volatile ERC-20 pool/factory':'Aerodrome NFT manager','legacy module and Safes','swap router'],checks:[],transactions:[]};
 try {
   await new Promise((resolve,reject)=>{
     const start=Date.now();
@@ -51,6 +54,7 @@ try {
   const wallet=index=>HDNodeWallet.fromPhrase(mnemonic,undefined,`m/44'/60'/0'/0/${index}`).connect(provider);
   const signer=wallet(0),owner=await signer.getAddress();
   const alice=await (await provider.getSigner(1)).getAddress(),bob=await (await provider.getSigner(2)).getAddress();
+  const belowMinimum=await (await provider.getSigner(9)).getAddress();
   const kc=await (await provider.getSigner(3)).getAddress(),cdb=await (await provider.getSigner(4)).getAddress(),burn='0x000000000000000000000000000000000000dEaD';
   // Signer 0 owns the contracts and refreshes the price floor; signer 5 is the hot keeper.
   // They are deliberately distinct so one compromised host cannot both swap and set the floor.
@@ -68,6 +72,9 @@ try {
   async function send(label,promise){const tx=await promise;const r=await tx.wait();assert.equal(Number(r.status),1,label);report.transactions.push({action:label,hash:r.hash});fs.appendFileSync(path.join(output,'progress.log'),`${label}\n`);return r;}
   const w=await deploy('Support.sol','RewardMock'),d=await deploy('Support.sol','RewardMock'),s=await deploy('RehearsalMocks.sol','RehearsalRewardToken'),u=await deploy('Support.sol','RewardMock');
   const distributor=await deploy('DickbuttRewardsDistributor.sol','DickbuttRewardsDistributor',[s.target,1,owner]);
+  await send('configured-review-delay',distributor.setRoundDelay(rewardPolicy.roundDelay));
+  await send('configured-round-limits',distributor.setRoundLimits(rewardPolicy.maxRoundBps,rewardPolicy.minRoundInterval));
+  report.rewardPolicy=rewardPolicy;
   const router=await deploy('SwapExecutor.t.sol','ExecutorRouterMock',[w.target,s.target]);
   const executor=await deploy('SpcxcSwapExecutor.sol','SpcxcSwapExecutor',[w.target,s.target,router.target,distributor.target,u.target,1,10,1000,0,owner]);
   const feeRouter=await deploy('SplitsFeeRouter.sol','SplitsFeeRouter',['0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4',w.target,d.target,kc,burn,cdb,executor.target]);
@@ -77,16 +84,29 @@ try {
   const clanker=await deploy('LockerHarvester.sol','LockerHarvester',[locker.target,manager.target,7,feeRouter.target,0,owner]);
   await send('locker-handoff',locker.transferOwnership(clanker.target));
   const time=(await provider.getBlock('latest')).timestamp;
-  const aero=await deploy('AerodromeFeeHarvester.sol','AerodromeFeeHarvester',[manager.target,8,d.target,s.target,burn,distributor.target,time+365*86400,0,owner]);
-  await send('aero-position',manager.mint(owner,8));
-  await send('aero-handoff',manager['safeTransferFrom(address,address,uint256)'](owner,aero.target,8));
-  await send('aero-fees',manager.configureFees(d.target,s.target));
+  let aero, vammPool, vammFactory;
+  if(vamm){
+    vammFactory=await deploy('VammHarvester.t.sol','VammFactoryMock');
+    vammPool=await deploy('VammHarvester.t.sol','VammPoolMock',[vammFactory.target,d.target,s.target]);
+    await send('vamm-register',vammFactory.configure(vammPool.target,true));
+    aero=await deploy('AerodromeVammHarvester.sol','AerodromeVammHarvester',[vammFactory.target,vammPool.target,d.target,s.target,burn,distributor.target,time+365*86400,0,owner]);
+    await send('vamm-lp-mint',vammPool.mint(owner,1000));
+    await send('vamm-lp-handoff',vammPool.transfer(aero.target,1000));
+  }else{
+    aero=await deploy('AerodromeFeeHarvester.sol','AerodromeFeeHarvester',[manager.target,8,d.target,s.target,burn,distributor.target,time+365*86400,0,owner]);
+    await send('aero-position',manager.mint(owner,8));
+    await send('aero-handoff',manager['safeTransferFrom(address,address,uint256)'](owner,aero.target,8));
+    await send('aero-fees',manager.configureFees(d.target,s.target));
+  }
+  async function accrueVammFees(){if(vamm)await send('vamm-fees',vammPool.accrue(aero.target,13,17));}
+  await accrueVammFees();
   const module=await deploy('LegacyFees.t.sol','LegacyModuleMock');
   const safes=[await deploy('LegacyFees.t.sol','LegacySafeMock',[module.target]),await deploy('LegacyFees.t.sol','LegacySafeMock',[module.target])];
   const legacy=await deploy('LegacyFeeHarvester.sol','LegacyFeeHarvester',[module.target,safes.map(x=>x.target),d.target,feeRouter.target]);
   await send('legacy-handoff',module.updateTokenCreator(d.target,legacy.target));
   await send('legacy-current-fees',d.mint(safes[0].target,600));await send('legacy-historic-fees',d.mint(safes[1].target,500));
-  await send('holder-alice',d.mint(alice,parseEther('7000000')));await send('holder-bob',d.mint(bob,parseEther('14000000')));
+  await send('holder-alice',d.mint(alice,parseEther('6900000')));await send('holder-bob',d.mint(bob,parseEther('13800000')));
+  await send('holder-below-minimum',d.mint(belowMinimum,parseEther('6900000')-1n));
   await send('swap-keeper',executor.setKeeper(keeperAddress,true));await send('payout-keeper',distributor.setKeeper(keeperAddress,true));
   // Bound first, then approve: no floor setter is ever live unbounded. The keeper is refused as a setter.
   await send('floor-lower-bound',executor.setFloorLowerBound(10n**18n));await send('floor-setter',executor.setFloorSetter(opsAddress,true));
@@ -115,26 +135,32 @@ try {
   const config={chainId:'31337',token:d.target.toLowerCase(),distributor:distributor.target.toLowerCase(),deployBlock:(await d.deploymentTransaction().wait()).blockNumber,holderThresholdRaw:parseEther('6900000').toString(),payoutThresholdRaw:'1',curve:'linear',excluded:[burn,kc,cdb,owner,keeperAddress,proposerAddress,guardianAddress,opsAddress,feeRouter.target,await feeRouter.dickSplit(),await feeRouter.wethSplit(),manager.target,locker.target,clanker.target,aero.target,legacy.target,executor.target,distributor.target,...safes.map(x=>x.target)].map(x=>x.toLowerCase()).sort(),batchSize:1,chunkSize:2000,finalityTag:'finalized'};
   const dir=path.join(output,'calculator');fs.mkdirSync(dir);fs.writeFileSync(path.join(output,'calculator-config.json'),JSON.stringify(config,null,2));
   // Give holders a complete interval and let the local finalized tag advance. No time travel touches Base.
-  await provider.send('evm_increaseTime',[3600]);await provider.send('anvil_mine',[128]);
+  await provider.send('evm_increaseTime',[1]);await provider.send('anvil_mine',[128]);
   const calculate=(bootstrap=false)=>runCalculator({dir,provider,token:new Contract(d.target,ERC20_ABI,provider),distributor:new Contract(distributor.target,DISTRIBUTOR_ABI,provider),config,bootstrap});
   // Bootstrap period: balances are committed with a zero pot so round 1 does not weight holders over the
   // token's whole history. The pot is untouched and reappears in the next period.
   const boot=await calculate(true);assert.equal(boot.bootstrap,true);assert.equal(boot.pot,0n);assert.equal(boot.plan,null);
-  await provider.send('evm_increaseTime',[3600]);await provider.send('anvil_mine',[128]);
+  await provider.send('evm_increaseTime',[6*3600]);await provider.send('anvil_mine',[128]);
   const record=await calculate();assert.ok(record.plan);assert.equal(Object.keys(record.plan.payouts).length,2);
+  assert.equal(record.plan.payouts[belowMinimum.toLowerCase()],undefined);
+  assert.ok(record.plan.payouts[alice.toLowerCase()],'exactly 6.9M qualifies');
   assert.equal(record.plan.total,'807','half of the 1615 available, untouched by the bootstrap period');
   // Keeper signs batches, owner signs the root: two keys, exercised through the split-signer path.
   // Three keys: keeper signs batches, proposer bot signs the root, guardian signs nothing here.
   const keeperArgs={dir,provider,distributor:new Contract(distributor.target,KEEPER_ABI,keeperSigner),
    ownerDistributor:new Contract(distributor.target,KEEPER_ABI,proposerSigner),ownerAddress:proposerAddress,
    config,execute:true,propose:true,signerAddress:keeperAddress,onEvent};
+  const proposerArgs={...keeperArgs,distributor:new Contract(distributor.target,KEEPER_ABI,proposerSigner),
+    signerAddress:proposerAddress,proposeOnly:true};
   // The guardian can stop a proposal without the owner key, and nothing is signed while paused.
   await send('guardian-pause',distributor.connect(guardianSigner).pauseProposals(true));
   await assert.rejects(runKeeper(keeperArgs),/paused by the guardian/);
   await send('guardian-unpause',distributor.connect(guardianSigner).pauseProposals(false));
-  const first=await runKeeper(keeperArgs);assert.equal(first.rounds[0].status,'timelocked');
+  const first=await runKeeper(proposerArgs);assert.equal(first.rounds[0].status,rewardPolicy.roundDelay===0?'activation-ready':'timelocked');
+  assert.ok(first.transactions.every(tx=>tx.action==='propose'),'the proposer never activates or pays');
   await send('simulate-blocked-recipient',s.setBlocked(bob,true));
-  await provider.send('evm_increaseTime',[Number(await distributor.roundDelay())+1]);await provider.send('anvil_mine',[128]);
+  if(rewardPolicy.roundDelay>0)await provider.send('evm_increaseTime',[rewardPolicy.roundDelay+1]);
+  await provider.send('anvil_mine',[128]);
   const partial=await runKeeper({...keeperArgs,propose:false});assert.equal(partial.rounds[0].status,'partial');
   assert.equal(partial.rounds[0].unpaid.length,1);const alicePaid=await s.balanceOf(alice);assert.ok(alicePaid>0n);
   await send('unblock-recipient',s.setBlocked(bob,false));
@@ -149,7 +175,7 @@ try {
   // the guardian has cancelled it, with every recipient of the abandoned plan recredited exactly once.
   assert.ok(reconciliation.plan,'the remaining half of the pot is planned as round 2');
   const abandoned=reconciliation.plan;assert.equal(abandoned.roundId,'2');
-  await provider.send('evm_increaseTime',[12*3600+1]);await provider.send('anvil_mine',[1]);
+  await provider.send('evm_increaseTime',[Number(await distributor.minRoundInterval())+1]);await provider.send('anvil_mine',[1]);
   const foreignRoot='0x'+'f0'.repeat(32);
   await send('foreign-proposal',distributor.proposeRound(foreignRoot,1));
   await provider.send('anvil_mine',[128]); // let the local finalized tag see the foreign round
@@ -169,18 +195,52 @@ try {
   assert.equal(Object.values(recovered.recredits).reduce((s,v)=>s+BigInt(v),0n),BigInt(abandoned.total),'abandoned plan recredited exactly once');
   assert.equal(recovered.plan.roundId,'3');
   assert.ok(BigInt(recovered.plan.total)>=BigInt(abandoned.total),'round 3 carries the abandoned payouts forward');
-  const reproposed=await runKeeper(keeperArgs);assert.equal(reproposed.rounds.find(r=>r.roundId==='3').status,'timelocked');
+  const reproposed=await runKeeper(proposerArgs);assert.equal(reproposed.rounds.find(r=>r.roundId==='3').status,rewardPolicy.roundDelay===0?'activation-ready':'timelocked');
   await send('restore-cap',distributor.setRoundLimits(5000,0)); // the cap only gates proposals; activation and payment are unaffected
-  await provider.send('evm_increaseTime',[Number(await distributor.roundDelay())+1]);await provider.send('anvil_mine',[128]);
+  if(rewardPolicy.roundDelay>0)await provider.send('evm_increaseTime',[rewardPolicy.roundDelay+1]);
+  await provider.send('anvil_mine',[128]);
   const aliceBefore=await s.balanceOf(alice),bobBefore=await s.balanceOf(bob);
   const paidOut=await runKeeper({...keeperArgs,propose:false});assert.equal(paidOut.rounds.find(r=>r.roundId==='3').status,'closed');
   assert.equal((await s.balanceOf(alice))-aliceBefore,BigInt(recovered.plan.payouts[alice.toLowerCase()]));
   assert.equal((await s.balanceOf(bob))-bobBefore,BigInt(recovered.plan.payouts[bob.toLowerCase()]));
   assert.equal(await distributor.totalReserved(),0n);
-  report.checks.push('Real calculator journal → proposal → timelock → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key','Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer','Bootstrap period commits balances with a zero pot','A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it');
+  report.checks.push('Real calculator journal → proposal → configured review delay → partial payout → retry → closure → reconciliation verified','Repeated keeper execution sends no duplicate payments','Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key','Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer','Bootstrap period commits balances with a zero pot','A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it');
+  if(rewardPolicy.roundDelay===0){
+    await send('restore-normal-round-policy',distributor.setRoundLimits(rewardPolicy.maxRoundBps,rewardPolicy.minRoundInterval));
+    report.sixHourCycles=[];
+    for(let cycle=0;cycle<2;cycle++){
+      await provider.send('evm_increaseTime',[6*3600]);await provider.send('anvil_mine',[128]);
+      await runFloorRefresh({...floorArgs,execute:true});
+      await accrueVammFees();
+      const cycleFees=await runFeeCycle({provider,signerAddress:keeperAddress,locker:clanker,aero,legacy,feeRouter,
+        executor:executor.connect(keeperSigner),weth:w,quote:async n=>n*2n,execute:true,onEvent});
+      assert.equal(cycleFees.swapStatus,'processed');
+      await provider.send('anvil_mine',[128]);
+      const cycleRecord=await calculate();assert.ok(cycleRecord.plan);
+      const before=new Map(await Promise.all(Object.keys(cycleRecord.plan.payouts).map(async account=>[account,await s.balanceOf(account)])));
+      const proposal=await runKeeper(proposerArgs);
+      assert.equal(proposal.rounds.find(r=>r.roundId===cycleRecord.plan.roundId).status,'activation-ready');
+      assert.ok(proposal.transactions.every(tx=>tx.action==='propose'));
+      const [, , readyAt]=await distributor.pending(cycleRecord.plan.roundId);
+      const paid=await runKeeper({...keeperArgs,propose:false});
+      assert.equal(paid.rounds.find(r=>r.roundId===cycleRecord.plan.roundId).status,'closed');
+      for(const[account,amount]of Object.entries(cycleRecord.plan.payouts))assert.equal(await s.balanceOf(account)-before.get(account),BigInt(amount));
+      const again=await runKeeper({...keeperArgs,propose:false});assert.equal(again.transactions.length,0);
+      const paidAt=(await provider.getBlock('latest')).timestamp;
+      assert.ok(BigInt(paidAt)-readyAt<60n,'local payment unexpectedly waited beyond one minute');
+      report.sixHourCycles.push({roundId:cycleRecord.plan.roundId,periodStart:cycleRecord.periodStartTs,periodEnd:cycleRecord.periodEndTs,
+        earningTimeAdvancedSeconds:6*3600,readyAt:readyAt.toString(),paidAt,recipients:Object.keys(cycleRecord.plan.payouts).length,
+        payouts:cycleRecord.plan.payouts,extraReviewSeconds:0,holderSignatures:0});
+    }
+    report.checks.push('Two further six-hour earning cycles produced ready proposals and keeper payments without review time travel or holder signatures');
+  }
+  if(vamm){assert.equal(await vammPool.balanceOf(aero.target),1000n);report.checks.push('ERC-20 vAMM LP transfer and repeated claims preserve all LP principal');}
+  report.aerodromeKind=vamm?'vamm':'slipstream';
   report.contracts={weth:w.target,dickbutt:d.target,spcxc:s.target,distributor:distributor.target,executor:executor.target,feeRouter:feeRouter.target,dickSplit:await feeRouter.dickSplit(),wethSplit:await feeRouter.wethSplit(),clanker:clanker.target,aero:aero.target,legacy:legacy.target};
   report.wallets=[];
-  for(const [role,address] of Object.entries({owner,keeper:keeperAddress,proposer:proposerAddress,guardian:guardianAddress,ops:opsAddress,holderA:alice,holderB:bob,kcGreen:kc,cdbVault:cdb})) {
+  assert.equal(await s.balanceOf(belowMinimum),0n,'below-threshold holder received rewards');
+  report.checks.push('Exactly 6.9M DICKBUTT qualifies; one raw unit below does not; neither holder signs payout transactions');
+  for(const [role,address] of Object.entries({owner,keeper:keeperAddress,proposer:proposerAddress,guardian:guardianAddress,ops:opsAddress,holderA:alice,holderB:bob,holderBelowMinimum:belowMinimum,kcGreen:kc,cdbVault:cdb})) {
     report.wallets.push({role,address,ethWei:String(await provider.getBalance(address)),dickbuttRaw:String(await d.balanceOf(address)),spcxcRaw:String(await s.balanceOf(address))});
   }
   report.rpcUrl=`http://127.0.0.1:${port}`;
@@ -188,7 +248,7 @@ try {
   report.signing='Separate HD wallets; locally signed transactions; public development mnemonic';
   report.localManifest={chainId:31337,network:'local',deployedAtBlock:(await provider.getBlock('latest')).number,
     contracts:report.contracts,splits:{dickSplit:await feeRouter.dickSplit(),wethSplit:await feeRouter.wethSplit()},
-    sources:{locker:locker.target,positionManager:manager.target,legacySafes:safes.map(x=>x.target)},
+    sources:{aerodromeKind:report.aerodromeKind,...(vamm?{rewardsPool:vammPool.target,rewardsFactory:vammFactory.target}:{}),locker:locker.target,positionManager:manager.target,legacySafes:safes.map(x=>x.target)},
     roles:{owner,keeper:keeperAddress,proposer:proposerAddress,guardian:guardianAddress,ops:opsAddress,kcGreen:kc,cdbVault:cdb,burnAddress:burn},
     notes:['Local chain only; mock tokens, fee sources and swap router. Genuine Splits from the Base fork.']};
   report.keeper={first,partial,retry,repeat,blocked,cancelled,reproposed,paidOut};report.success=true;

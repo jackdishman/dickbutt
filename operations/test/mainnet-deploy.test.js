@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   PARAMETERS, MANUAL_STEPS, parseMainnetArgs, validateParams, resolveQuoter,
-  validateDeployerIsolation, buildDeploymentPlan,
+  validateDeployerIsolation, buildDeploymentPlan, buildProductionCalculatorConfig, resolveRoundLimits,
 } from '../mainnet-deploy.js';
 
 const addr = n => '0x' + String(n).padStart(40, '0');
@@ -19,6 +19,8 @@ const config = {
   clankerLocker: addr(5), clankerPositionManager: addr(6), clankerTokenId: '1391176',
   aerodrome: { factory: addr(7), router: addr(8), wethUsdcTickSpacing: 1, usdcSpcxcTickSpacing: 10 },
   rewardsPool: { factory: addr(7), manager: addr(9), pool: addr(10), tokenId: '42' },
+  clankerPool: addr(22),
+  roundLimits: { roundDelay: '24 hours', minRoundInterval: '6 hours', maxRoundBps: 5000 },
   deployment: {
     owner: addr(11), keeper: addr(12), proposer: addr(13), guardian: addr(11),
     floorSetter: addr(14), kcGreen: addr(15), cdbVault: addr(16), burnAddress: addr('dead'),
@@ -56,6 +58,8 @@ test('parameters that would revert their own constructor are rejected before sig
   assert.ok(validateParams({ ...params, maxSwapPerCallWei: '0' }).some(e => /nonzero/.test(e)));
   assert.ok(validateParams({ ...params, lockerMinIntervalSeconds: 31 * 86400 }).some(e => /30 day/.test(e)));
   assert.ok(validateParams({ ...params, curve: 'quadratic' }).some(e => /linear or sqrt/.test(e)));
+  assert.ok(validateParams({ ...params, minPayoutRaw: (1n << 256n).toString() }).some(e => /uint256/.test(e)));
+  assert.ok(validateParams({ ...params, dickbuttDeployBlock: 0 }).some(e => /at least 1/.test(e)));
 });
 
 test('the quoter is resolved from the configured Slipstream generation, never pasted', () => {
@@ -118,7 +122,51 @@ test('ownership is handed only to the multisig, and only on contracts that have 
 
 test('the permanent custody steps stay out of the script and are reported instead', () => {
   const text = MANUAL_STEPS.join(' ');
-  for (const expected of [/acceptOwnership/, /tokenCreator/, /locker ownership/, /LP NFT/, /exclusions/]) {
+  for (const expected of [/acceptOwnership/, /tokenCreator/, /locker ownership/, /ERC-20 LP/, /NFT/, /exclusions/]) {
     assert.match(text, expected);
   }
+});
+
+test('vAMM deployment uses the registered pool address, records no NFT and hands off the right adapter', () => {
+  const selected = { ...config, rewardsPool: {kind:'vamm',pool:addr(10),factory:addr(30),lpOwner:addr(31),stable:false,staking:'unstaked',swapFeeBps:30} };
+  const p = buildDeploymentPlan({config:selected,params,legacy,splits,quoter:addr(21)});
+  assert.equal(p.deployments[4].name,'AerodromeVammHarvester');
+  assert.deepEqual(p.deployments[4].args,[addr(30),addr(10),config.dickbutt,config.spcxc,config.deployment.burnAddress,
+    {ref:'DickbuttRewardsDistributor'},params.aerodromeUnlockTime,params.aerodromeMinIntervalSeconds,{ref:'deployer'}]);
+  assert.equal(p.handoffs.at(-1).contract,'AerodromeVammHarvester');
+  assert.equal(p.deployments[1].name,'SpcxcSwapExecutor','the existing two-hop swap adapter is unchanged');
+  for(const patch of [{lpOwner:null},{pool:null},{factory:null},{stable:true},{staking:'staked'},{swapFeeBps:3000},{kind:'unknown'}]) {
+    assert.throws(()=>buildDeploymentPlan({config:{...selected,rewardsPool:{...selected.rewardsPool,...patch}},params,legacy,splits,quoter:addr(21)}));
+  }
+});
+
+test('the production generator preserves both pool exclusions and every preflight-listed address', () => {
+  const configured = { ...config, calculatorExclusions: { required: [
+    { address: addr(23) }, { address: [addr(24), addr(25)] },
+  ] } };
+  const runtime = buildProductionCalculatorConfig({ config: configured, params,
+    contracts: { dickbutt: config.dickbutt, distributor: addr(26), feeRouter: addr(27), legacySafes: [addr(18), addr(19)] } });
+  for (const address of [config.clankerPool, config.rewardsPool.pool, addr(23), addr(24), addr(25), addr(27), addr(18), addr(19)]) {
+    assert.ok(runtime.excluded.includes(address), `runtime dropped ${address}`);
+  }
+  assert.throws(() => buildProductionCalculatorConfig({ config: { ...configured, clankerPool: null }, params, contracts: {} }), /both production liquidity pools/);
+});
+
+test('deployment explicitly applies the configured delay, cadence and round cap', () => {
+  const { actions } = plan();
+  assert.deepEqual(actions.find(a => a.method === 'setRoundDelay').args, [86400]);
+  assert.deepEqual(actions.find(a => a.method === 'setRoundLimits').args, [5000, 21600]);
+  assert.deepEqual(resolveRoundLimits({ roundDelay: 3600, minRoundInterval: 0, maxRoundBps: 10000 }),
+    { roundDelay: 3600, minRoundInterval: 0, maxRoundBps: 10000 });
+  for (const bad of [{}, { ...config.roundLimits, roundDelay: -1 },
+    { ...config.roundLimits, minRoundInterval: '8 days' }, { ...config.roundLimits, maxRoundBps: 0 }]) {
+    assert.throws(() => resolveRoundLimits(bad));
+  }
+});
+
+test('zero extra review delay is explicit in the production plan without shortening the six-hour interval', () => {
+  const configured = { ...config, roundLimits: { ...config.roundLimits, roundDelay: '0 hours' } };
+  const result = buildDeploymentPlan({ config: configured, params, legacy, splits, quoter: addr(21) });
+  assert.deepEqual(result.actions.find(a => a.method === 'setRoundDelay').args, [0]);
+  assert.deepEqual(result.actions.find(a => a.method === 'setRoundLimits').args, [5000, 21600]);
 });

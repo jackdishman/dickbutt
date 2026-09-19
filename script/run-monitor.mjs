@@ -57,22 +57,23 @@ export async function main(args = process.argv.slice(2), env = process.env) {
 
     const roots = journalRoots(o.journalDir);
     if (roots === null && o.journalDir) throw Error(`no calculator journal at ${o.journalDir}`);
+    const identity=`${chainId}-${manifest.contracts.distributor.toLowerCase()}`;
+    const progressFile=path.join(path.dirname(path.resolve(o.configPath)),`monitor-progress-${identity}.json`);
+    const previousProgress=fs.existsSync(progressFile)?JSON.parse(fs.readFileSync(progressFile,'utf8')):null;
 
     const result = await runMonitor({
       provider, distributor, executor,
-      journalRoots: roots ?? [],
+      journalRoots: roots,
       gasAccounts: manifest.roles ? {
         keeper: manifest.roles.keeper, proposer: manifest.roles.proposer, ops: manifest.roles.ops, owner: manifest.roles.owner,
       } : {},
       minGasWei: ethers.parseEther(String(o.minGasEth)),
+      previousProgress,
     });
+    const temporary=`${progressFile}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary,JSON.stringify(result.progress,null,2)+'\n',{mode:0o600});
+    fs.renameSync(temporary,progressFile);
 
-    // Without a journal every commitment reads as unknown, which would cry wolf every run.
-    if (roots === null) {
-      result.checks = result.checks.filter(c => c.name !== 'unknown-commitment');
-      result.attention = result.attention.filter(c => c.name !== 'unknown-commitment');
-      result.journal = 'absent: pass --journal to detect commitments this pipeline did not produce';
-    }
     const output = o.quiet ? { severity: result.severity, attention: result.attention, journal: result.journal } : result;
     console.log(JSON.stringify(output, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
     process.exitCode = result.exitCode;

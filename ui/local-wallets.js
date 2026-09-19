@@ -16,12 +16,13 @@ export async function localWallets(root) {
     if (BigInt(await provider.send('eth_chainId', [])) !== 31337n) throw Error('Local wallet RPC must use chain 31337.');
     const block = await provider.getBlockNumber();
     const abi = ['function balanceOf(address) view returns(uint256)'];
+    const weth = new Contract(state.manifest.contracts.weth, abi, provider);
     const dick = new Contract(state.manifest.contracts.dickbutt, abi, provider);
     const reward = new Contract(state.manifest.contracts.spcxc, abi, provider);
     const wallets = [];
     for (const { role, address } of state.wallets) {
-      const [eth, d, s] = await Promise.all([provider.getBalance(address, block), dick.balanceOf(address, { blockTag: block }), reward.balanceOf(address, { blockTag: block })]);
-      wallets.push({ role, address, eth: formatEther(eth), dickbutt: formatUnits(d, 18), spcxc: formatUnits(s, 8), spcxcRaw: String(s) });
+      const [eth, w, d, s] = await Promise.all([provider.getBalance(address, block), weth.balanceOf(address, { blockTag: block }), dick.balanceOf(address, { blockTag: block }), reward.balanceOf(address, { blockTag: block })]);
+      wallets.push({ role, address, eth: formatEther(eth), weth: formatUnits(w, 18), wethRaw: String(w), dickbutt: formatUnits(d, 18), dickbuttRaw: String(d), spcxc: formatUnits(s, 8), spcxcRaw: String(s) });
     }
     return { running: true, rpcUrl: state.rpcUrl, chainId: 31337, block, evidence: state.evidence, wallets };
   } catch {

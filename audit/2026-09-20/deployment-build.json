@@ -1,0 +1,155 @@
+{
+  "buildHash": "0xf4fadf487f85942d0c38387f4e5554e822805bd27618ebb12b955297086062a0",
+  "contracts": [
+    {
+      "name": "DickbuttRewardsDistributor",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/DickbuttRewardsDistributor.sol": "DickbuttRewardsDistributor"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "runtimeBytes": 8114
+    },
+    {
+      "name": "SpcxcSwapExecutor",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SpcxcSwapExecutor.sol": "SpcxcSwapExecutor"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "runtimeBytes": 6901
+    },
+    {
+      "name": "SplitsFeeRouter",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SplitsFeeRouter.sol": "SplitsFeeRouter"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "runtimeBytes": 2780
+    },
+    {
+      "name": "LockerHarvester",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/LockerHarvester.sol": "LockerHarvester"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "runtimeBytes": 3983
+    },
+    {
+      "name": "AerodromeVammHarvester",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/AerodromeVammHarvester.sol": "AerodromeVammHarvester"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "runtimeBytes": 6008
+    },
+    {
+      "name": "LegacyFeeHarvester",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/LegacyFeeHarvester.sol": "LegacyFeeHarvester"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "runtimeBytes": 1768
+    }
+  ]
+}

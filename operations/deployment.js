@@ -1,4 +1,5 @@
 import { isAddress, ZeroAddress } from 'ethers';
+import { rewardsPoolKind } from './aerodrome.js';
 
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
 
@@ -68,6 +69,9 @@ export function buildManifest({ chainId, quoter, contracts, roles, deployedAtBlo
     // The CLIs read safe count on-chain, but an operator debugging a legacy harvest should not
     // have to reconstruct these from transaction history.
     sources: {
+      aerodromeKind: rewardsPoolKind({kind: contracts.aerodromeKind}),
+      rewardsPool: contracts.rewardsPool ?? null,
+      rewardsFactory: contracts.rewardsFactory ?? null,
       locker: contracts.locker ?? null,
       positionManager: contracts.manager ?? null,
       legacySafes: contracts.legacySafes ?? [],
@@ -81,16 +85,19 @@ export function buildManifest({ chainId, quoter, contracts, roles, deployedAtBlo
  * The exact object the calculator hashes. Key order is part of that hash, so it is fixed here
  * rather than assembled ad hoc by whoever runs the keeper.
  */
-export function buildCalculatorConfig({ chainId, contracts, roles, deployBlock, holderThresholdRaw, payoutThresholdRaw = '1', curve = 'linear', batchSize = 50, chunkSize = 2000, finalityTag = 'finalized' }) {
+export function buildCalculatorConfig({ chainId, contracts, roles, deployBlock, holderThresholdRaw, payoutThresholdRaw = '1', curve = 'linear', batchSize = 50, chunkSize = 2000, finalityTag = 'finalized', additionalExcluded = [] }) {
   if (!['linear', 'sqrt'].includes(curve)) throw Error('curve must be linear or sqrt');
   if (!Number.isSafeInteger(deployBlock) || deployBlock < 0) throw Error('invalid deployBlock');
+  if (!Array.isArray(additionalExcluded) || additionalExcluded.some(a => !isAddress(a))) throw Error('invalid additional exclusion address');
   // Everything that receives DICKBUTT from the pipeline, plus every operational key. A missing
   // entry here silently pays rewards to the machinery instead of to holders.
   const excluded = [
     roles.burnAddress, roles.kcGreen, roles.cdbVault, roles.owner, roles.keeper, roles.proposer, roles.guardian, roles.ops,
     contracts.feeRouter, contracts.dickSplit, contracts.wethSplit, contracts.executor, contracts.distributor,
     contracts.clanker, contracts.aero, contracts.legacy, contracts.locker, contracts.manager,
+    contracts.clankerPool, contracts.rewardsPool,
     ...(contracts.legacySafes ?? []),
+    ...additionalExcluded,
   ].filter(Boolean).map(a => a.toLowerCase());
   return {
     chainId: String(chainId),

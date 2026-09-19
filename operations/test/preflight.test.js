@@ -72,5 +72,7 @@ test('every recorded pipeline address, the locker and its pool must be in the ex
  assert.ok(validateExclusions({...config,clankerPool:null}).some(e=>e.includes('must record the DICKBUTT/WETH pool')));
  assert.ok(validateExclusions({...config,deployment:{...config.deployment,floorSetter:'0x0000000000000000000000000000000000000006'}}).some(e=>e.includes('deployment.floorSetter')));
  // The live mainnet configuration passes its own check.
- assert.deepEqual(validateExclusions(JSON.parse(fs.readFileSync(new URL('../../config/base-mainnet.json',import.meta.url)))),[]);
+  assert.deepEqual(validateExclusions(JSON.parse(fs.readFileSync(new URL('../../config/base-mainnet.json',import.meta.url)))),[]);
+  const malformed = { ...config, calculatorExclusions: { required: [...config.calculatorExclusions.required, { address: 'mistyped-pool' }] } };
+  assert.ok(validateExclusions(malformed).some(e => /invalid address/.test(e)), 'a malformed exclusion cannot be silently dropped before deployment');
 });

@@ -9,6 +9,7 @@ import { verifyPayoutHistory } from './verify-history.js';
 export const KEEPER_ABI = [
  'function rewardToken() view returns(address)',
  'function nextRoundId() view returns(uint256)',
+ 'function totalReserved() view returns(uint256)',
  'function roundInfo(uint256) view returns(bytes32 root,uint256 total,uint256 distributed,bool active,bool closed)',
  'function pending(uint256) view returns(bytes32 root,uint256 total,uint256 readyAt)',
  'function paid(uint256,address) view returns(bool)',

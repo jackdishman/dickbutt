@@ -1,0 +1,114 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { ZeroAddress, ZeroHash } from 'ethers';
+import { runCalculator } from '../../calculator/engine.js';
+import { Journal } from '../../calculator/journal.js';
+import { computeTWAB, computeShares, sum } from '../../calculator/core.js';
+import { runKeeper } from '../../keeper/engine.js';
+import { runFeeCycle } from '../../operations/fees.js';
+import { runFloorRefresh } from '../../operations/floor.js';
+import { runMonitor } from '../../operations/monitor.js';
+import { JOBS } from '../../operations/schedule.js';
+
+const A='0x00000000000000000000000000000000000000aa';
+const B='0x00000000000000000000000000000000000000bb';
+const D='0x00000000000000000000000000000000000000dd';
+const H='0x'+'ab'.repeat(32);
+
+function calculatorFixture(t) {
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dickbutt-audit-'));
+  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const state={block:10,now:100,available:100n,next:1n};
+  const provider={getNetwork:async()=>({chainId:31337n}),getBlock:async n=>({number:typeof n==='number'?n:state.block,hash:H,timestamp:n==='latest'?state.now:(typeof n==='number'?n:state.block)*10})};
+  const token={decimals:async()=>18n,filters:{Transfer:()=>1},queryFilter:async(_f,from)=>from===1?[{blockNumber:1,index:0,args:{from:ZeroAddress,to:A,value:100n}}]:[]};
+  const distributor={getAddress:async()=>D,nextRoundId:async()=>state.next,availableForNextRound:async()=>state.available,maxProposableTotal:async()=>state.available/2n,minPayout:async()=>0n,rewardToken:async()=>B,roundInfo:async()=>[ZeroHash,0n,0n,false,false],pending:async()=>[ZeroHash,0n,0n]};
+  const config={deployBlock:1,chainId:'31337',token:A,distributor:D,holderThresholdRaw:'1',payoutThresholdRaw:'60',curve:'linear',excluded:[ZeroAddress],batchSize:10,chunkSize:100,finalityTag:'finalized'};
+  return {dir,state,provider,token,distributor,config,rewardTokenFactory:()=>({decimals:async()=>8n})};
+}
+
+test('M-01: funded carry can stall every future round until funding/cap changes',async t=>{
+  const f=calculatorFixture(t);const first=await runCalculator(f);
+  assert.equal(first.plan,null);assert.equal(first.endingAccrual[A],50n);
+  const journal=new Journal(f.dir);const original=JSON.stringify(journal.entries());
+  for(let i=0;i<12;i++){
+    f.state.block+=2160;
+    await assert.rejects(runCalculator(f),/plan total 100 exceeds.*cap 50/);
+    assert.equal(JSON.stringify(journal.entries()),original);
+  }
+  f.state.available=200n;f.state.block++;
+  const recovered=await runCalculator(f);assert.equal(recovered.plan.total,'100');
+});
+
+test('M-02: six-hour cron can miss its slot; minute payout job cannot retry proposals',async t=>{
+  const f=calculatorFixture(t);f.config.payoutThresholdRaw='1';f.state.next=2n;
+  const record=await runCalculator(f);let pending=[ZeroHash,0n,0n];const calls=[];
+  Object.assign(f.distributor,{pending:async()=>pending,isProposer:async()=>true,isKeeper:async()=>true,owner:async()=>B,proposalsPaused:async()=>false,nextProposalAllowedAt:async()=>21610n,
+    proposeRound:async(root,total)=>{calls.push('propose');return {hash:H,wait:async()=>{pending=[root,BigInt(total),BigInt(f.state.now)];f.state.next=3n;return {status:1,logs:[]};}};}});
+  // Only scheduler/keeper interaction is isolated here; independent history replay is tested separately.
+  const keeper={...f,signerAddress:A,verifyHistory:async()=>({auditFixture:true}),execute:true};
+  f.state.now=21600;
+  const early=await runKeeper({...keeper,propose:true,proposeOnly:true});
+  assert.equal(early.rounds[0].status,'proposal-rate-limited');
+  const interval=JOBS.find(j=>j.name==='calculate-and-propose').everySeconds;
+  assert.equal(interval,21600);
+  for(const now of [21660,22000,43000]) {
+    f.state.now=now;const payout=await runKeeper(keeper);
+    assert.equal(payout.rounds[0].status,'proposal-required');assert.deepEqual(calls,[]);
+  }
+  f.state.now=21600+interval;
+  const next=await runKeeper({...keeper,propose:true,proposeOnly:true});
+  assert.equal(next.rounds[0].status,'activation-ready');assert.deepEqual(calls,['propose']);
+  assert.equal(record.plan.roundId,'2');
+});
+
+test('M-03: a raced permissionless harvest aborts the entire fee cycle before routing',async()=>{
+  let harvests=0;const later=[];
+  const provider={getNetwork:async()=>({chainId:31337n}),getBlock:async()=>({timestamp:100000})};
+  const locker={ownsLocker:async()=>true,lastHarvestAt:async()=>0n,minInterval:async()=>21600n,
+    harvest:async()=>{harvests++;throw Object.assign(Error('too soon: another caller harvested after readiness read'),{code:'CALL_EXCEPTION',action:'estimateGas'});}};
+  const step=name=>async()=>{later.push(name);return {hash:H,wait:async()=>({status:1})};};
+  await assert.rejects(runFeeCycle({provider,execute:true,signerAddress:A,locker,
+    legacy:{isTokenCreator:async()=>true,safeCount:async()=>2,harvestFrom:step('legacy')},
+    feeRouter:{splitDickbutt:step('split-dickbutt'),splitWeth:step('split-weth')},executor:{},weth:{},quote:async()=>1n}),/too soon/);
+  assert.equal(harvests,1);assert.deepEqual(later,[]);
+});
+
+test('L-01: known active unpaid round can remain green regardless of elapsed days',async()=>{
+  const now=30n*86400n;
+  const provider={getNetwork:async()=>({chainId:31337n}),getBlock:async()=>({number:100,hash:H,timestamp:Number(now)})};
+  const distributor={proposalsPaused:async()=>false,nextRoundId:async()=>2n,totalReserved:async()=>100n,
+    roundInfo:async()=>[H,100n,0n,true,false],pending:async()=>[ZeroHash,0n,0n]};
+  const executor={minSpcxcPerWeth:async()=>100n,priceFloorExpiresAt:async()=>now+72000n,floorLowerBound:async()=>1n};
+  const r=await runMonitor({provider,distributor,executor,journalRoots:[H],now});
+  assert.equal(r.outstandingRewards,'100');assert.equal(r.severity,'ok');assert.deepEqual(r.attention,[]);
+});
+
+test('Risk evidence: ordinary floor bot accepts a depressed spot quote above static bound',async()=>{
+  let set;
+  const provider={getNetwork:async()=>({chainId:31337n}),getBlock:async()=>({timestamp:1000})};
+  const executor={minSpcxcPerWeth:async()=>10000n,priceFloorExpiresAt:async()=>1001n,maxSwapPerCall:async()=>10n**18n,MAX_FLOOR_LIFETIME:async()=>86400n,owner:async()=>B,floorLowerBound:async()=>5000n,isKeeper:async()=>false,isFloorSetter:async()=>true,
+    setPriceFloor:async(floor,expiry)=>{set={floor,expiry};return {hash:H,wait:async()=>({status:1})};}};
+  const result=await runFloorRefresh({provider,executor,signerAddress:A,execute:true,quote:async()=>7000n});
+  assert.equal(result.status,'refreshed');assert.equal(set.floor,6650n);
+  // Demonstrates a trust boundary, not capital cost or a profitable live-market attack.
+  assert.equal(result.deviationBps,3350);
+});
+
+test('A same-timestamp borrow/repay cannot create positive TWAB',()=>{
+  const transfer=(index,from,to,value)=>({blockNumber:1,index,args:{from,to,value}});
+  const result=computeTWAB({[A]:10n**30n},[transfer(0,A,B,10n**30n),transfer(1,B,A,10n**30n)],new Map([[1,50]]),0,100);
+  assert.equal(result.twab[B],0n);assert.equal(result.twab[A],10n**30n);
+});
+
+test('Inclusive 6.9M boundary and linear splitting conserve weight; sqrt is Sybil-sensitive',()=>{
+  const unit=10n**18n,threshold=6900000n*unit;
+  const below='0x00000000000000000000000000000000000000cc';
+  const shares=computeShares({[A]:threshold,[B]:threshold*2n,[below]:threshold-1n},threshold,300n,'linear');
+  assert.equal(shares.qualifying,2);assert.equal(shares.shares[A],100n);assert.equal(shares.shares[B],200n);assert.equal(shares.shares[below],undefined);assert.equal(sum(shares.shares),300n);
+  const unsplit=computeShares({[A]:threshold*4n,[B]:threshold*4n},threshold,10000n,'sqrt');
+  const split=computeShares({[A]:threshold,[below]:threshold*3n,[B]:threshold*4n},threshold,10000n,'sqrt');
+  assert.ok(split.shares[A]+split.shares[below]>unsplit.shares[A]);
+});
