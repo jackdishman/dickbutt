@@ -23,6 +23,7 @@ import {
 import { inspectRewardPool, rewardsPoolKind, aerodromeHarvesterName } from '../operations/aerodrome.js';
 import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import { loadDeploymentBuild, verifyResumeBuild, hashDeploymentInputs } from '../operations/deployment-build.js';
+import { acquireDeploymentLocks, requireSettledDeployer } from '../operations/deployment-lock.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relative => JSON.parse(fs.readFileSync(path.resolve(ROOT, relative), 'utf8'));
@@ -77,6 +78,7 @@ export async function main(args = process.argv.slice(2), env = process.env,
   if (!env.BASE_RPC_URL) throw Error('BASE_RPC_URL is required (archive node: the token deploy block is verified)');
   const provider = providerFactory(env.BASE_RPC_URL, undefined, { batchMaxCount: 1, cacheTimeout: -1 });
   provider.pollingInterval = 4000;
+  let releaseDeployment;
   try {
     const { chainId } = await provider.getNetwork();
     if (chainId !== BigInt(MAINNET)) throw Error(`deployment is restricted to Base mainnet (8453); RPC reports ${chainId}`);
@@ -138,14 +140,17 @@ export async function main(args = process.argv.slice(2), env = process.env,
     }
 
     if (!env.DEPLOYER_PRIVATE_KEY) throw Error('DEPLOYER_PRIVATE_KEY is required with --execute');
+    const deployer = new ethers.Wallet(env.DEPLOYER_PRIVATE_KEY, provider);
+    const isolation = validateDeployerIsolation(deployer.address, { ...config.deployment, ops: config.deployment.floorSetter });
+    if (isolation.length) throw Error(`deployer key rejected:\n  - ${isolation.join('\n  - ')}`);
+    // Acquire before checking/reading partial state or awaiting balance: concurrent invocations
+    // must never share a ledger, nor share a signer even when they choose different output files.
+    releaseDeployment = acquireDeploymentLocks(outPath, MAINNET, deployer.address);
     if (fs.existsSync(partial) && !o.resume) throw Error(`${partial} exists; inspect it and use --resume to continue the same deployment`);
     if (o.resume && !fs.existsSync(partial)) throw Error('--resume requires an existing partial deployment');
     if (fs.existsSync(outPath) && !o.force) {
       throw Error(`${o.out} already exists; a new deployment would orphan the contracts it names. Review it, then pass --force`);
     }
-    const deployer = new ethers.Wallet(env.DEPLOYER_PRIVATE_KEY, provider);
-    const isolation = validateDeployerIsolation(deployer.address, { ...config.deployment, ops: config.deployment.floorSetter });
-    if (isolation.length) throw Error(`deployer key rejected:\n  - ${isolation.join('\n  - ')}`);
     const balance = await provider.getBalance(deployer.address);
     if (balance < ethers.parseEther(o.resume ? '0.005' : '0.05')) {
       throw Error(`deployer ${deployer.address} holds ${ethers.formatEther(balance)} ETH; fund it before deploying`);
@@ -157,6 +162,7 @@ export async function main(args = process.argv.slice(2), env = process.env,
     if (progress.deployer.toLowerCase() !== deployer.address.toLowerCase() || progress.chainId !== MAINNET
       || !progress.deployments || !progress.actions) throw Error('partial deployment identity or recovery metadata missing');
     if (o.resume) verifyResumeBuild(progress, buildHash, inputHash);
+    await requireSettledDeployer(provider, deployer.address);
     progress.buildHash = buildHash;
     progress.inputHash = inputHash;
     const json = value => JSON.stringify(value, (_k, v) => typeof v === 'bigint' ? v.toString() : v);
@@ -265,7 +271,7 @@ export async function main(args = process.argv.slice(2), env = process.env,
       remaining: MANUAL_STEPS,
     }, null, 2));
     return manifest;
-  } finally { closeProvider(provider); }
+  } finally { releaseDeployment?.(); closeProvider(provider); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

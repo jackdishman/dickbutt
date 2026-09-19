@@ -42,7 +42,7 @@ interface ILpLocker {
 /// - It cannot send fees anywhere except `destination`.
 /// - It cannot be used to call arbitrary functions on the locker.
 ///
-/// THE ONE PRIVILEGED THING, AND HOW IT'S CONTAINED
+/// DESTINATION MANAGEMENT
 /// `destination` is changeable, because otherwise a bug in the forwarder,
 /// a router migration, or an SPCXc contract change would strand the
 /// locker's ownership permanently with fees flowing into a dead address.
@@ -53,9 +53,10 @@ interface ILpLocker {
 ///   2. The owner can cancel a pending change at any time.
 ///   3. `lockDestinationForever()` permanently disables changes. Once
 ///      you're confident in the setup, call it. After that this contract
-///      is functionally immutable and there is no privileged role left
-///      that can touch the fee stream at all.
-/// Use a multisig as owner until you call lockDestinationForever().
+///      cannot change the destination used by harvest(). This does not
+///      remove the owner's post-unlock position recovery authority: once
+///      recovered, the NFT's new owner controls its future fee collection.
+/// Use a multisig as owner for destination management and post-unlock recovery.
 contract LockerHarvester is Ownable2Step, ReentrancyGuard {
     IERC721 public immutable positionManager;
     event PositionRecovered(address indexed to, uint256 tokenId);
@@ -173,9 +174,10 @@ contract LockerHarvester is Ownable2Step, ReentrancyGuard {
         destinationDelay = newDelay;
     }
 
-    /// @notice ONE-WAY DOOR. Permanently freezes `destination` and disables
-    /// every setter above. After this, no key anywhere can alter where fees
-    /// go -- the fee stream becomes untamperable by anyone, including you.
+    /// @notice ONE-WAY DOOR. Permanently freezes the destination used by
+    /// harvest() and disables its destination setters. The owner can still
+    /// recover the configured NFT after the upstream locker unlocks; its
+    /// new owner can then collect future fees outside this adapter.
     /// Call it once the forwarder has been running correctly for a while.
     /// There is no undo.
     function lockDestinationForever() external onlyOwner {

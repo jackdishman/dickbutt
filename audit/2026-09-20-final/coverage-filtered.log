@@ -1,0 +1,392 @@
+Warning: `--ir-minimum` enables `viaIR` with minimum optimization, which can result in inaccurate source mappings.
+Only use this flag as a workaround if you are experiencing "stack too deep" errors.
+Note that `viaIR` is production ready since Solidity 0.8.13 and above.
+See more: https://github.com/foundry-rs/foundry/issues/3357
+Compiling 58 files with Solc 0.8.24
+Solc 0.8.24 finished in 44.02s
+Compiler run successful!
+Analysing contracts...
+Running tests...
+
+Ran 1 test for test/audit/FinalContractGovernance.t.sol:FinalContractGovernanceAuditTest
+[PASS] testFrozenClankerDestinationDoesNotRemovePostUnlockRecoveryAuthority() (gas: 6627633)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 742.88µs (532.92µs CPU time)
+
+Ran 8 tests for test/audit/DistributorSecurity.t.sol:DistributorSecurityAuditTest
+[PASS] testAtomicRogueProposalRequiresOwnerToReleaseReserve() (gas: 447677)
+[PASS] testCallbackCannotCloseStealOrReenterDuringPayment() (gas: 5567860)
+[PASS] testFuzzTimeBoundaries(uint32,uint32) (runs: 256, μ: 320274, ~: 320274)
+[PASS] testFuzzUnprivilegedCannotAdministerOrExecute(uint160,uint96) (runs: 256, μ: 44533, ~: 45038)
+[PASS] testInvalidSecondProofRollsBackFirstTransferAndPaidFlag() (gas: 293422)
+[PASS] testOwnerCanAuthorizeAnArbitraryRewardRecipient() (gas: 287037)
+[PASS] testSupportedTokenFailurePreservesEntitlementAndRetryPaysOnce() (gas: 356556)
+[PASS] testTaxedRewardWouldBeRecordedPaidDespiteUnderDelivery() (gas: 4982404)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 170.66ms (169.72ms CPU time)
+
+Ran 10 tests for test/Distributor.t.sol:DistributorTest
+[PASS] testBlockedTransferRetryAndDuplicate() (gas: 386604)
+[PASS] testCancelPendingReleasesAndRecordsPlan() (gas: 199950)
+[PASS] testConcurrentPendingActiveEarlyClose() (gas: 444332)
+[PASS] testDuplicateAccountAndPauseRetry() (gas: 343572)
+[PASS] testFuzzBatchOrderPartialRetry(uint96,uint96,bool,bool) (runs: 256, μ: 431772, ~: 411038)
+[PASS] testInvalidCrossRoundProofAndKeeperRemoval() (gas: 381173)
+[PASS] testMalformedRootOverspendRollsBackEntireBatch() (gas: 490163)
+[PASS] testPendingReservesFunds() (gas: 172271)
+[PASS] testThresholdChangeCannotStrandCommittedLeaf() (gas: 298776)
+[PASS] testUnauthorizedLifecycle() (gas: 206491)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 212.98ms (212.02ms CPU time)
+
+Ran 13 tests for test/FeeSplitter.t.sol:FeeSplitterTest
+[PASS] testAuthorizationAndRescue() (gas: 158408)
+[PASS] testConstructorValidation() (gas: 235306)
+[PASS] testExpiredFloorAndDeadline() (gas: 98964)
+[PASS] testFloorBounds() (gas: 20802)
+[PASS] testFloorRounding() (gas: 411542)
+[PASS] testFuzzFixedDickSplit(uint128) (runs: 256, μ: 134066, ~: 136376)
+[PASS] testFuzzWethSplit(uint128) (runs: 256, μ: 491717, ~: 496088)
+[PASS] testMissingFloorFailsClosed() (gas: 3114488)
+[PASS] testNoGasDrain() (gas: 90562)
+[PASS] testProtectedRewardForwarding() (gas: 96092)
+[PASS] testRepeatedProcessingAndRevocation() (gas: 718427)
+[PASS] testRouteAndAllowanceAndCap() (gas: 603245)
+[PASS] testRouterCannotLie() (gas: 442571)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 231.52ms (230.30ms CPU time)
+
+Ran 9 tests for test/audit/FinalContractBoundaries.t.sol:FinalContractBoundaryAuditTest
+[PASS] testAuthorizedRouterCallbackCannotReenterOrEscalateRoles() (gas: 11124872)
+[PASS] testFalseReturnThenNoReturnTransferKeepsExactRetryAccounting() (gas: 5053652)
+[PASS] testFuzzSwapCeilingNeverRoundsProtocolMinimumDown(uint96,uint64) (runs: 256, μ: 11039996, ~: 11039996)
+[PASS] testPermissionlessActivationDuringCallbackPreservesBothRoundReserves() (gas: 5423016)
+[PASS] testRoundDomainPreventsProofReplayEvenWithSameRecipientAndAmount() (gas: 5210526)
+[PASS] testSwapMaliciousOutputInputAndRevertCannotLeaveApprovalsOrPartialState() (gas: 11587103)
+[PASS] testVammCancellationClearsMatureProposalAndPreservesOriginalRouting() (gas: 7102325)
+[PASS] testVammFreezeRequiresCancellationAndUnrelatedRescueCannotTouchLP() (gas: 7956496)
+[PASS] testVammNewOwnerCanCancelInheritedPendingDestination() (gas: 7017091)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 350.92ms (350.04ms CPU time)
+
+Ran 20 tests for test/Harvesters.t.sol:HarvestersTest
+[PASS] testCollectedFeesRouteByTokenNotOrder() (gas: 267434)
+[PASS] testDestinationTimelockCancel() (gas: 109292)
+[PASS] testFreezeAllDestinationMutations() (gas: 32517)
+[PASS] testFuzzStrayRouting(uint128,uint128) (runs: 256, μ: 213016, ~: 214065)
+[PASS] testHarvestRoutesStraysAndInterval() (gas: 244327)
+[PASS] testLockExtensionAndWithdrawal() (gas: 110212)
+[PASS] testPendingChangePreventsFreeze() (gas: 69224)
+[PASS] testPermanentLock() (gas: 54984)
+[PASS] testProtectedRescue() (gas: 27833)
+[PASS] testRejectExcessiveInterval() (gas: 135879)
+[PASS] testRejectMillisecondsExtension() (gas: 21056)
+[PASS] testRejectMillisecondsLock() (gas: 135745)
+[PASS] testRejectPastLock() (gas: 135139)
+[PASS] testRejectSameTokens() (gas: 130590)
+[PASS] testRejectUnexpectedManager() (gas: 2043788)
+[PASS] testRejectUnexpectedNFT() (gas: 70048)
+[PASS] testRejectZeroAndEOAAddresses() (gas: 240441)
+[PASS] testRescueUnrelatedToken() (gas: 1051865)
+[PASS] testTokenTransferFailureRollsBackHarvest() (gas: 299535)
+[PASS] testUnauthorizedMutation() (gas: 21055)
+Suite result: ok. 20 passed; 0 failed; 0 skipped; finished in 129.79ms (128.63ms CPU time)
+
+Ran 12 tests for test/Harvesters.t.sol:LockerHarvesterTest
+[PASS] testDelayChangeDoesNotAcceleratePending() (gas: 69173)
+[PASS] testDestinationFreezeAllPaths() (gas: 35531)
+[PASS] testHarvestPermissionlessFixedAndInterval() (gas: 98642)
+[PASS] testRecoveryAfterPermissionlessRelease() (gas: 112123)
+[PASS] testRecoveryOnlyAfterUnlock() (gas: 132917)
+[PASS] testRecoveryOwnerOnly() (gas: 23764)
+[PASS] testRecoveryRejectsMissingLockerOwnership() (gas: 4453282)
+[PASS] testRecoveryRejectsZeroRecipientAndSecondRecovery() (gas: 134518)
+[PASS] testRejectExcessiveInterval() (gas: 126921)
+[PASS] testRejectLockerWithoutPosition() (gas: 755729)
+[PASS] testRejectWrongConfiguredId() (gas: 133785)
+[PASS] testTimelockAndCancellation() (gas: 107935)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 5.77ms (4.25ms CPU time)
+
+Ran 1 test for test/Integration.t.sol:IntegrationTest
+[PASS] testFullFeeCycleConcurrentRoundsRetryAndEarlyClose() (gas: 1477936)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 7.10ms (4.19ms CPU time)
+
+Ran 1 test for test/LegacyFork.t.sol:LegacyForkTest
+[PASS] testForkRealModuleClaimsBothSafesAfterLockerCollection() (gas: 1218962)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 772.98ms (4.82ms CPU time)
+
+Ran 10 tests for test/LegacyFees.t.sol:LegacyFeesTest
+[PASS] testConstructorRejectsDisabledModule() (gas: 93468)
+[PASS] testConstructorRejectsInvalidAddresses() (gas: 346009)
+[PASS] testDisabledModuleCannotHarvest() (gas: 119239)
+[PASS] testEmptySafeIsNoOp() (gas: 29747)
+[PASS] testFuzzCallerCannotRedirect(address,uint96) (runs: 256, μ: 127612, ~: 129287)
+[PASS] testHistoricalSafeUsesSameCreatorAndFixedDestination() (gas: 1371905)
+[PASS] testLegacyAuthorityRequiredEvenWhenEmpty() (gas: 44273)
+[PASS] testPermissionlessHarvestIncludesHistoricFeesAndKeepsOtherAssets() (gas: 1209082)
+[PASS] testRecipientTransferFailurePreservesFees() (gas: 142028)
+[PASS] testRejectsEmptyAndDuplicateSafeList() (gas: 160068)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 100.06ms (99.10ms CPU time)
+
+Ran 7 tests for test/SepoliaSupport.t.sol:SepoliaSupportTest
+[PASS] testCollectRequiresPositionOwnership() (gas: 168274)
+[PASS] testFaucetIsOpenButBlockingIsAdminOnly() (gas: 120774)
+[PASS] testFeeAmountsStayAdjustableAfterOwnershipHandoff() (gas: 35440)
+[PASS] testOnlyFeeAdminAdjustsFeesAndTheRoleIsTransferable() (gas: 49443)
+[PASS] testPositionFeesAreAdminOnly() (gas: 292945)
+[PASS] testQuoterAgreesWithTheRouterItQuotesFor() (gas: 1058330)
+[PASS] testRouterHonoursDeadlineAndMinimumOutput() (gas: 676627)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 15.21ms (14.25ms CPU time)
+
+Ran 2 tests for test/NativeVammFork.t.sol:NativeVammForkTest
+[PASS] testNativeVammPreviousFeesStayWithPriorOwnerAndTopUpsInheritLock() (gas: 722815)
+[PASS] testNativeVammThreeSixHourClaimsAndAutomaticHolderPush() (gas: 1824688)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 850.04ms (59.57ms CPU time)
+
+Ran 4 tests for test/NativeAeroPositionFork.t.sol:NativeAeroPositionForkTest
+[PASS] testNativeDelayedNftHandoffAndPermanentLocksKeepFeesWorking() (gas: 8422915)
+[PASS] testNativeExternalTopUpsKeepPermanentLockAndFeeRouting() (gas: 8699882)
+[PASS] testNativeExternalWalletAddsLiquidityTwiceAfterNftHandoff() (gas: 8563240)
+[PASS] testNativeNewAeroPositionTradesCollectBurnAndRewardPush() (gas: 8297339)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 669.66ms (115.19ms CPU time)
+
+Ran 2 tests for test/audit/FinalNativeMarketBounds.t.sol:FinalNativeMarketBoundsTest
+[PASS] testNativeMovedMarketSensitivityAtIndependentQuotedMinimums() (gas: 18959940)
+[PASS] testNativePremanipulationMinimumRejectsLargerPriceMove() (gas: 5457585)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 904.41ms (138.43ms CPU time)
+
+Ran 5 tests for test/BaseFork.t.sol:BaseForkTest
+[PASS] testForkActualUnlockRecovery() (gas: 2018065)
+[SKIP] testForkOptionalAeroCollect() (gas: 0)
+[PASS] testForkRealLockerHarvestFixedDestinationAndProtocolCut() (gas: 5231255)
+[PASS] testForkSpcxcRealTransferAndPush() (gas: 4093901)
+[PASS] testForkVerifiedLockerAndDickbuttFacts() (gas: 39888)
+Suite result: ok. 4 passed; 0 failed; 1 skipped; finished in 981.71ms (3.91ms CPU time)
+
+Ran 1 test for test/RealSwapFork.t.sol:RealSwapForkTest
+[PASS] testNativeSpcxcActualTwoHopSwap() (gas: 3954678)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 979.76ms (4.14ms CPU time)
+
+Ran 15 tests for test/ProposerGuardian.t.sol:ProposerGuardianTest
+[PASS] testCapIsRecomputedAgainstUnreservedBalanceNotRawBalance() (gas: 263256)
+[PASS] testDefaultsAreTheAgreedPolicy() (gas: 45513)
+[PASS] testDustBalanceFloorsTheCapToZero() (gas: 4988948)
+[PASS] testFuzzCapNeverAdmitsMoreThanItsShare(uint96,uint16,uint96) (runs: 256, μ: 4895729, ~: 4857681)
+[PASS] testGuardianFollowsOwnershipUnlessSplit() (gas: 4842108)
+[PASS] testGuardianPauseEndsTheCancelRace() (gas: 194811)
+[PASS] testLimitSettersRejectUnreasonableValues() (gas: 44802)
+[PASS] testPauseNeverStrandsAlreadyCommittedRewards() (gas: 285322)
+[PASS] testRateLimitSpacesProposalsAndCancelDoesNotRefundTheSlot() (gas: 291540)
+[PASS] testRoleAuthorisation() (gas: 218093)
+[PASS] testShareCapBoundsASingleRound() (gas: 188221)
+[PASS] testSixHourRoundsPaySixHoursApartAfterEachTwentyFourHourDelay() (gas: 764266)
+[PASS] testZeroDelayAppliesOnlyToNewProposals() (gas: 331238)
+[PASS] testZeroDelayHasNoGuaranteedGuardianCancellationWindow() (gas: 208012)
+[PASS] testZeroDelayPaysAtSixAndTwelveHoursWithoutAnotherWait() (gas: 604560)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 289.10ms (292.90ms CPU time)
+
+Ran 7 tests for test/SwapExecutor.t.sol:SwapExecutorTest
+[PASS] testDeadlineExpiryFloorRoundingAndStricterKeeperMinimum() (gas: 787404)
+[PASS] testFloorSetterIsNarrowAndBoundedAndExclusiveWithKeeper() (gas: 236499)
+[PASS] testFuzzWholeAllocation(uint128) (runs: 256, μ: 413638, ~: 413638)
+[PASS] testKeeperAndOwnerBoundariesAndProtectedTokens() (gas: 270497)
+[PASS] testMissingFloorFailsClosedAndInvalidRouteRejected() (gas: 3462522)
+[PASS] testRejectsLyingOutputAndIncompleteInputWithAtomicRollback() (gas: 734946)
+[PASS] testSwapsWholeCappedAllocationToFixedDistributor() (gas: 511928)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 149.30ms (153.71ms CPU time)
+
+Ran 8 tests for test/SplitsBaseFork.t.sol:SplitsBaseForkTest
+[PASS] testDustAndWarehouseBalancesRemainAtProtocolDestinations() (gas: 414701)
+[PASS] testEmptyAndProtocolReserveOnlyDoNotAttemptTokenTransfers() (gas: 278474)
+[PASS] testFuzzProtocolRoundingAndConservation(uint128) (runs: 256, μ: 245782, ~: 250871)
+[PASS] testProtocolFactoryOwnerConfigAndTokenSpecificRouting() (gas: 475834)
+[PASS] testRejectsModifiedDistributionAndAdapterHasNoArbitraryTokenRoute() (gas: 169317)
+[PASS] testRejectsZeroDuplicateAndNonContractConfiguration() (gas: 373848)
+[PASS] testUpstreamRecipientFailureRollsBackTheWholeRoute() (gas: 355794)
+[PASS] testWarehouseOnlyFundsStillDistributeAndRetainOneRawUnit() (gas: 342430)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 998.58ms (196.22ms CPU time)
+
+Ran 10 tests for test/VammHarvester.t.sol:VammHarvesterTest
+[PASS] testClaimAndForwardFailuresRollBackAccounting() (gas: 636763)
+[PASS] testCooldownBoundariesAndEmptyHarvestAreSafe() (gas: 371976)
+[PASS] testDelayFreezeAndTwoStepOwnerHandoff() (gas: 126593)
+[PASS] testFuzzClaimRoutesBothSidesWithoutConsumingLP(uint96,uint96) (runs: 256, μ: 382508, ~: 385291)
+[PASS] testLockCanOnlyExtendAndBadRecipientsAreRejected() (gas: 217450)
+[PASS] testNoLPRequiredToFlushPreviouslyBookedFeesOrDonations() (gas: 417024)
+[PASS] testPermanentLockProtectsLaterContributionsButClaimsContinue() (gas: 397087)
+[PASS] testPoolCallbackCannotReenterHarvest() (gas: 354951)
+[PASS] testRejectsWrongFactoryPairAndStablePool() (gas: 3247877)
+[PASS] testRescueCannotBypassLPLockAndOnlyOwnerCanWithdraw() (gas: 222777)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 341.32ms (344.29ms CPU time)
+
+Ran 5 tests for test/NativeBatchFork.t.sol:NativeBatchForkTest
+[PASS] testNative256RecipientBatchAndIdempotentRepeat() (gas: 30091032)
+[PASS] testNative3000RecipientRoundAt200PerBatch() (gas: 391393207)
+[PASS] testNative3000RecipientRoundAt200PerBatchWithZeroDelay() (gas: 391373213)
+[PASS] testNative3000RecipientRoundInBatchesAndIdempotentRepeat() (gas: 391383233)
+[PASS] testNative400RecipientBatchExceedsCurrentTransactionGasCap() (gas: 46320719)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.85s (3.18s CPU time)
+
+Ran 1 test for test/audit/AccountingInvariant.t.sol:AccountingSecurityAuditInvariantTest
+[PASS] invariantTwoRecipientPartialPaymentsAndConcurrentReserves() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------------+----------+-------+---------+----------╮
+| Contract               | Selector | Calls | Reverts | Discards |
++================================================================+
+| AuditAccountingHandler | step     | 8192  | 0       | 0        |
+╰------------------------+----------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 3.83s (3.83s CPU time)
+
+Ran 1 test for test/ReservationInvariant.t.sol:ReservationZeroDelayInvariantTest
+[PASS] invariantReservationConservationAndNoDoublePayment() (runs: 128, calls: 8192, reverts: 0)
+
+╭-----------------------------+-------------+-------+---------+----------╮
+| Contract                    | Selector    | Calls | Reverts | Discards |
++========================================================================+
+| ReservationZeroDelayHandler | activate    | 1016  | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | advanceTime | 994   | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | cancel      | 1033  | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | close       | 1006  | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | fund        | 1034  | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | guidance    | 1052  | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | pay         | 1030  | 0       | 0        |
+|-----------------------------+-------------+-------+---------+----------|
+| ReservationZeroDelayHandler | propose     | 1027  | 0       | 0        |
+╰-----------------------------+-------------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 3.97s (3.97s CPU time)
+
+Ran 1 test for test/audit/VammInvariant.t.sol:VammAuditInvariantTest
+[PASS] invariantPrincipalAndTokenConservationAcrossHostileSequences() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+------------+-------+---------+----------╮
+| Contract         | Selector   | Calls | Reverts | Discards |
++============================================================+
+| VammAuditHandler | accrue     | 1025  | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | advance    | 1019  | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | attack     | 1027  | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | contribute | 1037  | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | donate     | 987   | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | fault      | 1013  | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | harvest    | 1023  | 0       | 0        |
+|------------------+------------+-------+---------+----------|
+| VammAuditHandler | policy     | 1061  | 0       | 0        |
+╰------------------+------------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 3.77s (3.77s CPU time)
+
+Ran 2 tests for test/GoldenMerkle.t.sol:GoldenMerkleTest
+[PASS] testCommittedGoldenVectorsExecuteInActualDistributor() (gas: 10373742)
+[PASS] testFuzzMerkleSingleLeaf(uint256,address,uint96) (runs: 256, μ: 4837, ~: 4837)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 3.85s (3.85s CPU time)
+
+Ran 1 test for test/ReservationInvariant.t.sol:ReservationDefaultLimitsInvariantTest
+[PASS] invariantReservationConservationAndNoDoublePayment() (runs: 128, calls: 8192, reverts: 0)
+
+╭---------------------------------+-------------+-------+---------+----------╮
+| Contract                        | Selector    | Calls | Reverts | Discards |
++============================================================================+
+| ReservationDefaultLimitsHandler | activate    | 1016  | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | advanceTime | 994   | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | cancel      | 1033  | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | close       | 1006  | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | fund        | 1034  | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | guidance    | 1052  | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | pay         | 1030  | 0       | 0        |
+|---------------------------------+-------------+-------+---------+----------|
+| ReservationDefaultLimitsHandler | propose     | 1027  | 0       | 0        |
+╰---------------------------------+-------------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 4.10s (4.10s CPU time)
+
+Ran 1 test for test/ReservationInvariant.t.sol:ReservationInvariantTest
+[PASS] invariantReservationConservationAndNoDoublePayment() (runs: 128, calls: 8192, reverts: 0)
+
+╭--------------------+----------+-------+---------+----------╮
+| Contract           | Selector | Calls | Reverts | Discards |
++============================================================+
+| ReservationHandler | activate | 1127  | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | cancel   | 1199  | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | close    | 1194  | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | fund     | 1171  | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | guidance | 1202  | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | pay      | 1168  | 0       | 0        |
+|--------------------+----------+-------+---------+----------|
+| ReservationHandler | propose  | 1131  | 0       | 0        |
+╰--------------------+----------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 6.86s (6.86s CPU time)
+
+Ran 27 test suites in 6.87s (36.40s CPU time): 157 tests passed, 0 failed, 1 skipped (158 total tests)
+
+╭------------------------------------------+------------------+-------------------+------------------+------------------╮
+| File                                     | % Lines          | % Statements      | % Branches       | % Funcs          |
++=======================================================================================================================+
+| script/DeployMocks.s.sol                 | 0.00% (0/25)     | 0.00% (0/35)      | 0.00% (0/4)      | 0.00% (0/1)      |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| script/SepoliaSupport.sol                | 78.16% (68/87)   | 77.14% (54/70)    | 12.20% (5/41)    | 70.83% (17/24)   |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/AerodromeFeeHarvester.sol            | 100.00% (72/72)  | 100.00% (64/64)   | 32.00% (16/50)   | 100.00% (12/12)  |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/AerodromeVammHarvester.sol           | 100.00% (71/71)  | 100.00% (90/90)   | 46.55% (27/58)   | 100.00% (12/12)  |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/DickbuttRewardsDistributor.sol       | 99.17% (120/121) | 99.12% (113/114)  | 26.98% (17/63)   | 100.00% (23/23)  |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/FeeSplitter.sol                      | 94.74% (72/76)   | 93.75% (75/80)    | 44.44% (20/45)   | 90.00% (9/10)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/LegacyFeeHarvester.sol               | 100.00% (27/27)  | 100.00% (36/36)   | 42.11% (8/19)    | 100.00% (6/6)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/LockerHarvester.sol                  | 100.00% (55/55)  | 100.00% (50/50)   | 39.02% (16/41)   | 100.00% (9/9)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/SpcxcSwapExecutor.sol                | 94.52% (69/73)   | 94.03% (63/67)    | 50.00% (27/54)   | 91.67% (11/12)   |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| src/SplitsFeeRouter.sol                  | 100.00% (50/50)  | 100.00% (64/64)   | 54.17% (13/24)   | 100.00% (7/7)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/FeeSplitter.t.sol                   | 100.00% (12/12)  | 100.00% (11/11)   | 100.00% (1/1)    | 100.00% (3/3)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/Harvesters.t.sol                    | 100.00% (31/31)  | 100.00% (23/23)   | 45.45% (5/11)    | 100.00% (9/9)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/Integration.t.sol                   | 75.00% (15/20)   | 80.00% (12/15)    | 33.33% (2/6)     | 66.67% (4/6)     |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/LegacyFees.t.sol                    | 100.00% (12/12)  | 100.00% (12/12)   | 12.50% (1/8)     | 100.00% (6/6)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/RehearsalMocks.sol                  | 0.00% (0/1)      | 0.00% (0/1)       | 100.00% (0/0)    | 0.00% (0/1)      |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/ReservationInvariant.t.sol          | 100.00% (33/33)  | 98.61% (71/72)    | 85.71% (6/7)     | 100.00% (13/13)  |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/Support.sol                         | 100.00% (7/7)    | 100.00% (6/6)     | 50.00% (2/4)     | 100.00% (5/5)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/SwapExecutor.t.sol                  | 100.00% (7/7)    | 100.00% (11/11)   | 100.00% (1/1)    | 100.00% (3/3)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/VammHarvester.t.sol                 | 100.00% (22/22)  | 100.00% (33/33)   | 50.00% (6/12)    | 100.00% (10/10)  |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/audit/AccountingInvariant.t.sol     | 70.00% (35/50)   | 79.82% (91/114)   | 32.50% (13/40)   | 75.00% (3/4)     |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/audit/DistributorSecurity.t.sol     | 100.00% (23/23)  | 100.00% (34/34)   | 100.00% (3/3)    | 100.00% (6/6)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/audit/FinalContractBoundaries.t.sol | 97.06% (33/34)   | 95.45% (42/44)    | 88.89% (8/9)     | 100.00% (9/9)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| test/audit/VammInvariant.t.sol           | 100.00% (16/16)  | 96.00% (24/25)    | 50.00% (1/2)     | 100.00% (9/9)    |
+|------------------------------------------+------------------+-------------------+------------------+------------------|
+| Total                                    | 91.89% (850/925) | 91.41% (979/1071) | 39.36% (198/503) | 93.00% (186/200) |
+╰------------------------------------------+------------------+-------------------+------------------+------------------╯
+Wrote LCOV report.

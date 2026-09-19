@@ -29,7 +29,16 @@ export function parseScheduleArgs(args) {
   if (o.help) return o;
   if (!['systemd', 'cron', 'plan'].includes(o.format)) throw Error('--format must be systemd, cron or plan');
   if (o.host && !JOBS.some(j => j.host === o.host)) throw Error(`unknown host: ${o.host}`);
+  validateRenderOptions(o);
   return o;
+}
+
+function validateRenderOptions(o) {
+  for (const key of ['workdir','manifest','calculator','journal']) {
+    if (typeof o[key] !== 'string' || !o[key].length || /[\0\r\n]/.test(o[key])) {
+      throw Error(`scheduler ${key} must be a nonempty path without control characters`);
+    }
+  }
 }
 
 const substitute = (command, o) => command.map(part => part
@@ -39,9 +48,19 @@ const substitute = (command, o) => command.map(part => part
 
 const shellQuote = part => (/^[\w@%+=:,./-]+$/.test(part) ? part : `'${part.replaceAll("'", `'\\''`)}'`);
 
+// systemd parses its own argument syntax, then expands $ and % even inside quotes. Preserve
+// literal paths and the shell's positional arguments instead of letting systemd consume them.
+const systemdValue = part => {
+  if (/[\0\r\n]/.test(part)) throw Error('scheduler arguments must not contain control characters');
+  const escaped = part.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('%', '%%');
+  return /^[\w@+=:,./-]+$/.test(escaped) ? escaped : `"${escaped}"`;
+};
+const systemdQuote = part => systemdValue(part.replaceAll('$', () => '$$'));
+
 export function renderSystemd(jobs, o) {
+  validateRenderOptions(o);
   return jobs.map(job => {
-    const exec = substitute(job.command, o).map(shellQuote).join(' ');
+    const exec = substitute(job.command, o).map(systemdQuote).join(' ');
     const keys = [job.key, ...(job.alsoNeeds ?? [])].filter(Boolean);
     return `# ---- ${job.name} (host: ${job.host}) ----
 # ${job.description}
@@ -53,9 +72,9 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=${o.workdir}
+WorkingDirectory=${systemdValue(o.workdir)}
 # RPC_URL plus ${keys.length ? keys.join(', ') : 'no signing key'}
-EnvironmentFile=${o.workdir}/env/${job.host}.env
+EnvironmentFile=${systemdValue(`${o.workdir}/env/${job.host}.env`)}
 ExecStart=${exec}
 # Exit 2 is "needs a human", not a crash loop. Alert on it; do not restart into it.
 SuccessExitStatus=0 2
@@ -77,18 +96,28 @@ WantedBy=timers.target`;
 }
 
 export function renderCron(jobs, o) {
+  validateRenderOptions(o);
+  // Vixie/Cronie consume backslashes before passing command text to the shell. In particular,
+  // a filename's literal backslash before an escaped percent can unescape that percent and
+  // truncate the command. Keep cron paths unambiguous instead of silently changing a filename.
+  for (const key of ['workdir','manifest','calculator','journal']) {
+    if (o[key].includes('\\')) throw Error(`cron ${key} must not contain backslashes; choose a Unix path without them`);
+  }
   const spec = seconds => {
     if (seconds < 3600) return `*/${Math.max(1, Math.round(seconds / 60))} * * * *`;
     if (seconds < 86400) return `0 */${Math.round(seconds / 3600)} * * *`;
     return '0 3 * * *';
   };
   const lines = jobs.map(job => {
-    const exec = substitute(job.command, o).map(shellQuote).join(' ');
+    const parts = substitute(job.command, o);
+    if ([o.workdir, ...parts].some(part => /[\0\r\n]/.test(part))) throw Error('scheduler arguments must not contain control characters');
+    // Cron handles percent signs before the shell, including inside quoted arguments.
+    const exec = parts.map(shellQuote).join(' ').replaceAll('%', '\\%');
     const keys = [job.key, ...(job.alsoNeeds ?? [])].filter(Boolean);
     return `# ${job.name} (host: ${job.host}) -- ${job.description}
 # needs: RPC_URL${keys.length ? ', ' + keys.join(', ') : ' only; no signing key'}
 # ${job.attention}
-${spec(job.everySeconds)} cd ${o.workdir} && ${exec} >> /var/log/dickbutt/${job.name}.log 2>&1`;
+${spec(job.everySeconds)} cd ${shellQuote(o.workdir).replaceAll('%', '\\%')} && ${exec} >> /var/log/dickbutt/${job.name}.log 2>&1`;
   });
   return ['# Load secrets from the host environment, never from this file.', ...lines].join('\n\n');
 }

@@ -1,0 +1,482 @@
+
+Detector: incorrect-exp
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) has bitwise-xor operator ^ instead of the exponentiation operator **:
+	 - inverse = (3 * denominator) ^ 2 (node_modules/@openzeppelin/contracts/utils/math/Math.sol#184)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-exponentiation
+
+Detector: reentrancy-balance
+Reentrancy in LegacyFeeHarvester._harvest(uint256) (src/LegacyFeeHarvester.sol#52-61):
+	External call allowing reentrancy:
+	- feeModule.tokenCreatorTransfer(feeSafe,address(token),destination) (src/LegacyFeeHarvester.sol#57)
+	Balance read before the call:
+	- beforeBalance = token.balanceOf(destination) (src/LegacyFeeHarvester.sol#56)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(amount > 0,no fees received) (src/LegacyFeeHarvester.sol#59)
+		- stale variable `amount`
+Reentrancy in AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96):
+	External call allowing reentrancy:
+	- pool.claimFees() (src/AerodromeVammHarvester.sol#89)
+	Balance read before the call:
+	- principal = pool.balanceOf(address(this)) (src/AerodromeVammHarvester.sol#87)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(pool.balanceOf(address(this)) == principal,LP principal changed) (src/AerodromeVammHarvester.sol#90)
+		- stale variable `principal`
+Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),amount) (src/SpcxcSwapExecutor.sol#124)
+	Balance read before the call:
+	- beforeOut = spcxc.balanceOf(distributor) (src/SpcxcSwapExecutor.sol#123)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)
+		- stale variable `spcxcOut`
+Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),amount) (src/SpcxcSwapExecutor.sol#124)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/SpcxcSwapExecutor.sol#116)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)
+		- stale variable `minimum`
+Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):
+	External call allowing reentrancy:
+	- router.exactInput(ISpcxcSwapRouter.ExactInputParams(swapPath,distributor,deadline,amount,minimum)) (src/SpcxcSwapExecutor.sol#125)
+	Balance read before the call:
+	- beforeOut = spcxc.balanceOf(distributor) (src/SpcxcSwapExecutor.sol#123)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)
+		- stale variable `spcxcOut`
+Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):
+	External call allowing reentrancy:
+	- router.exactInput(ISpcxcSwapRouter.ExactInputParams(swapPath,distributor,deadline,amount,minimum)) (src/SpcxcSwapExecutor.sol#125)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/SpcxcSwapExecutor.sol#116)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)
+		- stale variable `minimum`
+Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),0) (src/SpcxcSwapExecutor.sol#126)
+	Balance read before the call:
+	- beforeOut = spcxc.balanceOf(distributor) (src/SpcxcSwapExecutor.sol#123)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)
+		- stale variable `spcxcOut`
+Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),0) (src/SpcxcSwapExecutor.sol#126)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/SpcxcSwapExecutor.sol#116)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)
+		- stale variable `minimum`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- weth.safeTransfer(kcGreen,toKcGreen) (src/FeeSplitter.sol#138)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `minimum`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- weth.safeTransfer(cdbVault,toCdbVault) (src/FeeSplitter.sol#139)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `minimum`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),toSwap) (src/FeeSplitter.sol#141)
+	Balance read before the call:
+	- beforeOut = spcxc.balanceOf(distributor) (src/FeeSplitter.sol#140)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `spcxcOut`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),toSwap) (src/FeeSplitter.sol#141)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `minimum`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- router.exactInput(ISwapRouter.ExactInputParams(swapPath,distributor,deadline,toSwap,minimum)) (src/FeeSplitter.sol#142)
+	Balance read before the call:
+	- beforeOut = spcxc.balanceOf(distributor) (src/FeeSplitter.sol#140)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `spcxcOut`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- router.exactInput(ISwapRouter.ExactInputParams(swapPath,distributor,deadline,toSwap,minimum)) (src/FeeSplitter.sol#142)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `minimum`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),0) (src/FeeSplitter.sol#143)
+	Balance read before the call:
+	- beforeOut = spcxc.balanceOf(distributor) (src/FeeSplitter.sol#140)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `spcxcOut`
+Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):
+	External call allowing reentrancy:
+	- weth.forceApprove(address(router),0) (src/FeeSplitter.sol#143)
+	Balance read before the call:
+	- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)
+	Possible stale balance used after the call in a condition:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)
+		- stale variable `balance`
+	- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)
+		- stale variable `minimum`
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities
+
+Detector: divide-before-multiply
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse = (3 * denominator) ^ 2 (node_modules/@openzeppelin/contracts/utils/math/Math.sol#184)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse *= 2 - denominator * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#188)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse *= 2 - denominator * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#189)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse *= 2 - denominator * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#190)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse *= 2 - denominator * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#191)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse *= 2 - denominator * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#192)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- denominator = denominator / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#169)
+	- inverse *= 2 - denominator * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#193)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) performs a multiplication on the result of a division:
+	- prod0 = prod0 / twos (node_modules/@openzeppelin/contracts/utils/math/Math.sol#172)
+	- result = prod0 * inverse (node_modules/@openzeppelin/contracts/utils/math/Math.sol#199)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+
+Detector: incorrect-equality
+AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96) uses a dangerous strict equality:
+	- require(bool,string)(pool.balanceOf(address(this)) == principal,LP principal changed) (src/AerodromeVammHarvester.sol#90)
+DickbuttRewardsDistributor.nextProposalAllowedAt() (src/DickbuttRewardsDistributor.sol#397-399) uses a dangerous strict equality:
+	- lastProposalAt == 0 (src/DickbuttRewardsDistributor.sol#398)
+FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148) uses a dangerous strict equality:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)
+LegacyFeeHarvester._harvest(uint256) (src/LegacyFeeHarvester.sol#52-61) uses a dangerous strict equality:
+	- token.balanceOf(feeSafe) == 0 (src/LegacyFeeHarvester.sol#55)
+SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131) uses a dangerous strict equality:
+	- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+
+Detector: locked-ether
+Contract locking ether found:
+	Contract SepoliaSwapRouter (script/SepoliaSupport.sol#23-47) has payable functions:
+	 - SepoliaSwapRouter.exactInput(ISpcxcSwapRouter.ExactInputParams) (script/SepoliaSupport.sol#40-46)
+	But does not have a function to withdraw the ether
+Contract locking ether found:
+	Contract SepoliaPositionManager (script/SepoliaSupport.sol#173-211) has payable functions:
+	 - SepoliaPositionManager.collect(INonfungiblePositionManager.CollectParams) (script/SepoliaSupport.sol#199-210)
+	But does not have a function to withdraw the ether
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#contracts-that-lock-ether
+
+Detector: reentrancy-no-eth
+Reentrancy in DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293):
+	External calls:
+	- this.executeTransfer(account,amount) (src/DickbuttRewardsDistributor.sol#278-287)
+	State variables written after the call(s):
+	- paid[roundId][account] = true (src/DickbuttRewardsDistributor.sol#274)
+	DickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72) can be used in cross function reentrancies:
+	- DickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72)
+	- paid[roundId][account] = false (src/DickbuttRewardsDistributor.sol#285)
+	DickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72) can be used in cross function reentrancies:
+	- DickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72)
+	- r.distributed += batchPaid (src/DickbuttRewardsDistributor.sol#290)
+	DickbuttRewardsDistributor.rounds (src/DickbuttRewardsDistributor.sol#64) can be used in cross function reentrancies:
+	- DickbuttRewardsDistributor.activateRound(uint256) (src/DickbuttRewardsDistributor.sol#208-218)
+	- DickbuttRewardsDistributor.cancelPendingRound(uint256) (src/DickbuttRewardsDistributor.sol#194-201)
+	- DickbuttRewardsDistributor.closeRound(uint256) (src/DickbuttRewardsDistributor.sol#224-238)
+	- DickbuttRewardsDistributor.roundInfo(uint256) (src/DickbuttRewardsDistributor.sol#401-408)
+	- DickbuttRewardsDistributor.rounds (src/DickbuttRewardsDistributor.sol#64)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+
+Detector: uninitialized-local
+DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]).batchPaid (src/DickbuttRewardsDistributor.sol#260) is a local variable never initialized
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-local-variables
+
+Detector: unused-return
+AerodromeFeeHarvester.harvest() (src/AerodromeFeeHarvester.sol#133-152) ignores return value by positionManager.collect(INonfungiblePositionManager.CollectParams({tokenId:tokenId,recipient:address(this),amount0Max:type()(uint128).max,amount1Max:type()(uint128).max})) (src/AerodromeFeeHarvester.sol#139-143)
+AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96) ignores return value by pool.claimFees() (src/AerodromeVammHarvester.sol#89)
+FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148) ignores return value by router.exactInput(ISwapRouter.ExactInputParams(swapPath,distributor,deadline,toSwap,minimum)) (src/FeeSplitter.sol#142)
+SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131) ignores return value by router.exactInput(ISpcxcSwapRouter.ExactInputParams(swapPath,distributor,deadline,amount,minimum)) (src/SpcxcSwapExecutor.sol#125)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+
+Detector: missing-zero-check
+SepoliaLocker.constructor(address,address,address,address,uint256).manager_ (script/SepoliaSupport.sol#127) lacks a zero-check on :
+		- manager = manager_ (script/SepoliaSupport.sol#128)
+SepoliaLocker.constructor(address,address,address,address,uint256).owner_ (script/SepoliaSupport.sol#127) lacks a zero-check on :
+		- owner = owner_ (script/SepoliaSupport.sol#131)
+SepoliaLocker.transferOwnership(address).to (script/SepoliaSupport.sol#151) lacks a zero-check on :
+		- owner = to (script/SepoliaSupport.sol#153)
+Ownable2Step.transferOwnership(address).newOwner (node_modules/@openzeppelin/contracts/access/Ownable2Step.sol#35) lacks a zero-check on :
+		- _pendingOwner = newOwner (node_modules/@openzeppelin/contracts/access/Ownable2Step.sol#36)
+AerodromeVammHarvester.constructor(address,address,address,address,address,address,uint256,uint256,address).spcxcDestination_ (src/AerodromeVammHarvester.sol#60) lacks a zero-check on :
+		- spcxcDestination = spcxcDestination_ (src/AerodromeVammHarvester.sol#80)
+AerodromeVammHarvester.proposeDestination(address).newDestination (src/AerodromeVammHarvester.sol#106) lacks a zero-check on :
+		- pendingDestination = newDestination (src/AerodromeVammHarvester.sol#109)
+DickbuttRewardsDistributor.constructor(address,uint256,address).owner_ (src/DickbuttRewardsDistributor.sol#143) lacks a zero-check on :
+		- guardian = owner_ (src/DickbuttRewardsDistributor.sol#147)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
+
+Detector: calls-loop
+DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293) has external calls inside a loop: this.executeTransfer(account,amount) (src/DickbuttRewardsDistributor.sol#278-287)
+LegacyFeeHarvester.constructor(address,address[],address,address) (src/LegacyFeeHarvester.sol#28-42) has external calls inside a loop: require(bool,string)(ILegacyFeeSafe(feeSafes_[i]).isModuleEnabled(feeModule_),module not enabled) (src/LegacyFeeHarvester.sol#35)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
+
+Detector: reentrancy-benign
+Reentrancy in DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293):
+	External calls:
+	- this.executeTransfer(account,amount) (src/DickbuttRewardsDistributor.sol#278-287)
+	State variables written after the call(s):
+	- totalReserved -= batchPaid (src/DickbuttRewardsDistributor.sol#292)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+
+Detector: timestamp
+SepoliaSwapRouter.exactInput(ISpcxcSwapRouter.ExactInputParams) (script/SepoliaSupport.sol#40-46) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp <= p.deadline,expired) (script/SepoliaSupport.sol#41)
+SepoliaLocker.release() (script/SepoliaSupport.sol#159-162) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= duration,locked) (script/SepoliaSupport.sol#160)
+AerodromeFeeHarvester.constructor(address,uint256,address,address,address,address,uint256,uint256,address) (src/AerodromeFeeHarvester.sol#94-122) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(unlockTime_ > block.timestamp && unlockTime_ <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeFeeHarvester.sol#112)
+AerodromeFeeHarvester.harvest() (src/AerodromeFeeHarvester.sol#133-152) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(lastHarvestAt == 0 || block.timestamp >= lastHarvestAt + minInterval,too soon) (src/AerodromeFeeHarvester.sol#134)
+AerodromeFeeHarvester.applyDestination() (src/AerodromeFeeHarvester.sol#171-181) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= pendingDestinationReadyAt,still timelocked) (src/AerodromeFeeHarvester.sol#174)
+AerodromeFeeHarvester.extendLock(uint256) (src/AerodromeFeeHarvester.sol#213-220) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(newUnlockTime > block.timestamp && newUnlockTime <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeFeeHarvester.sol#216-218)
+AerodromeFeeHarvester.withdrawPosition(address) (src/AerodromeFeeHarvester.sol#224-230) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= unlockTime,still locked) (src/AerodromeFeeHarvester.sol#226)
+AerodromeVammHarvester.constructor(address,address,address,address,address,address,uint256,uint256,address) (src/AerodromeVammHarvester.sol#58-81) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(unlockTime_ > block.timestamp && unlockTime_ <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeVammHarvester.sol#75)
+AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(lastHarvestAt == 0 || block.timestamp >= lastHarvestAt + minInterval,too soon) (src/AerodromeVammHarvester.sol#86)
+AerodromeVammHarvester.applyDestination() (src/AerodromeVammHarvester.sol#112-119) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= pendingDestinationReadyAt,still timelocked) (src/AerodromeVammHarvester.sol#115)
+AerodromeVammHarvester.extendLock(uint256) (src/AerodromeVammHarvester.sol#135-140) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(newUnlockTime > block.timestamp && newUnlockTime <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeVammHarvester.sol#138)
+AerodromeVammHarvester.withdrawLiquidity(address,uint256) (src/AerodromeVammHarvester.sol#143-150) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= unlockTime,still locked) (src/AerodromeVammHarvester.sol#145)
+DickbuttRewardsDistributor.proposeRound(bytes32,uint256) (src/DickbuttRewardsDistributor.sol#163-186) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(lastProposalAt == 0 || block.timestamp >= lastProposalAt + minRoundInterval,round interval not elapsed) (src/DickbuttRewardsDistributor.sol#167-170)
+DickbuttRewardsDistributor.activateRound(uint256) (src/DickbuttRewardsDistributor.sol#208-218) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(p.root != bytes32(0),nothing pending) (src/DickbuttRewardsDistributor.sol#210)
+	- require(bool,string)(block.timestamp >= p.readyAt,still timelocked) (src/DickbuttRewardsDistributor.sol#211)
+	- require(bool,string)(! rounds[roundId].active && ! rounds[roundId].closed,already activated) (src/DickbuttRewardsDistributor.sol#212)
+DickbuttRewardsDistributor.closeRound(uint256) (src/DickbuttRewardsDistributor.sol#224-238) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(r.active,round not active) (src/DickbuttRewardsDistributor.sol#226)
+DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(r.active,round not active) (src/DickbuttRewardsDistributor.sol#257)
+	- require(bool,string)(MerkleProof.verify(proofs[i],r.root,leaf),invalid proof) (src/DickbuttRewardsDistributor.sol#271)
+	- require(bool,string)(r.distributed <= r.total,round overspend) (src/DickbuttRewardsDistributor.sol#291)
+DickbuttRewardsDistributor.nextProposalAllowedAt() (src/DickbuttRewardsDistributor.sol#397-399) uses timestamp for comparisons
+	Dangerous comparisons:
+	- lastProposalAt == 0 (src/DickbuttRewardsDistributor.sol#398)
+FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(deadline >= block.timestamp,deadline already passed) (src/FeeSplitter.sol#125)
+	- require(bool,string)(minSpcxcPerWeth > 0 && block.timestamp <= priceFloorExpiresAt,price floor expired) (src/FeeSplitter.sol#126)
+	- require(bool,string)(! hasSwapped || block.timestamp - lastSwapAt >= minSwapInterval,cooldown active) (src/FeeSplitter.sol#127)
+FeeSplitter.setPriceFloor(uint256,uint256) (src/FeeSplitter.sol#163-169) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(expiresAt > block.timestamp && expiresAt - block.timestamp <= MAX_FLOOR_LIFETIME,bad expiry) (src/FeeSplitter.sol#165)
+LockerHarvester.harvest() (src/LockerHarvester.sol#114-119) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(lastHarvestAt == 0 || block.timestamp >= lastHarvestAt + minInterval,too soon) (src/LockerHarvester.sol#115)
+LockerHarvester.recoverReleasedPosition(address) (src/LockerHarvester.sol#123-131) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= locker.end(),still locked) (src/LockerHarvester.sol#126)
+LockerHarvester.applyDestination() (src/LockerHarvester.sol#152-162) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= pendingDestinationReadyAt,still timelocked) (src/LockerHarvester.sol#155)
+SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(deadline >= block.timestamp,deadline already passed) (src/SpcxcSwapExecutor.sol#113)
+	- require(bool,string)(minSpcxcPerWeth > 0 && block.timestamp <= priceFloorExpiresAt,price floor expired) (src/SpcxcSwapExecutor.sol#114)
+	- require(bool,string)(! hasSwapped || block.timestamp - lastSwapAt >= minSwapInterval,cooldown active) (src/SpcxcSwapExecutor.sol#115)
+SpcxcSwapExecutor.setPriceFloor(uint256,uint256) (src/SpcxcSwapExecutor.sol#164-171) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(expiresAt > block.timestamp && expiresAt - block.timestamp <= MAX_FLOOR_LIFETIME,bad expiry) (src/SpcxcSwapExecutor.sol#167)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+
+Detector: assembly
+ERC721._checkOnERC721Received(address,address,uint256,bytes) (node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol#465-482) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol#476-478)
+Address._revert(bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#146-158) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Address.sol#151-154)
+Strings.toString(uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#24-44) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Strings.sol#30-32)
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Strings.sol#36-38)
+MerkleProof._efficientHash(bytes32,bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol#224-231) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol#226-230)
+Math.mulDiv(uint256,uint256,uint256) (node_modules/@openzeppelin/contracts/utils/math/Math.sol#123-202) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/math/Math.sol#130-133)
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/math/Math.sol#154-161)
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/math/Math.sol#167-176)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+Detector: pragma
+2 different versions of Solidity are used:
+	- Version constraint ^0.8.20 is used by:
+		-^0.8.20 (node_modules/@openzeppelin/contracts/access/Ownable.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/access/Ownable2Step.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol#3)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/IERC721.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/Context.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/introspection/ERC165.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/math/Math.sol#4)
+		-^0.8.20 (node_modules/@openzeppelin/contracts/utils/math/SignedMath.sol#4)
+	- Version constraint ^0.8.24 is used by:
+		-^0.8.24 (script/SepoliaSupport.sol#2)
+		-^0.8.24 (src/AerodromeFeeHarvester.sol#2)
+		-^0.8.24 (src/AerodromeVammHarvester.sol#2)
+		-^0.8.24 (src/DickbuttRewardsDistributor.sol#2)
+		-^0.8.24 (src/FeeSplitter.sol#2)
+		-^0.8.24 (src/LegacyFeeHarvester.sol#2)
+		-^0.8.24 (src/LockerHarvester.sol#2)
+		-^0.8.24 (src/SpcxcSwapExecutor.sol#2)
+		-^0.8.24 (src/SplitsFeeRouter.sol#2)
+		-^0.8.24 (src/SplitsV2Interfaces.sol#2)
+		-^0.8.24 (test/RehearsalMocks.sol#2)
+		-^0.8.24 (test/Support.sol#2)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+
+Detector: dead-code
+Support.eq(uint256,uint256) (test/Support.sol#13) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+
+Detector: solc-version
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+It is used by:
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/access/Ownable.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/access/Ownable2Step.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol#3)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/IERC721.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/Context.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/introspection/ERC165.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/math/Math.sol#4)
+	- ^0.8.20 (node_modules/@openzeppelin/contracts/utils/math/SignedMath.sol#4)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+
+Detector: low-level-calls
+Low level call in SafeERC20._callOptionalReturnBool(IERC20,bytes) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#110-117):
+	- (success,returndata) = address(token).call(data) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#115)
+Low level call in Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#41-50):
+	- (success,None) = recipient.call{value: amount}() (node_modules/@openzeppelin/contracts/utils/Address.sol#46)
+Low level call in Address.functionCallWithValue(address,bytes,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#83-89):
+	- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#87)
+Low level call in Address.functionStaticCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#95-98):
+	- (success,returndata) = target.staticcall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#96)
+Low level call in Address.functionDelegateCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#104-107):
+	- (success,returndata) = target.delegatecall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#105)
+Low level call in FeeSplitter.rescueETH(address,uint256) (src/FeeSplitter.sol#183-187):
+	- (ok,None) = address(to).call{value: amount}() (src/FeeSplitter.sol#185)
+Low level call in SpcxcSwapExecutor.rescueETH(address,uint256) (src/SpcxcSwapExecutor.sol#185-189):
+	- (ok,None) = address(to).call{value: amount}() (src/SpcxcSwapExecutor.sol#187)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Detector: missing-inheritance
+SepoliaSwapRouter (script/SepoliaSupport.sol#23-47) should inherit from ISpcxcSwapRouter (src/SpcxcSwapExecutor.sol#12-21)
+SepoliaToken (script/SepoliaSupport.sol#71-107) should inherit from IMintable (script/SepoliaSupport.sol#17-19)
+SepoliaPositionManager (script/SepoliaSupport.sol#173-211) should inherit from IMintable (script/SepoliaSupport.sol#17-19)
+SepoliaPositionManager (script/SepoliaSupport.sol#173-211) should inherit from INonfungiblePositionManager (src/AerodromeFeeHarvester.sol#13-22)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-inheritance
+
+Detector: naming-convention
+Function IERC20Permit.DOMAIN_SEPARATOR() (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol#89) is not in mixedCase
+Function IPushSplitFactoryV2.SPLIT_WALLET_IMPLEMENTATION() (src/SplitsV2Interfaces.sol#15) is not in mixedCase
+Function IPushSplitV2.FACTORY() (src/SplitsV2Interfaces.sol#20) is not in mixedCase
+Function IPushSplitV2.SPLITS_WAREHOUSE() (src/SplitsV2Interfaces.sol#21) is not in mixedCase
+Constant Support.vm (test/Support.sol#12) is not in UPPER_CASE_WITH_UNDERSCORES
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+
+Detector: unused-state
+Support.vm (test/Support.sol#12) is never used in Support (test/Support.sol#11-14)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-state-variable
+
+Detector: constable-states
+AerodromeFeeHarvester.destinationDelay (src/AerodromeFeeHarvester.sol#78) should be constant
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+
+Detector: immutable-states
+SepoliaLocker.duration (script/SepoliaSupport.sol#119) should be immutable
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-immutable
+. analyzed (52 contracts with 102 detectors), 99 result(s) found
+--ignore-compile used, if something goes wrong, consider removing the ignore compile flag
+'forge config --json' running

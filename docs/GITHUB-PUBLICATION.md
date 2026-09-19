@@ -1,5 +1,7 @@
 # GitHub publication and snapshot provenance
 
+> Historical September 13 publication record. Current source, findings and tests are in [the final audit](../AUDIT_REPORT.md) and [current handoff](HANDOFF.md); current development review is draft PR #9.
+
 This review branch publishes the tested rewards-operation changes, developer reports and reviewed evidence for `jackdishman/dickbutt`. It targets `main` and does not approve a merge, deployment or custody transfer.
 
 ## Source comparison

@@ -100,6 +100,17 @@ The deploying key is also rejected if it holds any lasting role.
 
 ## Interruptions
 
+Execution takes an exclusive `<manifest>.deployment-lock` and a per-chain deployer lock on this host
+before inspecting the partial ledger. This prevents two deployers overwriting one output, or one
+deployer signing concurrent runs with different outputs. Locks release on ordinary errors. After a
+process crash, inspect `owner.json`, confirm the owning process has stopped, and reconcile the
+deployer's pending nonce and receipts before manually removing its locks. Never share a deploying
+key across hosts: local filesystem locks cannot coordinate other machines.
+
+The driver rechecks latest and pending nonces while holding both locks. It refuses new or resumed
+execution until those nonces match. Let a known pending deployment confirm, or explicitly reconcile
+its replacement/drop, then resume; the script does not guess about ambiguous sends.
+
 Progress is written to `<manifest>.partial` after every deployment and every configuration
 transaction, keyed by step index and arguments. `--resume` continues the same deployment; it refuses
 to continue if the deployer identity, the chain, plan hash, compiled build hash or input hash has changed.

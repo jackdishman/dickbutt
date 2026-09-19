@@ -1,0 +1,472 @@
+
+> dickbutt-rewards-calculator@2.0.0 test
+> node --test --test-concurrency=1 calculator/test/*.test.js test/golden.test.mjs keeper/test/*.test.js operations/test/*.test.js ui/test/*.test.js test/audit/*.test.mjs
+
+✔ paid N+20 and close N+22 cannot recredit at boundary N (3.34ms)
+✔ unproposed plans reserve local funds and cancellation recredits exactly once (1.259875ms)
+✔ mismatched commitments and paid amounts fail without mutating state (1.006333ms)
+✔ finalized required by default with explicit safe opt-in and no fallback (0.228375ms)
+✔ pending and active commitments do not add local reserve or recredit (0.146583ms)
+✔ partial closed round credits unpaid recipients, validating aggregate payment (0.74975ms)
+✔ RPC failure after one round leaves all rounds and accrual unchanged (0.372041ms)
+✔ duplicate, unknown, and out-of-bound payment logs fail closed (0.550292ms)
+✔ pending mapping reserves on chain exactly once even when roundInfo is zero (0.176291ms)
+✔ a foreign root closed at our round id supersedes the plan and recredits exactly once (0.84175ms)
+✔ environment-only calculator refuses an omitted batch size before contacting any RPC (222.28775ms)
+✔ TWAB normalizes casing, self transfers, and endpoint balances (3.495208ms)
+✔ sqrt floor including two, and huge integers (0.4115ms)
+✔ threshold inclusive, linear shares and retained dust (1.464292ms)
+✔ sqrt rewards splitting whereas linear preserves aggregate weight (0.948584ms)
+✔ untouched balances accrue full period, zero and return settles correctly (0.495042ms)
+✔ mint burn exclusion and exact opening/closing boundaries (0.638417ms)
+✔ TWAB matches discrete reference over deterministic generated transfer histories (60.702375ms)
+✔ invalid intervals, missing history and duplicate normalized accounts fail closed (0.887042ms)
+✔ weighting must be explicit, never silently choose economics (0.188208ms)
+✔ batch size must be explicit, never silently choose an unminable batch (17.140416ms)
+✔ all reads pinned, huge round id preserved, recovery and local collision cannot double accrue (38.830208ms)
+✔ snapshot hash change leaves no committed period (2.8725ms)
+✔ zero-payout periods journal carried balances and rebuild without hidden inputs (33.883334ms)
+✔ config economics change and insolvency abort without advancing journal (20.025666ms)
+✔ round share cap bounds new shares and rolls the remainder into the next period (33.220208ms)
+✔ a rate-limited proposal recovers on the next scheduled run without intervention (34.280958ms)
+✔ carry above the cap pays an instalment and preserves unpaid credit (32.902667ms)
+✔ bootstrap commits balances with a zero pot and is refused after the first period (40.285ms)
+✔ carry below the cap leaves room for the new shares so the round stays proposable (50.116959ms)
+✔ capped carry advances the journal and new funding supports the next instalment (56.005958ms)
+✔ exclusive writer and journal rebuild after missing/corrupt cache (23.611333ms)
+✔ incomplete temporary entry ignored; committed tampering fails closed (17.150916ms)
+✔ commit survives cache-write crash and replay is idempotent (18.805375ms)
+✔ two independent processes cannot both acquire writer lock (225.291625ms)
+✔ CLI defaults to read-only and requires reviewed config and journal paths (0.7965ms)
+✔ CLI requires separate explicit transaction and proposal flags (0.09ms)
+✔ CLI waits for a peer on the same signer by default and accepts an explicit bound (0.066667ms)
+✔ independent history failure stops before any transaction (54.79125ms)
+✔ dry run defaults to proposal preview with no sends (20.074125ms)
+✔ explicit proposal waits for receipt and timelock, rerun does not repropose (42.646916ms)
+✔ zero-delay proposer stops after committing; keeper pays and retries without time travel or duplicates (44.280708ms)
+✔ failed recipient stays open, rerun filters paid accounts and completes once (35.422458ms)
+✔ commitment mismatch rejects before transactions (20.34075ms)
+✔ tampered proof in a correctly rehashed journal is rejected (20.326583ms)
+✔ configuration identity and reward token mismatches reject before proposals (21.052667ms)
+✔ production execute and wrong RPC chain are rejected (19.072ms)
+✔ cancelled or early closed round reports unpaid without reproposal (19.807875ms)
+✔ round id already consumed without matching state is rejected (18.480666ms)
+✔ reverted transaction stops without retries and releases process lock (25.059917ms)
+✔ exclusive lock prevents concurrent nonce use (32.709167ms)
+✔ changed journal snapshot fails before sending (18.071125ms)
+✔ pending commitment mismatch fails before activation (19.235209ms)
+✔ unknown receipt blocks rerun until receipt is resolved (31.001667ms)
+✔ proposer role, guardian pause and contract limits are checked before sending (108.376292ms)
+✔ rate limited proposal reports instead of reverting and proceeds once elapsed (23.97375ms)
+✔ a foreign root at a planned round id is reported, never paid, and does not halt the run (24.6155ms)
+✔ the execution lock waits a bounded time for a peer and then fails with the holder named (154.591125ms)
+✔ independent replay accepts valid bootstrap and holder payout periods (93.277042ms)
+✔ consistent arithmetic and a rebuilt root cannot pay a wallet absent from chain history (73.745959ms)
+✔ invented starting balances are rejected even with unchanged payouts (49.388708ms)
+✔ a period above the real finality boundary is rejected (50.128417ms)
+✔ changed block identity and missing archive data stop verification (71.451625ms)
+✔ source edits invalidate stale compiled deployment artifacts before signing (4.380666ms)
+✔ resuming with changed bytecode or no pinned build is refused (0.963709ms)
+✔ every planned artifact must exist and have deployable linked bytecode (0.706333ms)
+✔ recovery refuses changed calculator inputs even when contract bytecode is identical (0.71875ms)
+✔ input identity ignores JSON key order but pins exclusions, thresholds and array order (0.2225ms)
+✔ base mainnet is deployable, but only deployment: the operating CLIs are gated separately (4.593375ms)
+✔ roles accept the intended layout and guardian may share the owner multisig (1.145709ms)
+✔ roles reject a keeper that doubles as an administrator or deployer (0.736125ms)
+✔ roles reject missing, zero, duplicate and bot-key payees (0.67325ms)
+✔ manifest carries every address the operating CLIs read (0.694125ms)
+✔ calculator config excludes every pipeline contract and operational key (0.201958ms)
+✔ deploy CLI rejects malformed invocations (5.582625ms)
+✔ generated production calculator config never pays pool or explicitly excluded balances (1.446875ms)
+✔ harvests available sources, splits before capped quote and swap (1.628333ms)
+✔ legacy claims wait for the Clanker collection receipt before reading the newly funded Safes (3.835333ms)
+✔ a later NFT custody transfer enables Aerodrome in the next executed cycle (0.5955ms)
+✔ a lagging latest RPC read cannot hide the WETH delivered by the confirmed split (0.334709ms)
+✔ dry-run never calls writes; mainnet execute rejected (0.563084ms)
+✔ expired floor blocks swap and reports pending refresh without losing harvested fees (0.22875ms)
+✔ bad quote and reverted receipts abort (0.291292ms)
+✔ a source still awaiting its custody handoff is skipped and reported; the rest of the cycle runs (0.332917ms)
+✔ one reverting Safe is skipped and reported while the rest of the cycle completes (0.563916ms)
+✔ a legacy transaction that was broadcast and then failed stays fatal (0.245209ms)
+✔ an ambiguous legacy send or RPC error stops the cycle (0.255541ms)
+✔ an awaited handoff is quiet but a skipped Safe asks for attention (0.228792ms)
+✔ floor CLI defaults are read-only with a warning window inside the refresh window (0.872417ms)
+✔ floor CLI rejects contradictory and malformed options (0.633209ms)
+✔ floor CLI accepts fractional hours and explicit tuning (0.153083ms)
+✔ a fresh floor does no work and reports time remaining (0.977416ms)
+✔ alerts on the way to expiry and once swaps are blocked (0.6745ms)
+✔ refuses a signer that is also an approved keeper (0.309333ms)
+✔ dry-run computes the floor from a cap-sized quote without sending (0.089541ms)
+✔ execute refreshes and bounds the expiry to the contract maximum (0.144375ms)
+✔ guards the quote, the owner, the chain and reverted receipts (1.168125ms)
+✔ a wildly different quote is rejected until explicitly forced (0.302292ms)
+✔ the floor-setter role refreshes; the owner is accepted; a stranger is not (0.210291ms)
+✔ a quote that lands below the owner lower bound is refused for every signer (0.243292ms)
+✔ a dry run is the default and --params is mandatory (1.729125ms)
+✔ every production magnitude is required and none is defaulted (1.153542ms)
+✔ raw amounts must be decimal strings, because wei exceeds a safe integer (0.112875ms)
+✔ parameters that would revert their own constructor are rejected before signing (0.196459ms)
+✔ the quoter is resolved from the configured Slipstream generation, never pasted (1.967584ms)
+✔ the shipped mainnet config resolves against the shipped route candidates (1.840875ms)
+✔ the deploying key may hold no lasting role (2.275291ms)
+✔ the plan refuses to build while a decision is still missing (1.836916ms)
+✔ the fee router points at the swap executor and the harvesters at the router (0.565458ms)
+✔ the floor bound is set before the floor setter is approved (0.629458ms)
+✔ ownership is handed only to the multisig, and only on contracts that have an owner (0.746667ms)
+✔ the permanent custody steps stay out of the script and are reported instead (0.07525ms)
+✔ vAMM deployment uses the registered pool address, records no NFT and hands off the right adapter (2.939541ms)
+✔ the production generator preserves both pool exclusions and every preflight-listed address (0.697166ms)
+✔ deployment explicitly applies the configured delay, cadence and round cap (0.436083ms)
+✔ zero extra review delay is explicit in the production plan without shortening the six-hour interval (0.468208ms)
+{
+  "type": "deploy-plan",
+  "dryRun": true,
+  "chainId": 8453,
+  "finalizedBlock": 2000,
+  "buildHash": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "inputHash": "0x78112f302af158ed4fec6629c3c9dff1df1afbce791303373a1cd8a09b942916",
+  "aerodromeGeneration": "gauges-v3",
+  "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+  "deployments": [
+    {
+      "name": "DickbuttRewardsDistributor",
+      "args": [
+        "0xb2000000000000000000007b9fcbd005511aCBd5",
+        "1",
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "SpcxcSwapExecutor",
+      "args": [
+        "0x4200000000000000000000000000000000000006",
+        "0xb2000000000000000000007b9fcbd005511aCBd5",
+        "0x698Cb2b6dd822994581fEa6eA4Fc755d1363A92F",
+        {
+          "ref": "DickbuttRewardsDistributor"
+        },
+        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        1,
+        10,
+        "100000000000000",
+        21600,
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "SplitsFeeRouter",
+      "args": [
+        "0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4",
+        "0x4200000000000000000000000000000000000006",
+        "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+        "0x331BB8664d032544327E61753485d06d663995B6",
+        "0x000000000000000000000000000000000000dEaD",
+        "0xB58f2Ce04bd5d397F34ba319316CfaB471E16cF3",
+        {
+          "ref": "SpcxcSwapExecutor"
+        }
+      ]
+    },
+    {
+      "name": "LockerHarvester",
+      "args": [
+        "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
+        "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
+        "1391176",
+        {
+          "ref": "SplitsFeeRouter"
+        },
+        3600,
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "AerodromeVammHarvester",
+      "args": [
+        "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
+        "0x000000000000000000000000000000000000232b",
+        "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+        "0xb2000000000000000000007b9fcbd005511aCBd5",
+        "0x000000000000000000000000000000000000dEaD",
+        {
+          "ref": "DickbuttRewardsDistributor"
+        },
+        1800086400,
+        3600,
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "LegacyFeeHarvester",
+      "args": [
+        "0x10F4485d6f90239B72c6A5eaD2F2320993D285E4",
+        [
+          "0x1eaf444ebDf6495C57aD52A04C61521bBf564ace",
+          "0x04F6ef12a8B6c2346C8505eE4Cff71C43D2dd825"
+        ],
+        "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+        {
+          "ref": "SplitsFeeRouter"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "label": "set-round-delay",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setRoundDelay",
+      "args": [
+        0
+      ]
+    },
+    {
+      "label": "set-round-limits",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setRoundLimits",
+      "args": [
+        5000,
+        21600
+      ]
+    },
+    {
+      "label": "set-keeper",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setKeeper",
+      "args": [
+        "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+        true
+      ]
+    },
+    {
+      "label": "set-proposer",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setProposer",
+      "args": [
+        "0x0000000000000000000000000000000000002329",
+        true
+      ]
+    },
+    {
+      "label": "set-guardian",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setGuardian",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "set-swap-keeper",
+      "contract": "SpcxcSwapExecutor",
+      "method": "setKeeper",
+      "args": [
+        "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+        true
+      ]
+    },
+    {
+      "label": "set-floor-lower-bound",
+      "contract": "SpcxcSwapExecutor",
+      "method": "setFloorLowerBound",
+      "args": [
+        "1"
+      ]
+    },
+    {
+      "label": "set-floor-setter",
+      "contract": "SpcxcSwapExecutor",
+      "method": "setFloorSetter",
+      "args": [
+        "0x000000000000000000000000000000000000232a",
+        true
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "label": "transfer-ownership-DickbuttRewardsDistributor",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "transfer-ownership-SpcxcSwapExecutor",
+      "contract": "SpcxcSwapExecutor",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "transfer-ownership-LockerHarvester",
+      "contract": "LockerHarvester",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "transfer-ownership-AerodromeVammHarvester",
+      "contract": "AerodromeVammHarvester",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    }
+  ],
+  "manualStepsAfterwards": [
+    "Accept ownership from the owner multisig on each contract (Ownable2Step acceptOwnership).",
+    "Review outstanding legacy fees: the current creator may claim first, or the verified adapter can claim its configured safes after authority is assigned.",
+    "Assign legacy tokenCreator authority to LegacyFeeHarvester. PERMANENT: the adapter has no relay to update it.",
+    "Transfer locker ownership to LockerHarvester, once its real fee collection has been observed.",
+    "Transfer the verified rewards pool position to the deployed adapter for its recorded kind: unstaked ERC-20 LP tokens to AerodromeVammHarvester, or an NFT to AerodromeFeeHarvester. Verify destination, lock and fee routing first.",
+    "Add every deployed address above to the production calculator exclusions before the first round."
+  ],
+  "note": "Nothing was signed. Re-run with --execute to deploy."
+}
+{"type":"deploy-start","chainId":8453,"deployer":"0x8Cf6af67ACEb79afd94fb8123b0E3504392Ec23b","balance":"1.0"}
+✔ complete production dry run uses valid ethers block tags and never signs (21.506917ms)
+✔ a lock beyond the constructor maximum is refused during the unsigned dry run (15.296083ms)
+✔ the deployment driver rejects changed recovery inputs before any signing and preserves progress (38.214209ms)
+✔ a healthy system reports ok and exit 0 (1.854958ms)
+✔ an expired or soon-to-expire floor asks for attention (0.254792ms)
+✔ an unfunded bot is flagged before it fails silently (0.132958ms)
+✔ a guardian pause is surfaced rather than mistaken for a dead proposer (0.091875ms)
+✔ a root the journal never produced is the alarm that matters (0.199709ms)
+✔ a round left sitting past its timelock is flagged and outstanding value is totalled (1.761416ms)
+✔ an unbounded floor setter is flagged, and an executor predating the role reads as failed (0.797208ms)
+✔ a foreign round the guardian cancelled unpaid stops alarming; one that paid does not (0.190458ms)
+✔ a recently closed round cannot hide an older stale round (0.098459ms)
+✔ unpaid reservations outside the recent-round window cannot produce a healthy report (0.115041ms)
+✔ optional journal omission does not leave a hidden unknown-root alarm or inconsistent exit status (0.134917ms)
+✔ omitting the journal never suppresses overdue-round or gas alarms (0.064125ms)
+✔ only accepts intended funded full-range 0.3% position (1.643875ms)
+✔ absent pool or position cannot pass preflight (0.0685ms)
+✔ deployment needs explicit distinct destinations and governance (4.221875ms)
+✔ production preflight requires an explicit proposer and guardian (1.551041ms)
+✔ production preflight rejects keeper administrators and treasury recipients that are bot wallets (2.67525ms)
+✔ swap route must resolve to the configured two-hop pools with liquidity (1.04025ms)
+✔ every recorded pipeline address, the locker and its pool must be in the exclusion set (4.312834ms)
+✔ teardown stops the poller and never calls destroy (1.4415ms)
+✔ teardown tolerates an absent provider (0.467875ms)
+✔ six-hour reward rounds have no extra review delay and check for payouts each minute (3.35475ms)
+✔ the shipped schedule keeps every key on exactly one host (8.210792ms)
+✔ a key on two hosts is rejected (0.302375ms)
+✔ the keeper key may not run on the ops host (0.198084ms)
+✔ the monitor must be keyless and live alone (0.16625ms)
+✔ cadences that contradict contract limits are rejected (0.14875ms)
+✔ the proposer job never asks for the keeper key (0.831875ms)
+✔ renderers substitute paths and mark exit 2 as non-fatal (0.429375ms)
+✔ schedule CLI validates its own options (0.547792ms)
+✔ vAMM preflight refuses the wrong pair, factory, pool, staking or fee economics (2.420209ms)
+✔ manifest selects the correct runtime ABI and preserves old NFT rehearsals explicitly (1.034167ms)
+✔ fee runtime refuses substituted pools, tokens or destinations before any writes (2.374542ms)
+✔ Capped allocation: 5000 deterministic portfolios conserve every account credit and exact budget (3427.334417ms)
+✔ Uncapped legacy payout ordering remains byte-for-byte compatible with journal serialization (0.572333ms)
+✔ Proposal retries cannot be removed, slowed or moved to a second signing host (0.899167ms)
+✔ Final accounting: 120 funding/transfer/payment/cancellation periods conserve per-holder liabilities and independently replay (30641.630166ms)
+ℹ 92 committed periods, 28 pending-plan retries; 91 rounds; 93 independently replayed records
+✔ Final accounting: closed-round corruption and missing archive logs cannot change any prior state (0.682959ms)
+✔ Final accounting: same-timestamp swaps and self-transfers do not create holder-time or linear shares (0.180959ms)
+✔ Final keeper nonce: pending work that appeared after an earlier check blocks sends, and resolution releases the barrier (82.7685ms)
+✔ OPS-L-01: console local rehearsal defaults to the selected vAMM model (2.043084ms)
+✔ OPS-L-01: historical Slipstream rehearsal remains an explicit choice (0.221ms)
+{"type":"deploy-start","chainId":8453,"deployer":"0xdB2C2f4770E89F7f6248FE3539887610542C6869","balance":"1.0"}
+✔ OPS-M-02: simultaneous fresh deployments cannot both enter one output ledger (102.140333ms)
+{"type":"deploy-start","chainId":8453,"deployer":"0xFF47A59a2F4ef38E78E6b52161C0376dc59D67CC","balance":"1.0"}
+✔ OPS-M-02: the same deployer cannot concurrently target separate output paths (63.555042ms)
+{"type":"deploy-start","chainId":8453,"deployer":"0x8284fb0F411b66c24E350338292e3eD678924070","balance":"1.0"}
+{"type":"deploy-start","chainId":8453,"deployer":"0x8284fb0F411b66c24E350338292e3eD678924070","balance":"1.0"}
+✔ OPS-M-02: pending nonce is checked under both locks before creating a fresh ledger (114.244ms)
+✔ OPS-M-02: malformed or unavailable nonce data fails closed (0.254625ms)
+✔ OPS-M-02: path aliases share an output lock and release is idempotent (1.469416ms)
+✔ OPS-M-01: default rendered proposer writes the exact journal it subsequently reads (204.169792ms)
+✔ OPS-M-01: selected journal overrides stale inherited calculator directory (176.306125ms)
+✔ OPS-M-01: renderer retains spaces in journal and calculator filenames (174.638875ms)
+✔ OPS-M-01: scheduler paths are literal arguments, never shell source (173.869ms)
+✔ OPS-M-01: systemd preserves shell positional dollars and percent filename characters (0.291083ms)
+✔ scheduler rejects newlines in every path rather than rendering extra commands (0.338375ms)
+✔ systemd working directory and environment path preserve spaces, dollars and percent signs (0.07475ms)
+✔ cron rejects ambiguous backslash paths while systemd retains literal support (0.146375ms)
+✔ M-01 fixed: funded carry produces a capped instalment without losing the remainder (41.195958ms)
+✔ M-02 fixed: minute proposer retry commits the existing plan without another six-hour wait (24.923458ms)
+✔ M-03 fixed: a proven unsent cooldown race preserves later claims and routing (0.623417ms)
+✔ M-03 fixed: a confirmed reverted race is reconciled; missing or ambiguous receipts remain fatal (0.516208ms)
+✔ L-01 fixed: unknown age and stale active payments cannot remain green (0.755ms)
+✔ Risk evidence: ordinary floor bot accepts a depressed spot quote above static bound (0.868833ms)
+✔ A same-timestamp borrow/repay cannot create positive TWAB (0.544625ms)
+✔ Inclusive 6.9M boundary and linear splitting conserve weight; sqrt is Sybil-sensitive (0.609333ms)
+✔ hardcoded JS Solidity golden vectors and negative encodings (9.457292ms)
+✔ read and local commands run without the execute flag; write commands do not (1.602ms)
+✔ a write command needs both the flag and a matching confirmation (0.743458ms)
+✔ path inputs reject traversal, absolute paths and option lookalikes (0.15825ms)
+✔ a choice input only accepts its declared choices (0.134875ms)
+✔ optional inputs may be empty and then contribute no flag (0.103791ms)
+✔ the calculator receives its data directory through the environment, not a flag (0.376667ms)
+✔ unknown commands are refused rather than guessed at (0.05ms)
+✔ describeCommands never leaks an environment value, only its presence (0.444ms)
+✔ every write command explains its blast radius before it can be run (0.071958ms)
+✔ flow, displayed forms and executed defaults select the same current deployment (23.051416ms)
+✔ an installation without an explicit selector retains its historical defaults (0.543291ms)
+✔ an invalid selector is rejected instead of reading outside the project or falling back (0.7585ms)
+✔ every edge connects two declared nodes (0.599083ms)
+✔ edges always run left to right, so routing never has to double back (0.066959ms)
+✔ no two node boxes overlap (0.123583ms)
+✔ every node fits inside the viewBox (0.061708ms)
+✔ no routed edge crosses a node it does not touch (1.053333ms)
+✔ edges sharing a column gap get distinct vertical channels (0.177292ms)
+✔ labels are pushed apart when they land on top of each other (0.14025ms)
+✔ every path starts at its source face and ends at its target face (0.174709ms)
+✔ a null address in the config reads as blocked (0.806625ms)
+✔ a configured address reads as done without anyone ticking a box (0.083083ms)
+✔ an absent guardian blocks: preflight requires the address written out (0.066458ms)
+✔ n/a items are excluded from the score rather than counted as done (0.621459ms)
+✔ a derived item cannot be overridden by hand (0.184625ms)
+✔ a manual item records state, note and time (0.071917ms)
+✔ unknown items and states are rejected (0.053666ms)
+✔ every item names an owner and every derived item returns a known state (0.059833ms)
+✔ vAMM requires an LP wallet and cannot inherit a completed NFT custody checkbox (0.083834ms)
+✔ the console refuses to bind anywhere but loopback (0.757583ms)
+✔ unknown and malformed options are rejected (0.0705ms)
+✔ an API call without the token is refused (17.009166ms)
+✔ a cross-site request is refused even when it carries the token (5.494916ms)
+✔ state describes the flow, the checklist and the commands (65.357375ms)
+✔ a read-only console refuses to start a transaction-signing command (3.123834ms)
+✔ an execute-enabled console still requires the confirmation (1.154792ms)
+✔ a command runs, streams its output and reports its exit code (240.816708ms)
+✔ run status distinguishes "needs a human" from "crashed" (0.2505ms)
+✔ the run log is bounded so a long session cannot grow without limit (0.156416ms)
+✔ output lines are truncated and capped (0.737875ms)
+✔ static files outside the public directory are not served (4.638708ms)
+✔ a torn or oversized request body is rejected rather than parsed (2.35475ms)
+✔ the token comparison is length-guarded so it cannot throw (1.713542ms)
+✔ the session endpoint reports the mode but never hands out the token (0.724875ms)
+✔ mainnet shows this repository's contracts as undeployed, not as errors (1.688ms)
+✔ the sepolia manifest resolves the same nodes as deployed (48.09925ms)
+✔ nodes carry the geometry the client draws with (58.107958ms)
+✔ production shows ERC-20 LP while the historical NFT rehearsal keeps its own model (48.09925ms)
+✔ environment reporting states presence and never the value (0.28325ms)
+✔ config edits are limited to the fields the console owns (0.841417ms)
+✔ a config edit changes only its own field and leaves the evidence intact (1.345166ms)
+✔ clearing a field writes null rather than an empty string (0.598709ms)
+✔ only indexed documents can be read (5.684084ms)
+✔ overrides round-trip through the gitignored file (0.587625ms)
+✔ the console reports the same schedule the units are rendered from (38.449833ms)
+ℹ tests 238
+ℹ suites 0
+ℹ pass 238
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44299.080833

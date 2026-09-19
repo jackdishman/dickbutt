@@ -1,0 +1,41 @@
+{
+  "scope": "Deployment-runtime objects before constructor immutable patching; CBOR metadata removed. Confirms comment-only Solidity change in this pass.",
+  "comparison": [
+    {
+      "name": "DickbuttRewardsDistributor",
+      "executableRuntimeUnchanged": true,
+      "baselineKeccak": "0x34c2544c23c2a4574f1048a8cd84edf0e9bcce7bc1568d34f49dc9addeb0f40c",
+      "finalKeccak": "0x34c2544c23c2a4574f1048a8cd84edf0e9bcce7bc1568d34f49dc9addeb0f40c"
+    },
+    {
+      "name": "SpcxcSwapExecutor",
+      "executableRuntimeUnchanged": true,
+      "baselineKeccak": "0xff6aec5079ba61d3424e943ead69b4d4deb1f2874231b308e81d3ff895abb6fd",
+      "finalKeccak": "0xff6aec5079ba61d3424e943ead69b4d4deb1f2874231b308e81d3ff895abb6fd"
+    },
+    {
+      "name": "SplitsFeeRouter",
+      "executableRuntimeUnchanged": true,
+      "baselineKeccak": "0x4e2caf76f44162c1ba183598ed2352b9395baf684d2f6e7e7a8b7184913a66ea",
+      "finalKeccak": "0x4e2caf76f44162c1ba183598ed2352b9395baf684d2f6e7e7a8b7184913a66ea"
+    },
+    {
+      "name": "LockerHarvester",
+      "executableRuntimeUnchanged": true,
+      "baselineKeccak": "0xa1d8533fab7b5e2f022b6f224cb5a67aaec82b90654189d221bd951f73caccf6",
+      "finalKeccak": "0xa1d8533fab7b5e2f022b6f224cb5a67aaec82b90654189d221bd951f73caccf6"
+    },
+    {
+      "name": "AerodromeVammHarvester",
+      "executableRuntimeUnchanged": true,
+      "baselineKeccak": "0x037b4d76284523a659f649f58f326f23567c55ff12d1427441147169a43991c3",
+      "finalKeccak": "0x037b4d76284523a659f649f58f326f23567c55ff12d1427441147169a43991c3"
+    },
+    {
+      "name": "LegacyFeeHarvester",
+      "executableRuntimeUnchanged": true,
+      "baselineKeccak": "0xc4152293888949f51f0fc776fa215b8d4db069a4115b6dca701db415fe476d2a",
+      "finalKeccak": "0xc4152293888949f51f0fc776fa215b8d4db069a4115b6dca701db415fe476d2a"
+    }
+  ]
+}

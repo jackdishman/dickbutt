@@ -1,12 +1,12 @@
 # Roles and bounds
 
-Normal operation needs **zero multisig signatures**. Bots propose, activate and pay; the multisig exists to stop something.
+Normal configured operation needs **zero multisig signatures**. Bots propose, activate and pay; the multisig controls roles, limits and emergency actions. Current audit findings and deployment limitations are recorded in [AUDIT_REPORT.md](../AUDIT_REPORT.md).
 
 | Role | Key | Can do | Cannot do |
 | --- | --- | --- | --- |
-| Owner | multisig | Set roles and limits, unpause, close a round early, rescue non-reward tokens, set the floor lower bound | Withdraw reward tokens — there is no such function |
+| Owner | multisig | Set roles and limits, unpause, close a round early, rescue non-reward tokens, set the floor lower bound; appoint a keeper and propose arbitrary reward roots | Directly rescue the distributor's reward token; this does **not** prevent transfers through owner-appointed roles and roots |
 | Guardian | same multisig | Cancel any pending round, pause/unpause proposals | Move tokens, set roles or limits |
-| Proposer | bot | `proposeRound` within the cap, interval and pause | Move tokens, choose who gets paid beyond the committed root |
+| Proposer | bot | Commit any Merkle root with `proposeRound` within the cap, interval and pause | Execute payments without an approved keeper; the independently verifying keeper rejects a root inconsistent with holder history |
 | Keeper | bot | `processWeth`, `distributeBatch` | Propose, change amounts, weaken the price floor |
 | Ops (floor setter) | bot, separate host | `setPriceFloor` on the swap executor, at or above `floorLowerBound` | Anything else on the executor: approve keepers, change limits, rescue, transfer ownership. Cannot be a keeper — the contract refuses the pairing in both directions |
 | Anyone | — | `harvest`, `activateRound` after the timelock, `closeRound` when fully paid, `splitDickbutt`/`splitWeth` | — |
@@ -46,7 +46,7 @@ transaction processing add latency; removing the timelock does not remove those 
 
 ## The share cap changes the payout schedule
 
-**This is an economic decision, not just a safety knob.** The calculator plans the whole distributable pot each round. With a cap below 100%, each round pays at most that share and the remainder rolls into the next period, so a permanent buffer accumulates in the distributor.
+**This is an economic decision, not just a safety knob.** The calculator allocates new shares subject to the live cap and previously carried credit. With a cap below 100%, each round pays at most that share of unreserved funds and the unallocated remainder stays available for later periods. Accrued amounts that cannot be paid remain recorded as holder credit.
 
 The local rehearsal shows it directly at the 50% default: 1,615 raw SPCXc available, cap 807, plan 807, and 808 carried forward. For a simplified model with constant inflow `I` per round, immediate payout and share fraction `p = maxRoundBps / 10000`, the steady balance immediately after payout is `I * (1 - p) / p`; the available balance just before the next payout is `I / p`. At 50%, those are respectively one and two rounds of inflow. The actual timelocked, concurrent-round system also holds pending obligations and below-threshold accrual, so its raw vault balance is not predicted by this simple model alone.
 
@@ -58,11 +58,15 @@ The local rehearsal shows it directly at the 50% default: 1,615 raw SPCXc availa
 
 50% is the default because a stolen proposer key cannot move tokens at all — the cap only limits griefing, so paying a shorter backlog for a tighter bound is a poor trade. Raise or lower it with `setRoundLimits`; the calculator reads the live value every period.
 
-The calculator reads `maxProposableTotal()` and caps new shares to it. Carry from earlier periods
-can still push the payable total past the cap; that **fails loudly**. Zero review delay does not
-remove this limitation. Recovery needs sufficient new funding or a deliberate owner-approved cap
-change. Changing the payout threshold after journaling also requires a reviewed configuration
-migration; editing the file alone is rejected by the existing journal integrity check.
+The calculator reads `maxProposableTotal()` and caps new shares to it. If eligible accrued balances
+exceed the round cap, it pays **proportional capped instalments** and retains every unpaid raw unit
+as credit. Largest remainders assign indivisible raw units deterministically. The payout threshold
+determines which accrued balances are eligible; a capped instalment can itself be smaller than
+that threshold. A holder's remaining credit must reach the threshold again before a later payment.
+This fixes the earlier cap-related calculation stall; see **M-01** in [the audit report](../AUDIT_REPORT.md).
+Small budgets therefore need not pay every eligible holder each round. Changing the payout threshold
+after journaling still requires a reviewed configuration migration; editing the file alone is
+rejected by the existing journal integrity check.
 
 A share cap that floors to zero against a dust balance blocks proposals entirely — at 50%, a single raw unit. `maxProposableTotal()` returns 0 in that case so operators can see it before hitting a revert.
 
@@ -110,4 +114,8 @@ Administrative ownership transfers require acceptance by the pending owner. Exis
 
 The calculator journal binds its configuration, including excluded addresses. Before first calculation, fill the final production exclusion set. After rewards have started, changing that set for role rotation needs an explicit migration/replay procedure; simply editing the JSON causes the existing checker to refuse the changed configuration. Never delete accrued balances or payout history to get around that check.
 
-Ownership, permanent destination freezing and permanent NFT locking are separate decisions. In particular, the legacy adapter cannot relay its creator authority to a replacement, and its fixed receiver leads through a router and executor with other fixed destinations. See [the permanence review](ALIGNMENT-RETEST-REPORT.md) before assigning any production custody or creator role.
+Ownership, permanent destination freezing and permanent **ERC-20 LP locking** in the selected Aerodrome vAMM harvester are separate decisions. An LP token contributor gains no individual withdrawal rights; all contributed LP shares inherit the harvester's lock. In particular, the legacy adapter cannot relay its creator authority to a replacement, and its fixed receiver leads through a router and executor with other fixed destinations. See [the current audit report](../AUDIT_REPORT.md) before assigning any production custody or creator role; the [earlier permanence review](ALIGNMENT-RETEST-REPORT.md) retains historical NFT evidence.
+
+**Inspect pending destination changes during Safe ownership acceptance.** A transfer of ownership does not clear `pendingDestination` or its `pendingDestinationReadyAt` in either the vAMM or Clanker adapter. Once a pending change matures, anyone can apply it. Verify the current destination and pending proposal before acceptance; have the outgoing owner cancel an unwanted proposal before handing over, then verify the cleared state with the Safe. If acceptance already occurred, the Safe must inspect and cancel any unwanted pending change promptly and confirm whether it has already been applied. Freezing requires no pending proposal and is irreversible.
+
+The **Clanker** lock is distinct from the new Aerodrome ERC-20 LP lock. `LockerHarvester.lockDestinationForever()` freezes the destination used by its `harvest()` function. It does **not** revoke the owner's `recoverReleasedPosition()` authority after the upstream locker unlocks. Once recovered, that underlying Clanker NFT's new owner controls future fee collection outside the adapter. Do not describe a frozen Clanker destination as permanent custody or an irrevocable future revenue stream.

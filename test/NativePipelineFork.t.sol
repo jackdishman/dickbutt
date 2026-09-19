@@ -145,7 +145,7 @@ contract NativePipelineForkTest {
     }
     // Keep payout proof construction separate from the large fee-accounting fixture so solc's
     // optimizer does not need every swap balance and Merkle temporary on its stack together.
-    function pushRewards(DickbuttRewardsDistributor distributor,uint256 received,address keeper,address proposer,bool immediate) internal {
+    function pushRewards(DickbuttRewardsDistributor distributor,uint256 received,address keeper,address proposer,bool immediate) internal virtual {
         address[] memory accounts=new address[](2);accounts[0]=address(0xBEEF1);accounts[1]=address(0xBEEF2);
         uint256[] memory amounts=new uint256[](2);amounts[0]=received/6;amounts[1]=amounts[0]*2;
         uint256 beforeA=IERC20(SPCXC).balanceOf(accounts[0]);uint256 beforeB=IERC20(SPCXC).balanceOf(accounts[1]);

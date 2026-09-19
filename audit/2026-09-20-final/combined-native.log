@@ -1,0 +1,62 @@
+Compiling 29 files with Solc 0.8.24
+Solc 0.8.24 finished in 45.45s
+Compiler run successful!
+
+Ran 3 tests for test/audit/FinalCombinedNative.t.sol:FinalCombinedNativeTest
+[PASS] testNativeClankerLegacySplitsSwapAndHolderPushTogether() (gas: 10967798)
+Logs:
+  configured extra review seconds: 86400
+  SPCXc holder A: 901646188
+  SPCXc holder B: 1803292376
+  combined pipeline vAMM first SPCXc fee raw: 299999
+  combined pipeline second holder payout raw: 1352619283
+  gross DICK from real Clanker position: 2241304228970307376150905137
+  gross WETH from real Clanker position: 10117052674954033686
+  legacy DICK claimed: 1344782537382184425690543082
+  KC DICK: 224130422897030737615090513
+  DICK burned: 2017173806073276638535814622
+  KC WETH: 404682106998161347
+  CDB WETH: 404682106998161347
+  WETH actually swapped: 3237456855985290779
+  SPCXc received from real swap: 5409577133
+  USDC actually transferred between swap pools: 8129365695
+
+[PASS] testNativeStagedCustodyNewOwnerAndSeparateBots() (gas: 11171338)
+Logs:
+  configured extra review seconds: 86400
+  SPCXc holder A: 901646188
+  SPCXc holder B: 1803292376
+  combined pipeline vAMM first SPCXc fee raw: 299999
+  combined pipeline second holder payout raw: 1352619283
+  gross DICK from real Clanker position: 2241304228970307376150905137
+  gross WETH from real Clanker position: 10117052674954033686
+  legacy DICK claimed: 1344782537382184425690543082
+  KC DICK: 224130422897030737615090513
+  DICK burned: 2017173806073276638535814622
+  KC WETH: 404682106998161347
+  CDB WETH: 404682106998161347
+  WETH actually swapped: 3237456855985290779
+  SPCXc received from real swap: 5409577133
+  USDC actually transferred between swap pools: 8129365695
+
+[PASS] testNativeZeroDelayClankerLegacySwapAndIndependentKeeperPush() (gas: 11156755)
+Logs:
+  configured extra review seconds: 0
+  SPCXc holder A: 901646188
+  SPCXc holder B: 1803292376
+  combined pipeline vAMM first SPCXc fee raw: 299999
+  combined pipeline second holder payout raw: 1352619283
+  gross DICK from real Clanker position: 2241304228970307376150905137
+  gross WETH from real Clanker position: 10117052674954033686
+  legacy DICK claimed: 1344782537382184425690543082
+  KC DICK: 224130422897030737615090513
+  DICK burned: 2017173806073276638535814622
+  KC WETH: 404682106998161347
+  CDB WETH: 404682106998161347
+  WETH actually swapped: 3237456855985290779
+  SPCXc received from real swap: 5409577133
+  USDC actually transferred between swap pools: 8129365695
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 2.06s (2.62s CPU time)
+
+Ran 1 test suite in 2.08s (2.06s CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)

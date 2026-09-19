@@ -37,6 +37,6 @@
   "_aerodromeMinIntervalSeconds": "Anti-spam gap between permissionless Aerodrome harvests. Contract maximum is 30 days.",
   "aerodromeMinIntervalSeconds": null,
 
-  "_aerodromeUnlockTime": "Unix timestamp before which AerodromeFeeHarvester will not release the LP NFT. Constructor requires it in the future and within 100 years. Review this against the locker/legacy permanence discussion in AUDITOR-BRIEF.md before choosing.",
+  "_aerodromeUnlockTime": "Unix timestamp before which AerodromeVammHarvester will not release its unstaked ERC-20 LP tokens. Constructor requires it in the future and within 100 years. Review this against the locker/legacy permanence discussion in AUDITOR-BRIEF.md before choosing.",
   "aerodromeUnlockTime": null
 }

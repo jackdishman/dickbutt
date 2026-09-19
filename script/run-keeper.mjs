@@ -63,11 +63,8 @@ export async function main(args=process.argv.slice(2),env=process.env) {
     if(options.propose&&proposerKey===env.KEEPER_PRIVATE_KEY&&env.PROPOSER_PRIVATE_KEY) throw Error('PROPOSER_PRIVATE_KEY equals KEEPER_PRIVATE_KEY; the proposer must hold a separate key');
     ownerSigner=options.propose&&proposerKey?new ethers.Wallet(proposerKey,provider):signer;
    }
-   // Refuse to race transactions submitted by a different process or operational tool.
-   for(const address of new Set([signer.address,...(options.propose?[ownerSigner.address]:[])])) {
-    const [latest,pending]=await Promise.all([provider.getTransactionCount(address,'latest'),provider.getTransactionCount(address,'pending')]);
-    if(latest!==pending)throw Error('signer has pending transactions; resolve them before keeper execution');
-   }
+   // The engine checks fresh nonces after acquiring every involved signer lock. Checking
+   // here would become stale while waiting behind a fee or payout job using the same key.
   }
   const result=await runKeeper({...options,config,provider,
    distributor:new ethers.Contract(config.distributor,KEEPER_ABI,signer??provider),

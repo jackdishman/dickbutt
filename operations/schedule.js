@@ -45,8 +45,11 @@ export const JOBS = [
     key: 'PROPOSER_PRIVATE_KEY',
     everySeconds: 6 * 3600,
     description: 'Build a plan from finalized state, then commit its root.',
-    command: ['sh', '-lc',
-      'node calculate-rewards.js --config ${CALCULATOR_CONFIG} && npm run keeper -- --config ${CALCULATOR_CONFIG} --journal ${JOURNAL} --execute --propose-only'],
+    // Paths are positional arguments, never interpolated into shell source. Bind the calculator
+    // writer to the same explicit journal every reader uses, overriding stale host environment.
+    command: ['sh', '-c',
+      'CALCULATOR_DATA_DIR="$1" node calculate-rewards.js --config "$2" && npm run keeper -- --config "$2" --journal "$1" --execute --propose-only',
+      'dickbutt-calculate-and-propose', '${JOURNAL}', '${CALCULATOR_CONFIG}'],
     attention: 'exit 2 means the round was rate limited; exit 1 means the plan was rejected',
   },
   {

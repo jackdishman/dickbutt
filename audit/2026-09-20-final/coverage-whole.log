@@ -1,0 +1,9 @@
+Warning: `--ir-minimum` enables `viaIR` with minimum optimization, which can result in inaccurate source mappings.
+Only use this flag as a workaround if you are experiencing "stack too deep" errors.
+Note that `viaIR` is production ready since Solidity 0.8.13 and above.
+See more: https://github.com/foundry-rs/foundry/issues/3357
+Compiling 60 files with Solc 0.8.24
+Solc 0.8.24 finished in 16.74s
+Error: Compiler run failed:
+Error: Yul exception:Variable expr_8 is 1 too deep in the stack [ RET expr_8 expr_25527_mpos var_keeper var_distributor_address expr_6 expr_25498_mpos expr_7 expr_25552_functionSelector expr_25552_address expr_2 expr_25649_mpos expr_25689_address expr_25689_functionSelector var_immediate expr_14 _25 _27 ]
+memoryguard was present.

@@ -1,6 +1,6 @@
 # Review brief: rehearsal architecture
 
-> 2026-09-20 review candidate: unstaked vAMM ERC-20 LP custody, six-hour rounds and zero extra review delay. The internal security review and local tests are recorded in [AUDIT_REPORT.md](AUDIT_REPORT.md); four reproduced operating findings have regression-tested fixes. This is not an independent audit or launch approval. The actual new pool and remaining deployment inputs still need verification.
+> 2026-09-20 review candidate: unstaked vAMM ERC-20 LP custody, six-hour rounds and zero extra review delay. The internal security review and local tests are recorded in [AUDIT_REPORT.md](AUDIT_REPORT.md); eight reproduced operating findings across the two September 20 passes have regression-tested fixes. This is not an independent audit or launch approval. The actual new pool and remaining deployment inputs still need verification.
 
 Review the active sources under `src/`, the calculator, keeper and fee-cycle tools. This is an implementation needing independent review, not an externally audited production system. Previous statements that the repository had never compiled were stale. Tests and the local rehearsal are described in [docs/REHEARSAL.md](docs/REHEARSAL.md).
 
@@ -35,4 +35,4 @@ Clanker locker collections and legacy token-side returned fees feed `SplitsFeeRo
 
 Unit tests use mock tokens. Splits fork tests use genuine factory/implementation/Warehouse with mock assets. Legacy fork tests use actual Clanker module/Safes and locally moved actual DICKBUTT. Native token and swap tests use Base-compatible Foundry with actual SPCXc and the actual WETH/USDC/SPCXc route. The complete local rehearsal uses actual Splits and mock fee sources/assets/router to test orchestration, accounting and retries.
 
-No public-testnet receipt or production deployment is implied by any of these tests. The current task added continuous native Clanker/Splits/swap/push and locally created native Aerodrome-position tests, plus a fresh public Base Sepolia deployment. See docs/DEVELOPER-HANDOFF.md for receipts and precise completion status. Public production pool/position collection, independent review and operating readiness remain launch checks.
+No public-testnet receipt or production deployment is implied by any of these tests. The final September 20 pass added a combined native Clanker/legacy/vAMM/Splits/swap/push test and repeated local signed rehearsal. Earlier September 13 work includes a public Base Sepolia deployment; docs/DEVELOPER-HANDOFF.md preserves those historical receipts. No public deployment or transaction occurred during this final audit. Public production pool/position collection, independent review and operating readiness remain launch checks.

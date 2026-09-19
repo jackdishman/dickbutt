@@ -1,0 +1,80 @@
+✖ OPS-M-01: default rendered proposer writes the exact journal it subsequently reads (240.048959ms)
+✖ OPS-M-01: selected journal overrides stale inherited calculator directory (189.520458ms)
+✖ OPS-M-01: renderer retains spaces in journal and calculator filenames (187.379792ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 692.697292
+
+✖ failing tests:
+
+test at test/audit/final-operations-schedule.test.mjs:32:1
+✖ OPS-M-01: default rendered proposer writes the exact journal it subsequently reads (240.048959ms)
+  AssertionError [ERR_ASSERTION]: the selected scheduler journal must bind the calculator writer
+  + actual - expected
+
+  + '/private/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-iT0qym'
+  - '/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-iT0qym/data'
+
+      at TestContext.<anonymous> (file:///Users/m4mini/Documents/Codex/2026-09-17/github-plugin-github-openai-curated-remote/work/dickbutt-practice/test/audit/final-operations-schedule.test.mjs:34:10)
+      at Test.runInAsyncScope (node:async_hooks:212:14)
+      at Test.run (node:internal/test_runner/test:1109:25)
+      at Test.start (node:internal/test_runner/test:1006:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '/private/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-iT0qym',
+    expected: '/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-iT0qym/data',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit/final-operations-schedule.test.mjs:38:1
+✖ OPS-M-01: selected journal overrides stale inherited calculator directory (189.520458ms)
+  AssertionError [ERR_ASSERTION]: an inherited legacy data directory must not split the pipeline
+  + actual - expected
+
+  + '/private/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-w7QdiY/old-journal'
+  - '/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-w7QdiY/selected-journal'
+
+      at TestContext.<anonymous> (file:///Users/m4mini/Documents/Codex/2026-09-17/github-plugin-github-openai-curated-remote/work/dickbutt-practice/test/audit/final-operations-schedule.test.mjs:40:10)
+      at Test.runInAsyncScope (node:async_hooks:212:14)
+      at Test.run (node:internal/test_runner/test:1109:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:786:18)
+      at Test.postRun (node:internal/test_runner/test:1238:19)
+      at Test.run (node:internal/test_runner/test:1166:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '/private/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-w7QdiY/old-journal',
+    expected: '/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-w7QdiY/selected-journal',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/audit/final-operations-schedule.test.mjs:44:1
+✖ OPS-M-01: renderer retains spaces in journal and calculator filenames (187.379792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '/private/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-XgLDXj'
+  - '/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-XgLDXj/selected journal'
+
+      at TestContext.<anonymous> (file:///Users/m4mini/Documents/Codex/2026-09-17/github-plugin-github-openai-curated-remote/work/dickbutt-practice/test/audit/final-operations-schedule.test.mjs:46:10)
+      at Test.runInAsyncScope (node:async_hooks:212:14)
+      at Test.run (node:internal/test_runner/test:1109:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:786:18)
+      at Test.postRun (node:internal/test_runner/test:1238:19)
+      at Test.run (node:internal/test_runner/test:1166:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:786:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/private/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-XgLDXj',
+    expected: '/var/folders/r0/db85vl8n1k3fg9klwkzs36m00000gn/T/audit-schedule-XgLDXj/selected journal',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

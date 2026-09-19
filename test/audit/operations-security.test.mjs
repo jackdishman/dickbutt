@@ -22,7 +22,7 @@ function calculatorFixture(t) {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dickbutt-audit-'));
   t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const state={block:10,now:100,available:100n,next:1n};
-  const provider={getNetwork:async()=>({chainId:31337n}),getBlock:async n=>({number:typeof n==='number'?n:state.block,hash:H,timestamp:n==='latest'?state.now:(typeof n==='number'?n:state.block)*10})};
+  const provider={getNetwork:async()=>({chainId:31337n}),getTransactionCount:async()=>0,getBlock:async n=>({number:typeof n==='number'?n:state.block,hash:H,timestamp:n==='latest'?state.now:(typeof n==='number'?n:state.block)*10})};
   const token={decimals:async()=>18n,filters:{Transfer:()=>1},queryFilter:async(_f,from)=>from===1?[{blockNumber:1,index:0,args:{from:ZeroAddress,to:A,value:100n}}]:[]};
   const distributor={getAddress:async()=>D,nextRoundId:async()=>state.next,availableForNextRound:async()=>state.available,maxProposableTotal:async()=>state.available/2n,minPayout:async()=>0n,rewardToken:async()=>B,roundInfo:async()=>[ZeroHash,0n,0n,false,false],pending:async()=>[ZeroHash,0n,0n]};
   const config={deployBlock:1,chainId:'31337',token:A,distributor:D,holderThresholdRaw:'1',payoutThresholdRaw:'60',curve:'linear',excluded:[ZeroAddress],batchSize:10,chunkSize:100,finalityTag:'finalized'};

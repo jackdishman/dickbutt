@@ -29,6 +29,11 @@ The ops key holds the executor's `floorSetter` role, not its ownership. On-chain
 
 The calculator journal (`periods/*.json`) has exactly one writer: the proposer host, where `calculate-and-propose` runs. The keeper host needs a copy to pay from, and the monitor host needs a copy to tell a foreign root from one of ours. Neither may write to it.
 
+The schedule renderer's `--journal` path binds both the calculator writer and its readers. The
+generated proposer command explicitly sets `CALCULATOR_DATA_DIR` to that path, overriding an older
+host value. When running the calculator manually, set `CALCULATOR_DATA_DIR` yourself to the same
+journal directory; its standalone default remains the current working directory.
+
 - Copy, do not share. A writable network mount joins the hosts into one blast radius and lets a compromised keeper host rewrite the record the proposer relies on. Pull a read-only copy after each proposer run: `rsync -a --delete proposer:/srv/dickbutt/data/periods/ /srv/dickbutt/data/periods/` into a staging directory, then rename it into place so the keeper never reads a half-copied file.
 - A stale copy is safe. The keeper verifies every plan against the on-chain commitment before acting; a copy that lacks the newest period simply has nothing to do for that round yet.
 - A torn copy is rejected by the journal checks. A consistently rewritten copy is checked by independent historical recalculation before signing; hashes and rebuilt Merkle proofs alone do not prove correct eligibility.

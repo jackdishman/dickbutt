@@ -1,0 +1,7 @@
+{
+  "commit": "4a7e7a68d0ee3ac881214c77f8f82b3ca749a5de",
+  "archiveSha256": "925639ba7016035e62c20d0077e4aa4b86c80d1dd4ee69a49d69accda1ff8e2a",
+  "scope": "All production contracts, calculator, keeper, operations, deployment, UI; local tests only",
+  "upstreamFork": 51223062,
+  "productionExecutionAuthorized": false
+}
