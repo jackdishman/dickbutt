@@ -37,6 +37,20 @@ Fully distributed closed rounds skip historical recipient payment-flag queries; 
 closed rounds still report unpaid recipients. Original round commitments and journal records remain
 checked, so this reduces repeated work without establishing a fixed long-term RPC or memory cost.
 
+Journal validation, calculator recovery and append now traverse records one at a time. The keeper
+retains record hashes and compact round references instead of every historical Merkle tree and
+proof array. A recipient-level action reloads its record, checks its original content hash and
+rebuilds the plan. Independent replay receives a one-use stream pinned to the initially checked
+journal; replacement, truncation or an added record visible at replay start is rejected. The
+monitor likewise streams records while collecting roots. `Journal.entries()` remains an explicit
+array-producing compatibility API for other callers.
+
+This change does not add a persistent verification checkpoint or skip genesis replay on an active
+run. It still reads all historical records, and initial token-event scans still buffer their results.
+Its memory benefit across periods requires the existing optional settled-plan pruning policy for
+a new journal: a single old-format record can itself contain all historical plans. No existing
+journal or production configuration is migrated automatically.
+
 These comparisons detect mismatches against the supplied configuration; they do not authenticate
 an unreviewed configuration or replace verifying deployed bytecode and custody decisions. The
 keeper must receive its configuration and journal through independently controlled operations.

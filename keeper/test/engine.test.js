@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { ethers } from 'ethers';
 import { runCalculator } from '../../calculator/engine.js';
-import { hash, stringify } from '../../calculator/journal.js';
+import { Journal, hash, stringify } from '../../calculator/journal.js';
 import { runKeeper, acquireExecutionLock } from '../engine.js';
 const a='0x00000000000000000000000000000000000000aa', b='0x00000000000000000000000000000000000000bb';
 const tokenAddress='0x0000000000000000000000000000000000000011', rewardAddress='0x0000000000000000000000000000000000000022', distributorAddress='0x0000000000000000000000000000000000000033';
@@ -29,6 +29,63 @@ async function fixture(t,configOverrides={}) {
  return {dir,provider,distributor,config,signerAddress:a,chain,record,activate,verifyHistory:async()=>({fixtureOnly:true})};
 }
 function rewrite(f,mutate){const file=path.join(f.dir,'periods','00000001.json'),row=JSON.parse(fs.readFileSync(file));mutate(row.record);row.hash=hash({previous:row.previous,record:row.record});fs.writeFileSync(file,stringify(row));}
+test('keeper streams the pinned journal without materializing entries',async t=>{
+ const f=await fixture(t),original=Journal.prototype.entries;let checked=0;
+ f.verifyHistory=async({rows})=>{
+  assert.equal(Array.isArray(rows),false);
+  for(const row of rows){assert.equal(row.record.root,f.record.root);checked++;}
+  return {periods:checked};
+ };
+ Journal.prototype.entries=()=>{throw Error('keeper must not materialize every historical record');};
+ try {
+  const result=await runKeeper({...f,execute:true,propose:true});
+  assert.equal(checked,1);assert.equal(result.rounds[0].status,'timelocked');
+  assert.deepEqual(f.chain.calls,['propose']);
+ } finally {Journal.prototype.entries=original;}
+});
+test('rehashed replacement or truncation after the first pass cannot authorize a send',async t=>{
+ for(const change of ['rewrite','truncate']) {
+  const f=await fixture(t);
+  f.verifyHistory=async({rows})=>{
+   if(change==='rewrite')rewrite(f,r=>{r.state.balances[a]='999';});
+   else fs.unlinkSync(path.join(f.dir,'periods','00000001.json'));
+   for(const _row of rows){}
+   return {periods:1};
+  };
+  await assert.rejects(runKeeper({...f,execute:true,propose:true}),/journal changed after initial validation/);
+  assert.deepEqual(f.chain.calls,[],change);
+ }
+});
+test('recipient plan reload rejects a changed record before payment',async t=>{
+ const f=await fixture(t);f.activate();const read=f.distributor.roundInfo;let reads=0;
+ f.distributor.roundInfo=async(...args)=>{
+  if(++reads===1)rewrite(f,r=>{r.state.balances[a]='999';});
+  return read(...args);
+ };
+ await assert.rejects(runKeeper({...f,execute:true}),/journal plan changed after initial validation/);
+ assert.deepEqual(f.chain.calls,[]);
+});
+test('a valid appended record changes the pinned head and blocks the pending send',async t=>{
+ const f=await fixture(t);
+ f.verifyHistory=async({rows})=>{
+  const first=JSON.parse(fs.readFileSync(path.join(f.dir,'periods','00000001.json'),'utf8'));
+  const record=structuredClone(first.record);
+  record.fromBlock=record.state.lastProcessedBlock+1;
+  record.block.number=record.fromBlock;record.block.hash='0x'+record.fromBlock.toString(16).padStart(64,'0');
+  record.periodStartTs=record.periodEndTs;record.periodEndTs+=10;
+  record.startingAccrual=structuredClone(record.endingAccrual);
+  record.recredits={};record.newShares={};record.payouts={};
+  record.plan=null;record.root=null;record.roundId=null;
+  record.state.lastProcessedBlock=record.block.number;record.state.blockHash=record.block.hash;
+  const next={previous:first.hash,record};next.hash=hash(next);
+  fs.writeFileSync(path.join(f.dir,'periods','00000002.json'),stringify(next));
+  assert.equal(new Journal(f.dir).entries().length,2,'appended record must pass journal validation');
+  for(const _row of rows){}
+  return {periods:2};
+ };
+ await assert.rejects(runKeeper({...f,execute:true,propose:true}),/journal changed after initial validation/);
+ assert.deepEqual(f.chain.calls,[]);
+});
 test('independent history failure stops before any transaction',async t=>{
  const f=await fixture(t);f.verifyHistory=async()=>{throw Error('independent payout calculation mismatch');};
  await assert.rejects(runKeeper({...f,execute:true,propose:true}),/independent payout calculation mismatch/);

@@ -114,17 +114,40 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,a
    }
   }
   journal.lock();
-  const rows=journal.entries();
-  if (!rows.length) throw Error('no calculator journal records');
   const expectedHash=hash(config), rewardToken=normalize(await distributor.rewardToken());
-  const plans=[],seen=new Set();
-  for (const {record} of rows) {
+  const plans=[],seen=new Set(),rowHashes=[];
+  for (const row of journal.iterate()) {
+   const {record}=row;
+   rowHashes.push(row.hash);
    if (record.version!==1 || hash(record.config)!==expectedHash || record.configHash!==expectedHash || record.state.configHash!==expectedHash) throw Error('journal configuration identity mismatch');
    if (normalize(record.rewardToken)!==rewardToken) throw Error('journal reward token mismatch');
    const block=await provider.getBlock(record.block.number);
    if (!block || block.hash!==record.block.hash) throw Error('journal snapshot hash changed');
    const plan=verifyPlan(record,config);
-   if (plan) { if(seen.has(plan.roundId))throw Error('duplicate journal plan round id');seen.add(plan.roundId);plans.push(plan); }
+   if (plan) {
+    if(seen.has(plan.roundId))throw Error('duplicate journal plan round id');
+    seen.add(plan.roundId);
+    // Historical proofs and trees are large. Keep their immutable record identity,
+    // then reload only a plan that needs recipient-level work in this invocation.
+    plans.push({roundId:plan.roundId,root:plan.root,total:plan.total,sequence:rowHashes.length,rowHash:row.hash});
+   }
+  }
+  if (!rowHashes.length) throw Error('no calculator journal records');
+  function* pinnedRows() {
+   let index=0;
+   for (const row of journal.iterate()) {
+    if(row.hash!==rowHashes[index++])throw Error('journal changed after initial validation');
+    yield row;
+   }
+   if(index!==rowHashes.length)throw Error('journal changed after initial validation');
+  }
+  function loadPlan(reference) {
+   const file=path.join(journal.periods,`${String(reference.sequence).padStart(8,'0')}.json`);
+   const row=JSON.parse(fs.readFileSync(file,'utf8'));
+   if(row.hash!==reference.rowHash||hash({previous:row.previous,record:row.record})!==reference.rowHash)throw Error('journal plan changed after initial validation');
+   const plan=verifyPlan(row.record,config);
+   if(!plan||plan.roundId!==reference.roundId||plan.root!==reference.root||plan.total!==reference.total)throw Error('journal plan changed after initial validation');
+   return plan;
   }
   // Proposer-host journal copies are untrusted calculation results. Every send crosses
   // this barrier before submitting its transaction, even if live state changed after
@@ -133,7 +156,7 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,a
   let historyVerified=false;
   async function requireVerifiedHistory() {
    if (historyVerified) return;
-   result.historyVerification=await verifyHistory({rows,config,provider});
+   result.historyVerification=await verifyHistory({rows:pinnedRows(),config,provider});
    historyVerified=true;
   }
   // A dry run remains a full independent audit. Execute jobs with no available action
@@ -176,7 +199,7 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,a
    } else {
     if (!current.active||current.closed) throw Error(`${action} state changed during verification for round ${roundId}; rerun`);
     if (action==='batch'&&!await distributor.isKeeper(signerAddress)) throw Error('signer is not an approved keeper');
-    if (action==='close'&&(current.distributed!==BigInt(plan.total)||(await unpaid(plan)).length)) throw Error(`close state changed during verification for round ${roundId}; rerun`);
+    if (action==='close'&&(current.distributed!==BigInt(plan.total)||(await unpaid(loadPlan(plan))).length)) throw Error(`close state changed during verification for round ${roundId}; rerun`);
    }
    const tx=await submit();
    const markerFd=fs.openSync(marker,'wx',0o600);
@@ -204,7 +227,8 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,a
    const flags=await Promise.all(accounts.map(account=>distributor.paid(plan.roundId,account)));
    return accounts.filter((_account,index)=>!flags[index]);
   }
-  for (const plan of plans) {
+  for (const reference of plans) {
+   let plan=reference;
    let state=await inspect(distributor,plan);
    const report={roundId:plan.roundId,root:plan.root,total:plan.total,status:'proposal-required',unpaid:[],failed:[]};
    result.rounds.push(report);
@@ -236,6 +260,7 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,a
    // Historical recipient flags cannot authorize more work, so avoid rereading every
    // paid account on each idle tick. Partially distributed closures still report unpaid.
    if (state.closed&&state.distributed===BigInt(plan.total)) {report.status='closed';continue;}
+   plan=loadPlan(reference);
    report.unpaid=await unpaid(plan);
    if (state.closed) {report.status=report.unpaid.length?'closed-unpaid':'closed';continue;}
    if (!state.active) throw Error('round failed to activate');

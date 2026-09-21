@@ -9,6 +9,7 @@ import { hash } from '../calculator/journal.js';
 /** Rebuild each period from chain data and a separately reviewed configuration.
  * Journal hashes establish consistency, not whether its proposed recipients held DICK.
  * No journal-supplied balance, share, reserve or payout is used as calculation input.
+ * Rows may be a one-use synchronous iterator; consume each only after verifying its predecessor.
  * Full replay is deliberately conservative; a future incremental cache must remain under
  * the keeper host's control and must not be replaced by the proposer-host journal sync.
  */
@@ -19,6 +20,7 @@ export async function verifyPayoutHistory({rows,config,provider,
   const finality=await selectBoundary(provider,config.finalityTag);
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dickbutt-verified-periods-'));
   try {
+    let periods=0;
     for(const {record} of rows) {
       if(record.block.number>finality.number)throw Error('journal period is beyond the selected finality boundary');
       const boundary=await provider.getBlock(record.block.number);
@@ -31,7 +33,8 @@ export async function verifyPayoutHistory({rows,config,provider,
         const changed=[...new Set([...Object.keys(rebuilt),...Object.keys(record)])].filter(key=>hash({value:rebuilt[key]})!==hash({value:record[key]}));
         throw Error(`independent payout calculation mismatch at block ${record.block.number} (${changed.join(', ')}); no transaction authorized`);
       }
+      periods++;
     }
-    return {periods:rows.length,finalizedThrough:finality.number};
+    return {periods,finalizedThrough:finality.number};
   } finally {fs.rmSync(dir,{recursive:true,force:true});}
 }

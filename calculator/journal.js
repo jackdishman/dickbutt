@@ -41,4 +41,60 @@ function validatePruning(r,previous) {
  if(hash(remaining)!==hash(r.state.plans))throw Error('retained plans differ from journal pruning transitions');
 }
 function validate(r,previous){const keys=new Set([...Object.keys(r.startingAccrual||{}),...Object.keys(r.recredits||{}),...Object.keys(r.newShares||{}),...Object.keys(r.payouts||{}),...Object.keys(r.endingAccrual||{})]);for(const a of keys){const expected=BigInt(r.startingAccrual?.[a]||0)+BigInt(r.recredits?.[a]||0)+BigInt(r.newShares?.[a]||0)-BigInt(r.payouts?.[a]||0);if(expected<0n||expected!==BigInt(r.endingAccrual?.[a]||0))throw Error(`accrual replay mismatch for ${a}`);}if(r.plan){const total=Object.values(r.plan.payouts||{}).reduce((s,v)=>s+BigInt(v),0n);if(total!==BigInt(r.plan.total)||r.plan.roundId!==r.roundId||r.plan.root!==r.root)throw Error('plan commitment replay mismatch');}if(previous&&(Number(r.fromBlock)!==Number(previous.state.lastProcessedBlock)+1||Number(r.periodStartTs)!==Number(previous.periodEndTs)))throw Error('period continuity mismatch');validatePruning(r,previous);}
-export class Journal{constructor(dir){this.dir=path.resolve(dir);this.periods=path.join(this.dir,'periods');this.lockPath=path.join(this.dir,'.writer-lock');this.held=false;}lock(){fs.mkdirSync(this.periods,{recursive:true});try{fs.mkdirSync(this.lockPath);}catch(e){throw Error(`writer lock exists at ${this.lockPath}; verify recorded owner is stopped before removing stale lock`,{cause:e});}this.held=true;fs.writeFileSync(path.join(this.lockPath,'owner.json'),stringify({pid:process.pid,host:os.hostname(),started:new Date().toISOString()}));}unlock(){if(this.held){fs.rmSync(this.lockPath,{recursive:true});this.held=false;}}entries(){let previous=null,previousRecord=null;return fs.readdirSync(this.periods).filter(f=>/^\d{8}\.json$/.test(f)).sort().map((file,i)=>{if(file!==`${String(i+1).padStart(8,'0')}.json`)throw Error('journal sequence gap');const row=JSON.parse(fs.readFileSync(path.join(this.periods,file),'utf8'));if(row.previous!==previous||hash({previous:row.previous,record:row.record})!==row.hash)throw Error('journal hash mismatch');validate(row.record,previousRecord);previous=row.hash;previousRecord=row.record;return row;});}rebuild(){const rows=this.entries();return rows.at(-1)?.record.state??null;}append(record){if(!this.held)throw Error('writer lock required');const rows=this.entries(),row={previous:rows.at(-1)?.hash??null,record};row.hash=hash(row);atomic(path.join(this.periods,`${String(rows.length+1).padStart(8,'0')}.json`),stringify(row),true);this.cache(record.state);return row;}cache(state){if(!this.held)throw Error('writer lock required');atomic(path.join(this.dir,'state.json'),stringify(state));}}
+// Keep only the prior fields consumed by validate/validatePruning. The private copy
+// prevents an iterator consumer from changing validation by mutating a yielded row;
+// prior balances, Merkle plan copies and other unused record data need not stay live.
+function validationPredecessor(record) {
+ const state=record.state&&typeof record.state==='object'
+  ? {lastProcessedBlock:record.state.lastProcessedBlock,...(readPruningPolicy(record.config??{})
+    ? {highestPrunedRoundId:record.state.highestPrunedRoundId,plans:record.state.plans}:{})}
+  : record.state;
+ return structuredClone({periodEndTs:record.periodEndTs,config:record.config,configHash:record.configHash,state});
+}
+
+export class Journal {
+ constructor(dir) {
+  this.dir=path.resolve(dir);this.periods=path.join(this.dir,'periods');
+  this.lockPath=path.join(this.dir,'.writer-lock');this.held=false;
+ }
+ lock() {
+  fs.mkdirSync(this.periods,{recursive:true});
+  try { fs.mkdirSync(this.lockPath); }
+  catch(e) { throw Error(`writer lock exists at ${this.lockPath}; verify recorded owner is stopped before removing stale lock`,{cause:e}); }
+  this.held=true;fs.writeFileSync(path.join(this.lockPath,'owner.json'),stringify({pid:process.pid,host:os.hostname(),started:new Date().toISOString()}));
+ }
+ unlock() {
+  if(this.held) { fs.rmSync(this.lockPath,{recursive:true});this.held=false; }
+ }
+ /** Validates each consumed row before yielding it. A full audit must exhaust the iterator. */
+ *iterate() {
+  let previous=null,previousRecord=null;
+  const files=fs.readdirSync(this.periods).filter(file=>/^\d{8}\.json$/.test(file)).sort();
+  for(const [index,file]of files.entries()) {
+   if(file!==`${String(index+1).padStart(8,'0')}.json`)throw Error('journal sequence gap');
+   const row=JSON.parse(fs.readFileSync(path.join(this.periods,file),'utf8'));
+   if(row.previous!==previous||hash({previous:row.previous,record:row.record})!==row.hash)throw Error('journal hash mismatch');
+   validate(row.record,previousRecord);
+   previous=row.hash;previousRecord=validationPredecessor(row.record);
+   yield row;
+  }
+ }
+ entries() { return [...this.iterate()]; }
+ rebuild() {
+  let state=null;
+  for(const {record}of this.iterate())state=record.state??null;
+  return state;
+ }
+ append(record) {
+  if(!this.held)throw Error('writer lock required');
+  let previous=null,count=0;
+  for(const row of this.iterate()) { previous=row.hash;count++; }
+  const row={previous,record};row.hash=hash(row);
+  atomic(path.join(this.periods,`${String(count+1).padStart(8,'0')}.json`),stringify(row),true);
+  this.cache(record.state);return row;
+ }
+ cache(state) {
+  if(!this.held)throw Error('writer lock required');
+  atomic(path.join(this.dir,'state.json'),stringify(state));
+ }
+}

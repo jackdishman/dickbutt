@@ -22,14 +22,74 @@ async function fixture(t){
  await runCalculator({...args,bootstrap:true});tip=20;await runCalculator(args);
  return {...args,rows:new Journal(dir).entries(),setTip:n=>tip=n,events};
 }
+function observeReplayDirectories(t){
+ const directories=[],original=fs.mkdtempSync;
+ t.mock.method(fs,'mkdtempSync',(prefix,...args)=>{
+  const dir=original(prefix,...args);
+  if(String(prefix).includes('dickbutt-verified-periods-'))directories.push(dir);
+  return dir;
+ });
+ return directories;
+}
 test('independent replay accepts valid bootstrap and holder payout periods',async t=>{
  const f=await fixture(t);assert.deepEqual(await verifyPayoutHistory(f),{periods:2,finalizedThrough:20});
+});
+test('generator and array input produce identical full replay results and remove temporary journals',async t=>{
+ const f=await fixture(t),directories=observeReplayDirectories(t);
+ const expected=await verifyPayoutHistory(f);
+ const rows=(function*(){yield* f.rows;})();
+ assert.deepEqual(await verifyPayoutHistory({...f,rows}),expected);
+ assert.equal(directories.length,2);
+ for(const dir of directories)assert.equal(fs.existsSync(dir),false,'temporary replay journal remains');
+});
+test('a one-use iterable is consumed lazily without reading length or iterating twice',async t=>{
+ const f=await fixture(t),originalQuery=f.token.queryFilter;
+ let iterations=0,scans=0;
+ f.token.queryFilter=async(...args)=>{scans++;return originalQuery(...args);};
+ const rows={
+  get length(){throw Error('iterable length must not be read');},
+  [Symbol.iterator](){
+   assert.equal(++iterations,1,'iterable was restarted');
+   return (function*(){
+    yield f.rows[0];
+    assert.equal(scans,1,'the first period must be independently replayed before requesting the next row');
+    yield f.rows[1];
+   })();
+  },
+ };
+ assert.deepEqual(await verifyPayoutHistory({...f,rows}),{periods:2,finalizedThrough:20});
+ assert.equal(iterations,1);assert.equal(scans,2);
+});
+test('midstream corruption stops replay, closes the iterator and removes its temporary journal',async t=>{
+ const f=await fixture(t),directories=observeReplayDirectories(t);
+ const forged=structuredClone(f.rows[1]);forged.record.state.balances[c]='1000000';
+ let closed=false;
+ const rows=(function*(){try{yield f.rows[0];yield forged;assert.fail('replay continued after a corrupted period');}finally{closed=true;}})();
+ await assert.rejects(verifyPayoutHistory({...f,rows}),/independent payout calculation mismatch/);
+ assert.equal(closed,true);assert.equal(directories.length,1);
+ assert.equal(fs.existsSync(directories[0]),false);
+ // The independently reconstructed journal is temporary; failure must not modify its source.
+ assert.deepEqual(new Journal(f.dir).entries(),f.rows);
+});
+test('an iterator failure after a valid period removes the partially rebuilt journal',async t=>{
+ const f=await fixture(t),directories=observeReplayDirectories(t),failure=Error('source journal read failed');
+ const rows=(function*(){yield f.rows[0];throw failure;})();
+ await assert.rejects(verifyPayoutHistory({...f,rows}),error=>error===failure);
+ assert.equal(directories.length,1);assert.equal(fs.existsSync(directories[0]),false);
 });
 test('consistent arithmetic and a rebuilt root cannot pay a wallet absent from chain history',async t=>{
  const f=await fixture(t),r=f.rows[1].record,payouts={[c]:r.plan.total};
  const plan=buildPlan(r.roundId,payouts,f.config.batchSize);plan.toBlock=r.plan.toBlock;
  r.newShares=payouts;r.payouts=payouts;r.root=plan.root;r.plan=plan;r.state.plans[r.roundId]=plan;
  await assert.rejects(verifyPayoutHistory(f),/independent payout calculation mismatch/);
+});
+test('streaming a consistently forged payout plan cannot substitute input state for chain history',async t=>{
+ const f=await fixture(t),forged=structuredClone(f.rows[1]),r=forged.record,payouts={[c]:r.plan.total};
+ const plan=buildPlan(r.roundId,payouts,f.config.batchSize);plan.toBlock=r.plan.toBlock;
+ r.newShares=payouts;r.payouts=payouts;r.root=plan.root;r.plan=plan;r.state.plans[r.roundId]=plan;
+ forged.hash=hash({previous:forged.previous,record:r});
+ const rows=(function*(){yield f.rows[0];yield forged;})();
+ await assert.rejects(verifyPayoutHistory({...f,rows}),/independent payout calculation mismatch/);
 });
 test('an internally consistent forged journal can never turn an idle skip into authorization',async t=>{
  const f=await fixture(t),row=f.rows[1],r=row.record,payouts={[c]:r.plan.total};
