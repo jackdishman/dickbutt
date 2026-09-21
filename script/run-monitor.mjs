@@ -38,7 +38,9 @@ export function parseMonitorArgs(args) {
 /** Roots the local journal has committed. Without them every on-chain round looks unknown. */
 export function journalRoots(dir) {
   if (!dir || !fs.existsSync(path.join(dir, 'periods'))) return null;
-  return new Journal(dir).entries().map(({ record }) => record.root).filter(Boolean);
+  const roots=[];
+  for (const {record} of new Journal(dir).iterate()) if(record.root) roots.push(record.root);
+  return roots;
 }
 
 export async function main(args = process.argv.slice(2), env = process.env) {
