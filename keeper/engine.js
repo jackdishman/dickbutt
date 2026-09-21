@@ -87,7 +87,7 @@ async function inspect(distributor,plan) {
 
 /** Consume authentic calculator Journal records; all transaction dependencies are injected. */
 export async function runKeeper({dir,provider,distributor,config,execute=false,allowMainnet=false,propose=false,proposeOnly=false,signerAddress,
- ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,lockWaitSeconds=0,onEvent=()=>{},verifyHistory=verifyPayoutHistory}) {
+ ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,lockWaitSeconds=0,verificationCacheDir,onEvent=()=>{},verifyHistory=verifyPayoutHistory}) {
  // proposeOnly lets the proposer bot run without the keeper key on its host. It commits roots and
  // stops; activation is permissionless and payment belongs to the keeper.
  if (proposeOnly&&!propose) throw Error('proposeOnly requires propose');
@@ -156,7 +156,7 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,a
   let historyVerified=false;
   async function requireVerifiedHistory() {
    if (historyVerified) return;
-   result.historyVerification=await verifyHistory({rows:pinnedRows(),config,provider});
+   result.historyVerification=await verifyHistory({rows:pinnedRows(),config,provider,verificationCacheDir,journalDir:dir});
    historyVerified=true;
   }
   // A dry run remains a full independent audit. Execute jobs with no available action

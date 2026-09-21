@@ -91,6 +91,16 @@ test('independent history failure stops before any transaction',async t=>{
  await assert.rejects(runKeeper({...f,execute:true,propose:true}),/independent payout calculation mismatch/);
  assert.deepEqual(f.chain.calls,[]);
 });
+test('keeper forwards only the explicitly selected private cache and the incoming journal path',async t=>{
+ const f=await fixture(t);let checked=false;
+ f.verifyHistory=async options=>{
+  checked=true;assert.equal(options.verificationCacheDir,'/private/service-verifier');assert.equal(options.journalDir,f.dir);
+  for(const _row of options.rows){}
+  return {periods:1};
+ };
+ await runKeeper({...f,verificationCacheDir:'/private/service-verifier'});
+ assert.equal(checked,true);assert.deepEqual(f.chain.calls,[]);
+});
 test('no-action execute runs skip independent replay but do not claim verification',async t=>{
  for (const kind of ['not-proposing','timelocked','proposer-waits','proposer-active','closed','rate-limited','foreign']) {
   const f=await fixture(t);let replays=0;

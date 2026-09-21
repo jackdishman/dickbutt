@@ -1,10 +1,22 @@
 import fs from 'node:fs';import path from 'node:path';import {ethers} from 'ethers';import {Journal,hash} from './journal.js';import {amounts,sum,computeTWAB,computeShares,buildPlan,cappedPayouts} from './core.js';import {selectBoundary,reconcile,scanEvents,ERC20_ABI} from './chain.js';
 import {readPruningPolicy,uint256String} from './config.js';
 export async function runCalculator({dir='.',provider,token,distributor,config,bootstrap=false,rewardTokenFactory=(address)=>new ethers.Contract(address,ERC20_ABI,provider)}){
- const pruneSettledPlans=readPruningPolicy(config);
+ readPruningPolicy(config);
  const journal=new Journal(dir);journal.lock();try{
  const recovered=journal.rebuild();if(!recovered&&fs.existsSync(path.join(dir,'state.json')))throw Error('legacy state without journal: explicit audited migration required');
- const state=recovered??{lastProcessedBlock:config.deployBlock-1,balances:{},accrued:{},plans:{},...(pruneSettledPlans?{highestPrunedRoundId:'0'}:{})};
+ const result=await runCalculatorFromState({startingState:recovered,provider,token,distributor,config,bootstrap,rewardTokenFactory});
+ if(!result.unchanged&&!result.pendingPlan)journal.append(result);
+ return result;
+ }finally{journal.unlock();}
+}
+
+/** Calculate one period without journal access. The caller must establish the starting state's
+ * trust independently; never supply an unverified proposer record or state cache here.
+ * Cloning keeps the caller's verified state unchanged on success, early return or failure.
+ */
+export async function runCalculatorFromState({startingState,provider,token,distributor,config,bootstrap=false,rewardTokenFactory=(address)=>new ethers.Contract(address,ERC20_ABI,provider)}){
+ const pruneSettledPlans=readPruningPolicy(config);
+ const state=startingState==null?{lastProcessedBlock:config.deployBlock-1,balances:{},accrued:{},plans:{},...(pruneSettledPlans?{highestPrunedRoundId:'0'}:{})}:structuredClone(startingState);
  const configHash=hash(config);if(state.configHash&&state.configHash!==configHash)throw Error('configuration changed: audited migration required');
  const boundary=await selectBoundary(provider,config.finalityTag),blockTag=boundary.number;if(blockTag<=state.lastProcessedBlock)return {unchanged:true};
  if(state.blockHash){const previous=await provider.getBlock(state.lastProcessedBlock);if(previous?.hash!==state.blockHash)throw Error('previous snapshot hash changed');}
@@ -45,6 +57,5 @@ export async function runCalculator({dir='.',provider,token,distributor,config,b
   plan.toBlock=blockTag;state.plans[roundId]=plan;}
  const end=await provider.getBlock(blockTag);if(end?.hash!==boundary.hash)throw Error('snapshot hash changed during calculation');
  Object.assign(state,{lastProcessedBlock:blockTag,blockHash:boundary.hash,balances:endingBalances,accrued,configHash});
- const record={version:1,config,configHash,block:{number:blockTag,hash:boundary.hash,finality:config.finalityTag},fromBlock,periodStartTs:startBlock.timestamp,periodEndTs:boundary.timestamp,bootstrap,startingAccrual,recredits,newShares:shares,payouts,endingAccrual:accrued,available:availableRaw,localReserved,pot,potBeforeCap:uncapped,roundCap,dust,qualifying,rewardToken,rewardDecimals,roundId:plan?.roundId??null,root:plan?.root??null,plan,...(pruneSettledPlans?{prunedRounds}:{}),state};journal.append(record);return record;
- }finally{journal.unlock();}
+ const record={version:1,config,configHash,block:{number:blockTag,hash:boundary.hash,finality:config.finalityTag},fromBlock,periodStartTs:startBlock.timestamp,periodEndTs:boundary.timestamp,bootstrap,startingAccrual,recredits,newShares:shares,payouts,endingAccrual:accrued,available:availableRaw,localReserved,pot,potBeforeCap:uncapped,roundCap,dust,qualifying,rewardToken,rewardDecimals,roundId:plan?.roundId??null,root:plan?.root??null,plan,...(pruneSettledPlans?{prunedRounds}:{}),state};return record;
 }

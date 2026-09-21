@@ -18,11 +18,12 @@ export function parseKeeperArgs(args) {
   else if(arg==='--propose') options.propose=true;
   else if(arg==='--propose-only') {options.propose=true;options.proposeOnly=true;}
   else if(arg==='--help') options.help=true;
-  else if(['--config','--journal','--confirmations','--lock-wait'].includes(arg)) {
+  else if(['--config','--journal','--confirmations','--lock-wait','--verification-cache'].includes(arg)) {
    const value=args[++i];
    if(!value||value.startsWith('--'))throw Error(`missing value for ${arg}`);
    if(arg==='--config')options.configPath=value;
    if(arg==='--journal')options.dir=value;
+   if(arg==='--verification-cache')options.verificationCacheDir=value;
    if(arg==='--confirmations')options.confirmations=Number(value);
    if(arg==='--lock-wait')options.lockWaitSeconds=Number(value);
   } else throw Error(`unknown keeper option: ${arg.startsWith('--')?arg:'positional argument'}`);
@@ -30,6 +31,7 @@ export function parseKeeperArgs(args) {
  if(options.help)return options;
  if(!options.configPath)throw Error('--config is required (reviewed calculator configuration JSON)');
  if(!options.dir)throw Error('--journal is required (calculator data directory)');
+ if(options.verificationCacheDir!==undefined&&/[\0\r\n]/.test(options.verificationCacheDir))throw Error('verification cache must be a nonempty path without control characters');
  if(options.propose&&!options.execute)throw Error('--propose requires --execute');
  if(!Number.isSafeInteger(options.confirmations)||options.confirmations<1)throw Error('invalid confirmations');
  if(!Number.isSafeInteger(options.lockWaitSeconds)||options.lockWaitSeconds<0)throw Error('invalid lock wait');
@@ -39,7 +41,7 @@ export function parseKeeperArgs(args) {
 export async function main(args=process.argv.slice(2),env=process.env) {
  const options=parseKeeperArgs(args);
  if(options.help) {
-  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--allow-mainnet] [--propose|--propose-only] [--confirmations 1] [--lock-wait 300]\nDefault: dry run. Base mainnet execution additionally requires --allow-mainnet and a matching reviewed calculator config.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.\n--lock-wait waits this many seconds for another run on the same signer to finish before failing.\nExit 2: recipients unpaid, a proposal rate limited, or a foreign root at a planned round id.');
+  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--allow-mainnet] [--propose|--propose-only] [--confirmations 1] [--lock-wait 300] [--verification-cache PATH]\nDefault: dry run. Base mainnet execution additionally requires --allow-mainnet and a matching reviewed calculator config.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.\n--lock-wait waits this many seconds for another run on the same signer to finish before failing.\n--verification-cache explicitly enables a private local verification checkpoint outside the synced journal. It is off by default; a dry run can build it without a signing key. Keeper and proposer require independent private directories on their separate hosts; never sync these directories.\nExit 2: recipients unpaid, a proposal rate limited, or a foreign root at a planned round id.');
   return;
  }
  if(!env.RPC_URL)throw Error('RPC_URL is required');
