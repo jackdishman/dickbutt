@@ -31,13 +31,23 @@
   "rewardsPool": {
     "kind": "vamm",
     "factory": "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
-    "pool": null,
-    "lpOwner": null,
+    "pool": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+    "lpOwner": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
     "stable": false,
     "swapFeeBps": 30,
     "staking": "unstaked",
+    "lockIntent": {
+      "kind": "timed",
+      "durationSeconds": 31536000,
+      "durationDays": 365,
+      "reference": "planned production LP custody handoff",
+      "unlockTime": null,
+      "permanentLockAuthorized": false,
+      "note": "Owner selected one year on 2026-09-21. Planning metadata only: the driver requires a separate explicit params.aerodromeUnlockTime. Finalize that absolute timestamp before deployment and verify the full intended lock before transferring LP; if handoff is delayed, review and extend the lock through the Safe first. No deployment or LP transfer is authorized by this record."
+    },
     "routingIntent": "USDC -> SPCXc -> DICKBUTT; routing depends on execution price and liquidity, not guaranteed",
-    "note": "Basic volatile ERC-20 LP position. Verify the actual pool, wallet balance and current 0.3% fee before deployment. New adapter remains local and undeployed."
+    "note": "User-selected basic volatile pool and current LP-holder wallet; lpOwner is not the harvester or bot wallet. Verified and simulated locally at Base block 51612143; repeat finalized-state checks before deployment. The production harvester remains undeployed.",
+    "verificationEvidence": "docs/SELECTED-POOL-VERIFICATION.md"
   },
   "deployment": {
     "kcGreen": "0x331BB8664d032544327E61753485d06d663995B6",
@@ -130,6 +140,11 @@
         "role": "clankerPool",
         "address": "0x92d90f7f8413749Bd4BeA26ddE4e29efC9e9A0B6",
         "reason": "Uniswap V3 DICKBUTT/WETH pool behind the Clanker locker. Holds a very large DICKBUTT balance and would otherwise qualify as a holder and earn SPCXc."
+      },
+      {
+        "role": "rewardsPool",
+        "address": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+        "reason": "User-selected Aerodrome DICKBUTT/SPCXc pool; its reserve balances must not receive holder rewards."
       },
       {
         "role": "legacyFeeSafes",

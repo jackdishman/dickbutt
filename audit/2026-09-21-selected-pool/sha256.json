@@ -1,0 +1,20 @@
+{
+  "algorithm": "sha256",
+  "previousReviewedCommit": "8f2f26f28bbae987c3d0cf86744459119320eedb",
+  "scope": "September 21 selected-pool configuration/test/evidence follow-up only; previous audit evidence untouched.",
+  "files": {
+    "config/base-mainnet.json": "f455954a2697734a3c5e4795322c53a25fb9d007cf74213c9b0cbbc98a41a006",
+    "test/audit/SelectedVammPoolFork.t.sol": "aca668dae6b7500da2d2d145f727c5c66866004f01441f9975d99a974db1aad0",
+    "docs/SELECTED-POOL-VERIFICATION.md": "53a1af6313d126ab13cbac26d681170bd19000aaf96ecbbe7ac936ba222072e8",
+    "AUDIT_REPORT.md": "16953dbce6da54fc4f9c9b826c6b3e77292d9e159c9a12020319059e7729a3bd",
+    "README.md": "6bd57b4e97cebf6a8031e67fc8fcf31a2680aec355da8874caf451f8b0c1105c",
+    "AERODROME-SETUP.md": "4d06d8b1ae280120454623a4fa6367acbe22533ee14046fae1a0d8336093cea7",
+    "docs/MAINNET-DEPLOY.md": "0308cd54ced5644f04dd7b94170c6b721127d5800a7ebd28ddd9910dd66370a0",
+    "audit/2026-09-21-selected-pool/actual-pool-fork.log": "a35242e907ec33b39fe67b8442a09fa795a81621e5cb0b3d9cfdaefee0aa36a9",
+    "audit/2026-09-21-selected-pool/config-regressions.log": "66662dcd1df3862471b19ec6d2af5057842ec369cfab657eacdcc8d66432b4c6",
+    "audit/2026-09-21-selected-pool/finalized-pool-preflight.json": "31c81358fabafad04e1a973af7437223de2ad72d725a52ca0b5779287b1e984a",
+    "audit/2026-09-21-selected-pool/lp-owner-readonly.json": "668b1443941a1020d197b644ddb45d5da4367e334b7ffc9bf6ebf13013caf46f",
+    "audit/2026-09-21-selected-pool/pool-readonly.json": "2faca48ef0dbe73b74ff1a24f14d7c51625e94dd8811f2110afaabf80c0e8a2c"
+  },
+  "publicationBaseCommit": "40936a1e9859e948e911a1a9dee4bccb1e0dc724"
+}

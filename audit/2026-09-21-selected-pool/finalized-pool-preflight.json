@@ -1,0 +1,32 @@
+{
+  "readOnly": true,
+  "block": 51611693,
+  "blockHash": "0x2421172e4fc7bf340551e8de5362ed625bf02433e6e8f2124dc3fff6237e9fe1",
+  "poolChecksPass": true,
+  "poolErrors": [],
+  "exclusionErrors": [],
+  "remainingRoleErrors": [
+    "deployment.proposer must be an explicit nonzero address",
+    "deployment.floorSetter must be an explicit nonzero address"
+  ],
+  "readyForCustodyHandoff": false,
+  "inspection": {
+    "kind": "vamm",
+    "facts": {
+      "token0": "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+      "token1": "0xb2000000000000000000007b9fcbd005511aCBd5",
+      "factory": "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
+      "discoveredPool": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+      "registered": true,
+      "paused": false,
+      "stable": false,
+      "feeBps": "30",
+      "reserve0": "1903616875941191003832189294",
+      "reserve1": "9651118924",
+      "totalSupply": "4286236718263510712",
+      "lpOwner": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
+      "lpBalance": "4286236718263509712"
+    },
+    "errors": []
+  }
+}
