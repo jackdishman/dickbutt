@@ -243,10 +243,10 @@ export function buildDeploymentPlan({ config, params, legacy, splits, quoter }) 
  * from a hot deploying key is exactly the mistake the role separation exists to prevent.
  */
 export const MANUAL_STEPS = [
-  'Accept ownership from the owner multisig on each contract (Ownable2Step acceptOwnership).',
+  'Verify deployed bytecode, immutable recipients, pool identity and configuration, then accept ownership from the owner multisig on each Ownable2Step contract (acceptOwnership).',
+  'Add every deployed pipeline and bot address to the production calculator exclusions before the first journal or round; verify funded operating wallets, independent history checks, monitoring and recovery before custody handoffs.',
   'Review outstanding legacy fees: the current creator may claim first, or the verified adapter can claim its configured safes after authority is assigned.',
-  'Assign legacy tokenCreator authority to LegacyFeeHarvester. PERMANENT: the adapter has no relay to update it.',
-  'Transfer locker ownership to LockerHarvester, once its real fee collection has been observed.',
-  'Transfer the verified rewards pool position to the deployed adapter for its recorded kind: unstaked ERC-20 LP tokens to AerodromeVammHarvester, or an NFT to AerodromeFeeHarvester. Verify destination, lock and fee routing first.',
-  'Add every deployed address above to the production calculator exclusions before the first round.',
+  'After a successful fork rehearsal, transfer locker ownership to the verified LockerHarvester and verify ownsLocker() and an actual harvest. This is separate from legacy tokenCreator authority and does not transfer the DICKBUTT ERC-20 token contract.',
+  'Transfer the verified rewards pool position to the deployed adapter for its recorded kind: unstaked ERC-20 LP tokens to AerodromeVammHarvester, or an NFT to AerodromeFeeHarvester. Verify the intended remaining LP lock, destination and fee routing first, then verify custody and an actual harvest.',
+  'LAST: after the deployed fee pipeline and operating setup are verified, separately review and assign legacy tokenCreator authority to LegacyFeeHarvester. PERMANENT: the adapter has no relay to update it; the owner Safe cannot reverse this assignment.',
 ];

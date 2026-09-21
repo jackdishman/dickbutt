@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {ZeroAddress,ZeroHash} from 'ethers';
 import {runCalculator} from '../../calculator/engine.js';
-import {Journal} from '../../calculator/journal.js';
+import {Journal,hash,stringify} from '../../calculator/journal.js';
 import {buildPlan} from '../../calculator/core.js';
 import {verifyPayoutHistory} from '../verify-history.js';
+import {runKeeper} from '../engine.js';
 const a='0x00000000000000000000000000000000000000aa',b='0x00000000000000000000000000000000000000bb',c='0x00000000000000000000000000000000000000cc';
 async function fixture(t){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'independent-history-test-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
@@ -29,6 +30,29 @@ test('consistent arithmetic and a rebuilt root cannot pay a wallet absent from c
  const plan=buildPlan(r.roundId,payouts,f.config.batchSize);plan.toBlock=r.plan.toBlock;
  r.newShares=payouts;r.payouts=payouts;r.root=plan.root;r.plan=plan;r.state.plans[r.roundId]=plan;
  await assert.rejects(verifyPayoutHistory(f),/independent payout calculation mismatch/);
+});
+test('an internally consistent forged journal can never turn an idle skip into authorization',async t=>{
+ const f=await fixture(t),row=f.rows[1],r=row.record,payouts={[c]:r.plan.total};
+ const plan=buildPlan(r.roundId,payouts,f.config.batchSize);plan.toBlock=r.plan.toBlock;
+ // The attacker rehashes the full journal and rebuilds internally valid Merkle proofs,
+ // claiming all rewards for an address with no holder-token balance on chain.
+ r.newShares=payouts;r.payouts=payouts;r.root=plan.root;r.plan=plan;r.state.plans[r.roundId]=plan;
+ row.hash=hash({previous:row.previous,record:r});
+ fs.writeFileSync(path.join(f.dir,'periods','00000002.json'),stringify(row));
+ let readyAt=201n,replays=0,sends=0;
+ const distributor={getAddress:async()=>b,rewardToken:async()=>c,nextRoundId:async()=>2n,
+  pending:async()=>[plan.root,BigInt(plan.total),readyAt],roundInfo:async()=>[ZeroHash,0n,0n,false,false],
+  activateRound:async()=>{sends++;throw Error('forged activation must never be submitted');}};
+ const provider={...f.provider,getNetwork:async()=>({chainId:31337n}),getTransactionCount:async()=>0,
+  getBlock:tag=>tag==='latest'?Promise.resolve({timestamp:200}):f.provider.getBlock(tag)};
+ const options={dir:f.dir,config:f.config,provider,distributor,execute:true,signerAddress:a,
+  verifyHistory:async({rows})=>{replays++;return verifyPayoutHistory({...f,rows});}};
+ const idle=await runKeeper(options);
+ assert.equal(idle.rounds[0].status,'timelocked');assert.equal(replays,0);assert.equal(sends,0);
+ assert.deepEqual(idle.historyVerification,{status:'skipped',reason:'no-transaction-required'});
+ readyAt=200n;
+ await assert.rejects(runKeeper(options),/independent payout calculation mismatch/);
+ assert.equal(replays,1);assert.equal(sends,0);
 });
 test('invented starting balances are rejected even with unchanged payouts',async t=>{
  const f=await fixture(t);f.rows[0].record.state.balances[c]='1000000';

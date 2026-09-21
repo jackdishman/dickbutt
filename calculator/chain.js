@@ -1,10 +1,26 @@
 import {ethers} from 'ethers';import {amounts,normalize,sum} from './core.js';
+import {uint256String} from './config.js';
 export const ERC20_ABI=['event Transfer(address indexed from,address indexed to,uint256 value)','function decimals() view returns(uint8)'];
 export const DISTRIBUTOR_ABI=['event Paid(uint256 indexed roundId,address indexed account,uint256 amount)','function nextRoundId() view returns(uint256)','function availableForNextRound() view returns(uint256)','function maxProposableTotal() view returns(uint256)','function minPayout() view returns(uint256)','function rewardToken() view returns(address)','function roundInfo(uint256) view returns(bytes32,uint256,uint256,bool,bool)','function pending(uint256) view returns(bytes32,uint256,uint256)'];
 export async function selectBoundary(provider,tag='finalized'){if(!['finalized','safe'].includes(tag))throw Error('FINALITY_TAG must be finalized or safe');const block=await provider.getBlock(tag);if(!block||!block.hash||!Number.isSafeInteger(block.number))throw Error(`${tag} block unavailable; refusing fallback`);return block;}
 export async function scanEvents(contract,filter,from,to,chunk=2000){if(!Number.isSafeInteger(chunk)||chunk<1)throw Error('invalid scan chunk');const out=[];for(let start=from;start<=to;start+=chunk){const end=Math.min(start+chunk-1,to);const rows=await contract.queryFilter(filter,start,end);for(const row of rows){if(row.removed||row.blockNumber<start||row.blockNumber>end)throw Error('event outside snapshot');out.push(row);}}return out;}
-export async function reconcile(distributor,state,block,chunk=2000){
+export async function reconcile(distributor,state,block,chunk=2000,{pruneSettledPlans=false}={}){
+ if(typeof pruneSettledPlans!=='boolean')throw Error('pruneSettledPlans must be a boolean');
+ let highestPruned=pruneSettledPlans?uint256String(state.highestPrunedRoundId,'highestPrunedRoundId'):0n;
+ const prunedRounds=[];
  const accrued=amounts(state.accrued),plans=structuredClone(state.plans??{}),recredits={};let localReserved=0n;
+ const prune=plan=>{
+  if(!pruneSettledPlans)return;
+  const id=uint256String(plan.roundId,'pruned round id',{allowZero:false});
+  prunedRounds.push({roundId:plan.roundId,root:plan.root,settledAt:plan.settledAt,superseded:plan.superseded===true,...(plan.superseded?{foreignRoot:plan.foreignRoot}:{})});
+  if(id>highestPruned)highestPruned=id;
+  delete plans[plan.roundId];
+ };
+ if(pruneSettledPlans)for(const[key,plan]of Object.entries(plans)){
+  uint256String(plan.roundId,'retained round id',{allowZero:false});
+  if(key!==plan.roundId)throw Error('retained plan key differs from round id');
+  if(plan.settled)throw Error('pruning journal cannot retain an already-settled plan');
+ }
  for(const plan of Object.values(plans)){
  if(plan.settled)continue;
  const [root,total,distributed,active,closed]=await distributor.roundInfo(plan.roundId,{blockTag:block});
@@ -25,14 +41,16 @@ export async function reconcile(distributor,state,block,chunk=2000){
   // Once the guardian or owner has closed it, the plan is abandoned and every payout in it returns
   // to accrual, to be re-planned under the next free id. Nothing was paid against our root, so this
   // recredits exactly once and the next period's available balance reflects whatever happened.
-  if(closed&&!active&&root!==ethers.ZeroHash){for(const[a,v]of Object.entries(plan.payouts)){accrued[a]=(accrued[a]??0n)+BigInt(v);recredits[a]=(recredits[a]??0n)+BigInt(v);}plan.settled=true;plan.superseded=true;plan.settledAt=block;plan.foreignRoot=root;continue;}
+  if(closed&&!active&&root!==ethers.ZeroHash){for(const[a,v]of Object.entries(plan.payouts)){accrued[a]=(accrued[a]??0n)+BigInt(v);recredits[a]=(recredits[a]??0n)+BigInt(v);}plan.settled=true;plan.superseded=true;plan.settledAt=block;plan.foreignRoot=root;prune(plan);continue;}
   throw Error(`round ${plan.roundId} commitment mismatch: a foreign root is ${active?'active':'pending'}; cancel or close it, then rerun`);
  }
  if(BigInt(total)!==BigInt(plan.total))throw Error(`round ${plan.roundId} commitment mismatch`);
  if(active&&closed)throw Error('invalid round status');if(!closed)continue;
  const paid=new Set();let paidTotal=0n;for(const ev of await scanEvents(distributor,distributor.filters.Paid(plan.roundId),plan.toBlock,block,chunk)){const a=normalize(ev.args.account),v=BigInt(ev.args.amount);if(paid.has(a)||plan.payouts[a]===undefined||BigInt(plan.payouts[a])!==v)throw Error('invalid payment event');paid.add(a);paidTotal+=v;}
  if(paidTotal!==BigInt(distributed))throw Error('payment total mismatch');
- for(const[a,v]of Object.entries(plan.payouts)){if(!paid.has(a)){accrued[a]=(accrued[a]??0n)+BigInt(v);recredits[a]=(recredits[a]??0n)+BigInt(v);}}plan.settled=true;plan.settledAt=block;
+ for(const[a,v]of Object.entries(plan.payouts)){if(!paid.has(a)){accrued[a]=(accrued[a]??0n)+BigInt(v);recredits[a]=(recredits[a]??0n)+BigInt(v);}}plan.settled=true;plan.settledAt=block;prune(plan);
  }
- state.accrued=accrued;state.plans=plans;return {localReserved,recredits};
+ state.accrued=accrued;state.plans=plans;
+ if(pruneSettledPlans)state.highestPrunedRoundId=highestPruned.toString();
+ return {localReserved,recredits,...(pruneSettledPlans?{prunedRounds}:{})};
 }

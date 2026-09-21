@@ -1,3 +1,5 @@
+import { assertExecutionNetwork, verifyMainnetExecutor, assertMainnetSigner } from './execution-network.js';
+
 /**
  * Price-floor refresh for SpcxcSwapExecutor, signed by the floor-setter key.
  *
@@ -19,12 +21,16 @@ function positiveInt(value, name, max = Number.MAX_SAFE_INTEGER) {
 }
 
 export async function runFloorRefresh({
-  provider, executor, quote, signerAddress, execute = false, force = false,
+  provider, executor, quote, signerAddress, execute = false, allowMainnet = false, config, force = false,
   lifetimeSeconds = 20 * 3600, refreshBeforeSeconds = 8 * 3600, warnBeforeSeconds = 4 * 3600,
   slippageBps = 500, maxDeviationBps = 5000, referenceAmount, onEvent = () => {},
 }) {
   const chainId = (await provider.getNetwork()).chainId;
-  if (execute && ![31337n, 84532n].includes(chainId)) throw Error('production floor execution is disabled');
+  assertExecutionNetwork({chainId,execute,allowMainnet,config});
+  if (allowMainnet) {
+    await verifyMainnetExecutor({provider,config,executor});
+    if (execute) assertMainnetSigner(signerAddress,config.roles.ops,'floor setter');
+  }
   positiveInt(lifetimeSeconds, 'lifetimeSeconds');
   positiveInt(refreshBeforeSeconds, 'refreshBeforeSeconds');
   positiveInt(warnBeforeSeconds, 'warnBeforeSeconds');

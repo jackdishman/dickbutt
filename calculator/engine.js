@@ -1,18 +1,21 @@
 import fs from 'node:fs';import path from 'node:path';import {ethers} from 'ethers';import {Journal,hash} from './journal.js';import {amounts,sum,computeTWAB,computeShares,buildPlan,cappedPayouts} from './core.js';import {selectBoundary,reconcile,scanEvents,ERC20_ABI} from './chain.js';
+import {readPruningPolicy,uint256String} from './config.js';
 export async function runCalculator({dir='.',provider,token,distributor,config,bootstrap=false,rewardTokenFactory=(address)=>new ethers.Contract(address,ERC20_ABI,provider)}){
+ const pruneSettledPlans=readPruningPolicy(config);
  const journal=new Journal(dir);journal.lock();try{
  const recovered=journal.rebuild();if(!recovered&&fs.existsSync(path.join(dir,'state.json')))throw Error('legacy state without journal: explicit audited migration required');
- const state=recovered??{lastProcessedBlock:config.deployBlock-1,balances:{},accrued:{},plans:{}};
+ const state=recovered??{lastProcessedBlock:config.deployBlock-1,balances:{},accrued:{},plans:{},...(pruneSettledPlans?{highestPrunedRoundId:'0'}:{})};
  const configHash=hash(config);if(state.configHash&&state.configHash!==configHash)throw Error('configuration changed: audited migration required');
  const boundary=await selectBoundary(provider,config.finalityTag),blockTag=boundary.number;if(blockTag<=state.lastProcessedBlock)return {unchanged:true};
  if(state.blockHash){const previous=await provider.getBlock(state.lastProcessedBlock);if(previous?.hash!==state.blockHash)throw Error('previous snapshot hash changed');}
- const startingAccrual=amounts(state.accrued),{localReserved,recredits}=await reconcile(distributor,state,blockTag,config.chunkSize);
+ const startingAccrual=amounts(state.accrued),{localReserved,recredits,prunedRounds}=await reconcile(distributor,state,blockTag,config.chunkSize,{pruneSettledPlans});
  const [next,available,minPayout,decimals,rewardToken,maxProposable]=await Promise.all([distributor.nextRoundId({blockTag}),distributor.availableForNextRound({blockTag}),distributor.minPayout({blockTag}),token.decimals({blockTag}),distributor.rewardToken({blockTag}),distributor.maxProposableTotal({blockTag})]);
  if(Number(decimals)!==18)throw Error('unexpected holder token decimals');
  // Metadata is also read at the snapshot; never call latest through a helper.
  const reward=rewardTokenFactory(rewardToken);
  const rewardDecimals=Number(await reward.decimals({blockTag}));
  const roundId=BigInt(next).toString(),held=state.plans[roundId];
+ if(pruneSettledPlans&&uint256String(roundId,'next round id',{allowZero:false})<=uint256String(state.highestPrunedRoundId,'highestPrunedRoundId'))throw Error('next round id reuses a previously pruned round');
  // A plan that is built but not yet proposed is the ordinary gap between the calculate and propose
  // steps, not a fault. Throwing made the scheduled job unrecoverable: the keeper run that clears the
  // plan by proposing it is the only thing that can unjam this, and it only ran on a zero exit.
@@ -42,6 +45,6 @@ export async function runCalculator({dir='.',provider,token,distributor,config,b
   plan.toBlock=blockTag;state.plans[roundId]=plan;}
  const end=await provider.getBlock(blockTag);if(end?.hash!==boundary.hash)throw Error('snapshot hash changed during calculation');
  Object.assign(state,{lastProcessedBlock:blockTag,blockHash:boundary.hash,balances:endingBalances,accrued,configHash});
- const record={version:1,config,configHash,block:{number:blockTag,hash:boundary.hash,finality:config.finalityTag},fromBlock,periodStartTs:startBlock.timestamp,periodEndTs:boundary.timestamp,bootstrap,startingAccrual,recredits,newShares:shares,payouts,endingAccrual:accrued,available:availableRaw,localReserved,pot,potBeforeCap:uncapped,roundCap,dust,qualifying,rewardToken,rewardDecimals,roundId:plan?.roundId??null,root:plan?.root??null,plan,state};journal.append(record);return record;
+ const record={version:1,config,configHash,block:{number:blockTag,hash:boundary.hash,finality:config.finalityTag},fromBlock,periodStartTs:startBlock.timestamp,periodEndTs:boundary.timestamp,bootstrap,startingAccrual,recredits,newShares:shares,payouts,endingAccrual:accrued,available:availableRaw,localReserved,pot,potBeforeCap:uncapped,roundCap,dust,qualifying,rewardToken,rewardDecimals,roundId:plan?.roundId??null,root:plan?.root??null,plan,...(pruneSettledPlans?{prunedRounds}:{}),state};journal.append(record);return record;
  }finally{journal.unlock();}
 }

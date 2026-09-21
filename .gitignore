@@ -6,6 +6,8 @@ artifacts/**/*.json
 !artifacts/clanker-source.json
 .env
 .env.*
+# Scheduled role credentials: ignore both the directory and an external-directory symlink.
+/env
 state.json
 periods/
 .writer-lock/

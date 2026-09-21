@@ -2,26 +2,41 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
-import {Contract,JsonRpcProvider,Wallet} from 'ethers';
+import {Contract,Wallet} from 'ethers';
+import {fileURLToPath} from 'node:url';
 import {aerodromeHarvesterName, verifyAerodromeRuntime} from '../operations/aerodrome.js';
+import { assertExecutionNetwork } from '../operations/execution-network.js';
 import {runFeeCycle} from '../operations/fees.js';
 import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import {acquireExecutionLock} from '../keeper/engine.js';
-const args=process.argv.slice(2),execute=args.includes('--execute');
-if(args.includes('--help')) {
-  console.log('Usage: npm run fees -- --config deployment.json [--execute]\nRead-only by default. RPC_URL and (for execution) KEEPER_PRIVATE_KEY. Execution permits only 31337/84532.');process.exit(0);
+export function parseFeeArgs(args) {
+  const options={execute:false,allowMainnet:false};
+  for(let i=0;i<args.length;i++) {
+    if(args[i]==='--execute')options.execute=true;
+    else if(args[i]==='--allow-mainnet')options.allowMainnet=true;
+    else if(args[i]==='--help')options.help=true;
+    else if(args[i]==='--config') {
+      options.configPath=args[++i];
+      if(!options.configPath||options.configPath.startsWith('--'))throw Error('missing value for --config');
+    } else throw Error('unknown fee option');
+  }
+  if(!options.help&&!options.configPath)throw Error('--config is required');
+  return options;
 }
-let configPath;
-for(let i=0;i<args.length;i++){if(args[i]==='--config')configPath=args[++i];else if(args[i]!=='--execute')throw Error('unknown option');}
-if(!configPath||!process.env.RPC_URL)throw Error('--config and RPC_URL required');
+export async function main(args=process.argv.slice(2),env=process.env) {
+const {execute,allowMainnet,configPath,help}=parseFeeArgs(args);
+if(help) {
+  console.log('Usage: npm run fees -- --config deployment.json [--execute] [--allow-mainnet]\nRead-only by default. RPC_URL and (for execution) KEEPER_PRIVATE_KEY. Base mainnet execution additionally requires --allow-mainnet and a matching reviewed manifest.');return;
+}
+if(!env.RPC_URL)throw Error('RPC_URL required');
 const config=JSON.parse(fs.readFileSync(configPath));
-const provider=createRpcProvider(process.env.RPC_URL,undefined,{batchMaxCount:1,cacheTimeout:-1});
+const provider=createRpcProvider(env.RPC_URL,undefined,{batchMaxCount:1,cacheTimeout:-1});
 let release;
 try {
   const chainId=(await provider.getNetwork()).chainId;
   if(String(chainId)!==String(config.chainId))throw Error('RPC/config chain mismatch');
-  if(execute&&![31337n,84532n].includes(chainId))throw Error('production fee execution is disabled');
-  const signer=execute?new Wallet(process.env.KEEPER_PRIVATE_KEY,provider):provider;
+  assertExecutionNetwork({chainId,execute,allowMainnet,config});
+  const signer=execute?new Wallet(env.KEEPER_PRIVATE_KEY,provider):provider;
   const address=execute?await signer.getAddress():undefined;
   const marker=path.join(path.dirname(path.resolve(configPath)),'fee-pending-transaction.json');
   if(execute){
@@ -51,9 +66,13 @@ try {
     if(['confirmed','reverted'].includes(event.status)&&fs.existsSync(marker))fs.unlinkSync(marker);
     console.log(JSON.stringify(event));
   };
-  const result=await runFeeCycle({provider,signerAddress:address,execute,
+  const result=await runFeeCycle({provider,signerAddress:address,execute,allowMainnet,config,
     locker:c.clanker?at('LockerHarvester',c.clanker):null,aero,legacy:c.legacy?at('LegacyFeeHarvester',c.legacy):null,
     feeRouter,executor,weth:new Contract(c.weth,['function balanceOf(address) view returns(uint256)'],provider),quote:async (amount,snapshot)=>(await quoter.quoteExactInput.staticCall(swapPath,amount,snapshot))[0],onEvent});
   console.log(JSON.stringify(result));if(result.swapStatus==='price-floor-refresh-required'||result.attention?.length)process.exitCode=2;
 } catch(e) {console.error(e.code?'Fee operation failed; inspect transaction events and RPC status':e.message);process.exitCode=1;}
 finally {release?.();closeProvider(provider);}
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+  main().catch(error=>{console.error(error.code?'Fee operation failed; inspect transaction events and RPC status':error.message);process.exitCode=1;});
+}

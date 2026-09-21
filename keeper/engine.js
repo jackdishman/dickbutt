@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import { Journal, hash, stringify } from '../calculator/journal.js';
 import { buildPlan, normalize } from '../calculator/core.js';
 import { verifyPayoutHistory } from './verify-history.js';
+import { assertExecutionNetwork } from '../operations/execution-network.js';
 
 export const KEEPER_ABI = [
  'function rewardToken() view returns(address)',
@@ -85,14 +86,14 @@ async function inspect(distributor,plan) {
 }
 
 /** Consume authentic calculator Journal records; all transaction dependencies are injected. */
-export async function runKeeper({dir,provider,distributor,config,execute=false,propose=false,proposeOnly=false,signerAddress,
+export async function runKeeper({dir,provider,distributor,config,execute=false,allowMainnet=false,propose=false,proposeOnly=false,signerAddress,
  ownerDistributor=distributor,ownerAddress=signerAddress,confirmations=1,lockWaitSeconds=0,onEvent=()=>{},verifyHistory=verifyPayoutHistory}) {
  // proposeOnly lets the proposer bot run without the keeper key on its host. It commits roots and
  // stops; activation is permissionless and payment belongs to the keeper.
  if (proposeOnly&&!propose) throw Error('proposeOnly requires propose');
  if (!Number.isSafeInteger(confirmations)||confirmations<1) throw Error('confirmations must be a positive integer');
  const chainId=(await provider.getNetwork()).chainId.toString();
- if (execute&&!['31337','84532'].includes(chainId)) throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');
+ assertExecutionNetwork({chainId,execute,allowMainnet,config,configKind:'calculator'});
  if (chainId!==String(config.chainId)) throw Error('RPC chain does not match calculator config');
  if (normalize(await distributor.getAddress())!==normalize(config.distributor)) throw Error('distributor does not match calculator config');
  if (execute&&!signerAddress) throw Error('execute requires signerAddress');
@@ -125,9 +126,20 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
    const plan=verifyPlan(record,config);
    if (plan) { if(seen.has(plan.roundId))throw Error('duplicate journal plan round id');seen.add(plan.roundId);plans.push(plan); }
   }
-  // Proposer-host journal copies are untrusted calculation results. Recompute their
-  // eligibility, balances and payouts independently before approving any mutation.
-  result.historyVerification=await verifyHistory({rows,config,provider});
+  // Proposer-host journal copies are untrusted calculation results. Every send crosses
+  // this barrier before submitting its transaction, even if live state changed after
+  // the initial inspection. Keep the replay result only for this locked invocation;
+  // never trust a verification claim or cache supplied with the journal.
+  let historyVerified=false;
+  async function requireVerifiedHistory() {
+   if (historyVerified) return;
+   result.historyVerification=await verifyHistory({rows,config,provider});
+   historyVerified=true;
+  }
+  // A dry run remains a full independent audit. Execute jobs with no available action
+  // can skip the historical RPC replay; identity, Merkle, snapshot and commitment
+  // validation above/below still runs, as do nonce and pending-transaction safeguards.
+  if (!execute) await requireVerifiedHistory();
   // Check every commitment before the first mutation, including older closed rounds.
   for (const plan of plans) await inspect(distributor,plan);
   if (execute && propose && normalize(await ownerDistributor.getAddress())!==normalize(config.distributor)) throw Error('owner distributor does not match config');
@@ -139,7 +151,33 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
    fs.unlinkSync(marker);
    emit({type:'recovered-transaction',hash:pending.hash,status:Number(receipt.status)});
   }
+  async function proposalAvailability(plan) {
+   const [proposer,contractOwner,paused,maxTotal,allowedAt]=await Promise.all([
+    ownerDistributor.isProposer(ownerAddress),ownerDistributor.owner(),ownerDistributor.proposalsPaused(),
+    ownerDistributor.maxProposableTotal(),ownerDistributor.nextProposalAllowedAt()]);
+   if (!proposer&&normalize(contractOwner)!==normalize(ownerAddress)) throw Error('proposal signer is neither an approved proposer nor the distributor owner');
+   if (paused) throw Error('proposals are paused by the guardian; resolve before reproposing');
+   if (BigInt(plan.total)>BigInt(maxTotal)) throw Error(`round ${plan.roundId} total ${plan.total} exceeds the contract share cap ${maxTotal}`);
+   const latest=await provider.getBlock('latest');
+   return {allowedAt,rateLimited:BigInt(allowedAt)>BigInt(latest.timestamp)};
+  }
   async function send(action,roundId,submit) {
+   await requireVerifiedHistory();
+   // Replay can be slow. A different authorized actor may have changed the round
+   // while we independently checked history; never submit using pre-replay state.
+   const plan=plans.find(candidate=>candidate.roundId===roundId),current=await inspect(distributor,plan);
+   if (current.foreign) throw Error(`${action} commitment changed during verification; inspect round ${roundId} before rerun`);
+   if (action==='propose') {
+    if (current.exists||current.waiting) throw Error(`proposal state changed during verification for round ${roundId}; rerun`);
+    if ((await proposalAvailability(plan)).rateLimited) throw Error(`proposal rate limit changed during verification for round ${roundId}; rerun`);
+   } else if (action==='activate') {
+    const latest=await provider.getBlock('latest');
+    if (!current.waiting||BigInt(latest.timestamp)<current.readyAt) throw Error(`activation state changed during verification for round ${roundId}; rerun`);
+   } else {
+    if (!current.active||current.closed) throw Error(`${action} state changed during verification for round ${roundId}; rerun`);
+    if (action==='batch'&&!await distributor.isKeeper(signerAddress)) throw Error('signer is not an approved keeper');
+    if (action==='close'&&(current.distributed!==BigInt(plan.total)||(await unpaid(plan)).length)) throw Error(`close state changed during verification for round ${roundId}; rerun`);
+   }
    const tx=await submit();
    const markerFd=fs.openSync(marker,'wx',0o600);
    try { fs.writeFileSync(markerFd,stringify({chainId,distributor:config.distributor,action,roundId,hash:tx.hash}));fs.fsyncSync(markerFd); }
@@ -179,14 +217,8 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
     if (!execute||!propose) continue;
     // The proposer is a bot role now; the owner keeps the ability implicitly. Check the
     // contract's own limits first so an operator sees why, instead of a bare revert.
-    const [proposer,contractOwner,paused,maxTotal,allowedAt]=await Promise.all([
-     ownerDistributor.isProposer(ownerAddress),ownerDistributor.owner(),ownerDistributor.proposalsPaused(),
-     ownerDistributor.maxProposableTotal(),ownerDistributor.nextProposalAllowedAt()]);
-    if (!proposer&&normalize(contractOwner)!==normalize(ownerAddress)) throw Error('proposal signer is neither an approved proposer nor the distributor owner');
-    if (paused) throw Error('proposals are paused by the guardian; resolve before reproposing');
-    if (BigInt(plan.total)>BigInt(maxTotal)) throw Error(`round ${plan.roundId} total ${plan.total} exceeds the contract share cap ${maxTotal}`);
-    const latest=await provider.getBlock('latest');
-    if (BigInt(allowedAt)>BigInt(latest.timestamp)) {report.status='proposal-rate-limited';report.readyAt=allowedAt.toString();continue;}
+    const {allowedAt,rateLimited}=await proposalAvailability(plan);
+    if (rateLimited) {report.status='proposal-rate-limited';report.readyAt=allowedAt.toString();continue;}
     await send('propose',plan.roundId,()=>ownerDistributor.proposeRound(plan.root,plan.total));
     state=await inspect(distributor,plan);
    }
@@ -200,6 +232,10 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
     state=await inspect(distributor,plan);
    }
    if (proposeOnly) {report.status=state.closed?'closed':state.active?'distribution-ready':'proposal-required';continue;}
+   // The checked commitment's full total was distributed and the round is closed.
+   // Historical recipient flags cannot authorize more work, so avoid rereading every
+   // paid account on each idle tick. Partially distributed closures still report unpaid.
+   if (state.closed&&state.distributed===BigInt(plan.total)) {report.status='closed';continue;}
    report.unpaid=await unpaid(plan);
    if (state.closed) {report.status=report.unpaid.length?'closed-unpaid':'closed';continue;}
    if (!state.active) throw Error('round failed to activate');
@@ -232,6 +268,7 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
     report.status='closed';
    } else report.status='partial';
   }
+  if (!historyVerified) result.historyVerification={status:'skipped',reason:'no-transaction-required'};
   emit({type:'keeper-complete',rounds:result.rounds});
   return result;
  } finally {
