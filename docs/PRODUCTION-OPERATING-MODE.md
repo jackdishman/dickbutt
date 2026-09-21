@@ -57,6 +57,13 @@ Only an approved production launch adds `--execute`. The proposer also uses `--p
 runs on its own host without `KEEPER_PRIVATE_KEY`. The floor host uses `OPS_PRIVATE_KEY`, the
 keeper host uses `KEEPER_PRIVATE_KEY`, and the monitor has no signing key.
 
+The schedule template references `env/keeper.env`, `env/proposer.env` and `env/ops.env`
+under its working directory. `/env` is ignored by Git, including an external-directory
+symlink, as protection against accidental staging. This is not encryption or a key backup.
+Before installing services, arrange owner-readable credential storage outside the source
+checkout, set the corresponding service environment paths, and privately verify recovery.
+Never use the local or Sepolia wallet utilities to generate or fund production bot keys.
+
 The normal schedule renderer omits the mainnet option. To explicitly produce mainnet commands:
 
 ```sh
