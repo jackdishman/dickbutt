@@ -32,7 +32,8 @@ estimate for a particular future transaction. The keeper still validates the on-
 reward token, journal identity, Merkle plans, snapshot hashes, commitments, signer permissions,
 nonces and unresolved transactions. Independent history reconstruction must succeed before any
 mutation. An idle executed invocation may skip this expensive reconstruction; its result explicitly
-reports that it has not performed independent verification. A dry run still performs full verification.
+reports that it has not performed independent verification. A dry run still verifies its history;
+the optional private checkpoint described below changes how an already verified prefix is reused.
 Fully distributed closed rounds skip historical recipient payment-flag queries; partially distributed
 closed rounds still report unpaid recipients. Original round commitments and journal records remain
 checked, so this reduces repeated work without establishing a fixed long-term RPC or memory cost.
@@ -45,11 +46,68 @@ journal; replacement, truncation or an added record visible at replay start is r
 monitor likewise streams records while collecting roots. `Journal.entries()` remains an explicit
 array-producing compatibility API for other callers.
 
-This change does not add a persistent verification checkpoint or skip genesis replay on an active
-run. It still reads all historical records, and initial token-event scans still buffer their results.
+Without the separate checkpoint option, an active run still reconstructs from genesis. Both modes
+read all incoming historical records, and initial token-event scans still buffer their results.
 Its memory benefit across periods requires the existing optional settled-plan pruning policy for
 a new journal: a single old-format record can itself contain all historical plans. No existing
 journal or production configuration is migrated automatically.
+
+## Optional private verification checkpoint
+
+`--verification-cache /absolute/private/path` explicitly enables a verifier-owned checkpoint.
+It is off by default, does not enable transactions, and never loads incoming `state.json` or
+an incoming record's state as its calculation seed. Without it, independent reconstruction
+still starts from genesis, now retaining its own state in memory instead of writing a temporary
+copy of every replayed journal record. Record bytes and accounting rules remain unchanged.
+
+The first checkpoint is created only after every incoming period has been independently
+reconstructed and the complete iterator has finished successfully. On later runs, the verifier
+validates the incoming hash chain from its beginning and requires the exact saved sequence/hash,
+state identity, configuration, chain, token and distributor. It verifies the finalized anchor's
+block/hash/time before reuse and again after reconstruction. New periods are computed from its
+own saved state and compared against the complete incoming records. An unchanged verified head
+requires no Transfer/Paid event scans; extending a head scans the new transfer periods and still
+reconciles outstanding plans' historical payment events. The keeper's fresh action, permissions,
+nonce, unresolved-transaction and receipt checks remain mandatory after verification.
+
+The checkpoint binds relevant reconstruction source files and dependency manifests. Changing any
+of them invalidates the checkpoint, even when the change appears harmless. Corrupt/incompatible
+files, rewritten/truncated incoming history, changed snapshots or an interrupted input stream
+halt verification. They are never repaired using proposer state. The previous checkpoint is
+preserved until complete success; writes use a private temporary file, fsync, atomic rename and
+directory fsync. A crash may leave the old or complete new checkpoint. Stale locks or unexpected
+files require manual inspection with all relevant jobs stopped; locks are not automatically erased.
+
+This is a new operational trust boundary. The directory must belong to the verifier service
+account with mode 0700, its checkpoint must be a mode-0600 regular file with one hard link, and
+paths must contain no symlink components. The parent private service directory must already exist.
+The cache and journal must be separate directories with neither containing the other. Unsafe
+writable ancestors, changed directory/file identities and malformed schemas are rejected.
+An unkeyed checksum detects corruption; it cannot authenticate a file supplied by an attacker.
+POSIX modes alone do not exclude extended ACLs, cloud administrators or an unrestricted SSH/sync
+account. Independently verify those permissions and ensure proposer journal replication has no
+write access to the keeper's cache. Do not use this option until that separation is established.
+
+Each keeper/proposer host initializes its own cache. Never sync these caches between hosts or
+copy a proposer-generated checkpoint to the keeper. Run the normal keeper command without
+`--execute` to initialize or validate it before starting signing jobs:
+
+```sh
+npm run keeper -- --config calculator-config.json --journal /srv/dickbutt/incoming \
+  --verification-cache /var/lib/dickbutt-keeper/verified-history --allow-mainnet
+```
+
+For recovery or code upgrades, first stop affected jobs and preserve the old checkpoint for
+investigation. Select a new empty private cache directory, then run the same keyless dry run
+against the complete immutable journal with the reviewed source, configuration and archive RPC.
+Only resume signing after that full replay, diagnostics and operational permissions are reviewed.
+The CLI has no silent migration, trust-import or force-repair option.
+
+The scheduler renderer accepts the same optional path and adds it only to payout, pending-proposal
+and calculate-and-propose jobs. Defaults and other jobs are unchanged; rendering installs nothing.
+Separate hosts may use the same local pathname, but the directories must remain independently
+owned. This optimization does not remove initial full-history indexing, incoming-journal disk
+growth, provider range limits, account costs or the need for backup and restore exercises.
 
 These comparisons detect mismatches against the supplied configuration; they do not authenticate
 an unreviewed configuration or replace verifying deployed bytecode and custody decisions. The

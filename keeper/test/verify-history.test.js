@@ -34,12 +34,12 @@ function observeReplayDirectories(t){
 test('independent replay accepts valid bootstrap and holder payout periods',async t=>{
  const f=await fixture(t);assert.deepEqual(await verifyPayoutHistory(f),{periods:2,finalizedThrough:20});
 });
-test('generator and array input produce identical full replay results and remove temporary journals',async t=>{
+test('generator and array input produce identical full replay results without temporary journals',async t=>{
  const f=await fixture(t),directories=observeReplayDirectories(t);
  const expected=await verifyPayoutHistory(f);
  const rows=(function*(){yield* f.rows;})();
  assert.deepEqual(await verifyPayoutHistory({...f,rows}),expected);
- assert.equal(directories.length,2);
+ assert.equal(directories.length,0);
  for(const dir of directories)assert.equal(fs.existsSync(dir),false,'temporary replay journal remains');
 });
 test('a one-use iterable is consumed lazily without reading length or iterating twice',async t=>{
@@ -60,22 +60,21 @@ test('a one-use iterable is consumed lazily without reading length or iterating 
  assert.deepEqual(await verifyPayoutHistory({...f,rows}),{periods:2,finalizedThrough:20});
  assert.equal(iterations,1);assert.equal(scans,2);
 });
-test('midstream corruption stops replay, closes the iterator and removes its temporary journal',async t=>{
+test('midstream corruption stops replay and closes the iterator without disk state',async t=>{
  const f=await fixture(t),directories=observeReplayDirectories(t);
  const forged=structuredClone(f.rows[1]);forged.record.state.balances[c]='1000000';
  let closed=false;
  const rows=(function*(){try{yield f.rows[0];yield forged;assert.fail('replay continued after a corrupted period');}finally{closed=true;}})();
  await assert.rejects(verifyPayoutHistory({...f,rows}),/independent payout calculation mismatch/);
- assert.equal(closed,true);assert.equal(directories.length,1);
- assert.equal(fs.existsSync(directories[0]),false);
- // The independently reconstructed journal is temporary; failure must not modify its source.
+ assert.equal(closed,true);assert.equal(directories.length,0);
+ // Reconstruction stays in memory; failure must not modify its source.
  assert.deepEqual(new Journal(f.dir).entries(),f.rows);
 });
-test('an iterator failure after a valid period removes the partially rebuilt journal',async t=>{
+test('an iterator failure after a valid period leaves no replay state on disk',async t=>{
  const f=await fixture(t),directories=observeReplayDirectories(t),failure=Error('source journal read failed');
  const rows=(function*(){yield f.rows[0];throw failure;})();
  await assert.rejects(verifyPayoutHistory({...f,rows}),error=>error===failure);
- assert.equal(directories.length,1);assert.equal(fs.existsSync(directories[0]),false);
+ assert.equal(directories.length,0);
 });
 test('consistent arithmetic and a rebuilt root cannot pay a wallet absent from chain history',async t=>{
  const f=await fixture(t),r=f.rows[1].record,payouts={[c]:r.plan.total};

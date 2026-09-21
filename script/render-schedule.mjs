@@ -11,11 +11,16 @@ import { JOBS, validateSchedule, hostPlan, CONTRACT_LIMITS } from '../operations
 const USAGE = `Usage: npm run schedule -- [--format systemd|cron|plan] [--host keeper|ops|proposer|monitor]
                        [--workdir /srv/dickbutt] [--manifest deployment.json]
                        [--calculator calculator-config.json] [--journal ./data] [--allow-mainnet]
+                       [--verification-cache PATH]
 
 Prints to stdout; nothing is installed. The schedule is validated first and refuses to render
 if a key would end up on two hosts or a cadence contradicts a contract limit.
 Mainnet flags are omitted by default. --allow-mainnet first validates the manifest and calculator
-files under --workdir; both must match Base 8453 and name the same token/distributor.`;
+files under --workdir; both must match Base 8453 and name the same token/distributor.
+Verification checkpoints are off by default. --verification-cache adds a private directory only
+to payout and proposer verification jobs. Keeper and proposer must have independent local caches
+outside their synced journals on separate hosts; the same path on different hosts is fine.
+Never replicate these cache directories.`;
 
 export function parseScheduleArgs(args) {
   const o = { format: 'plan', workdir: '/srv/dickbutt', manifest: 'deployment.json',
@@ -25,7 +30,8 @@ export function parseScheduleArgs(args) {
     if (arg === '--allow-mainnet') { o.allowMainnet = true; continue; }
     if (arg === '--help') { o.help = true; continue; }
     const map = { '--format': 'format', '--host': 'host', '--workdir': 'workdir',
-      '--manifest': 'manifest', '--calculator': 'calculator', '--journal': 'journal' };
+      '--manifest': 'manifest', '--calculator': 'calculator', '--journal': 'journal',
+      '--verification-cache': 'verificationCacheDir' };
     if (!map[arg]) throw Error(`unknown schedule option: ${arg.startsWith('--') ? arg : 'positional argument'}`);
     const value = args[++i];
     if (!value || value.startsWith('--')) throw Error(`missing value for ${arg}`);
@@ -39,7 +45,7 @@ export function parseScheduleArgs(args) {
 }
 
 function validateRenderOptions(o) {
-  for (const key of ['workdir','manifest','calculator','journal']) {
+  for (const key of ['workdir','manifest','calculator','journal',...(o.verificationCacheDir!==undefined?['verificationCacheDir']:[])]) {
     if (typeof o[key] !== 'string' || !o[key].length || /[\0\r\n]/.test(o[key])) {
       throw Error(`scheduler ${key} must be a nonempty path without control characters`);
     }
@@ -61,14 +67,25 @@ function validateRenderOptions(o) {
 }
 
 function executionCommand(job, o) {
-  const command = [...job.command];
-  if (!o.allowMainnet || !job.key) return command;
-  if (job.name === 'calculate-and-propose') {
-    if (command[0] !== 'sh' || !command[2].endsWith('--execute --propose-only')) throw Error('unexpected proposer command; review mainnet flag placement');
-    command[2] += ' --allow-mainnet';
-  } else {
-    if (!command.includes('--execute') || command[0] !== 'npm') throw Error('unexpected transaction command; review mainnet flag placement');
-    command.push('--allow-mainnet');
+  const command = substitute(job.command, o);
+  if (o.allowMainnet && job.key) {
+    if (job.name === 'calculate-and-propose') {
+      if (command[0] !== 'sh' || !command[2].endsWith('--execute --propose-only')) throw Error('unexpected proposer command; review mainnet flag placement');
+      command[2] += ' --allow-mainnet';
+    } else {
+      if (!command.includes('--execute') || command[0] !== 'npm') throw Error('unexpected transaction command; review mainnet flag placement');
+      command.push('--allow-mainnet');
+    }
+  }
+  if (o.verificationCacheDir!==undefined && ['calculate-and-propose','propose-pending','payout'].includes(job.name)) {
+    if (job.name==='calculate-and-propose') {
+      if(command[0]!=='sh'||command.length!==6)throw Error('unexpected proposer command; review verification cache argument placement');
+      command[2]+=' --verification-cache "$3"';
+      command.push(o.verificationCacheDir);
+    } else {
+      if(command[0]!=='npm'||command[2]!=='keeper')throw Error('unexpected keeper command; review verification cache argument placement');
+      command.push('--verification-cache',o.verificationCacheDir);
+    }
   }
   return command;
 }
@@ -92,7 +109,7 @@ const systemdQuote = part => systemdValue(part.replaceAll('$', () => '$$'));
 export function renderSystemd(jobs, o) {
   validateRenderOptions(o);
   return jobs.map(job => {
-    const exec = substitute(executionCommand(job, o), o).map(systemdQuote).join(' ');
+    const exec = executionCommand(job, o).map(systemdQuote).join(' ');
     const keys = [job.key, ...(job.alsoNeeds ?? [])].filter(Boolean);
     return `# ---- ${job.name} (host: ${job.host}) ----
 # ${job.description}
@@ -132,7 +149,7 @@ export function renderCron(jobs, o) {
   // Vixie/Cronie consume backslashes before passing command text to the shell. In particular,
   // a filename's literal backslash before an escaped percent can unescape that percent and
   // truncate the command. Keep cron paths unambiguous instead of silently changing a filename.
-  for (const key of ['workdir','manifest','calculator','journal']) {
+  for (const key of ['workdir','manifest','calculator','journal',...(o.verificationCacheDir!==undefined?['verificationCacheDir']:[])]) {
     if (o[key].includes('\\')) throw Error(`cron ${key} must not contain backslashes; choose a Unix path without them`);
   }
   const spec = seconds => {
@@ -141,7 +158,7 @@ export function renderCron(jobs, o) {
     return '0 3 * * *';
   };
   const lines = jobs.map(job => {
-    const parts = substitute(executionCommand(job, o), o);
+    const parts = executionCommand(job, o);
     if ([o.workdir, ...parts].some(part => /[\0\r\n]/.test(part))) throw Error('scheduler arguments must not contain control characters');
     // Cron handles percent signs before the shell, including inside quoted arguments.
     const exec = parts.map(shellQuote).join(' ').replaceAll('%', '\\%');
