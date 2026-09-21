@@ -16,12 +16,17 @@ function scratch() {
 }
 
 test('mainnet shows this repository\'s contracts as undeployed, not as errors', () => {
-  const { nodes } = resolveFlow('base-mainnet', { mainnet: readJson(REPO, 'config/base-mainnet.json'), sepolia: null, legacy: null });
+  const mainnet = readJson(REPO, 'config/base-mainnet.json');
+  const { nodes } = resolveFlow('base-mainnet', { mainnet, sepolia: null, legacy: null });
   const router = nodes.find(node => node.id === 'feeRouter');
   assert.equal(router.status, 'undeployed');
   assert.equal(router.tone, 'warning');
-  // A pre-existing address that is simply absent is a different, more serious thing.
-  assert.equal(nodes.find(node => node.id === 'rewardsPool').tone, 'critical');
+  assert.equal(nodes.find(node => node.id === 'rewardsPool').tone, 'good');
+  // Exercise missing-pool behavior explicitly; the repository now records a real pool.
+  const missingPool = structuredClone(mainnet);
+  missingPool.rewardsPool.pool = null;
+  const missing = resolveFlow('base-mainnet', { mainnet: missingPool, sepolia: null, legacy: null });
+  assert.equal(missing.nodes.find(node => node.id === 'rewardsPool').tone, 'critical');
 });
 
 test('the sepolia manifest resolves the same nodes as deployed', () => {

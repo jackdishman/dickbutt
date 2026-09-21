@@ -29,7 +29,7 @@ Each is printed as a remaining step when the run completes.
 The selected rewards pool kind is `vamm`. The selected public pool and LP-holder wallet are recorded and checked in
 [the September 21 verification](SELECTED-POOL-VERIFICATION.md). Missing roles and production magnitudes still block deployment. Historical manifests without a kind use
 the original Slipstream NFT adapter. New manifests record `sources.aerodromeKind`, `rewardsPool` and
-`rewardsFactory`; the fee CLI validates the vAMM immutable path. Runtime mainnet gates remain closed.
+`rewardsFactory`; the fee CLI validates the vAMM immutable path. Runtime mainnet execution remains disabled by default; see the explicit operating mode below.
 The internal audit fixes passed; independent review and production operating readiness remain required.
 
 ## Inputs
@@ -126,7 +126,8 @@ nonce and transaction history before recovery; the partial file alone cannot set
 
 ## What is still gated
 
-The operating CLIs — `operations/fees.js`, `operations/floor.js`, `script/run-keeper.mjs` — still
-refuse to execute on chain 8453. That gate is deliberately untouched by this script. Deploying
-contracts and running fee cycles against them are separate decisions that deserve separate reviews;
-see `gate.mainnetWrites` in the launch checklist.
+The fee, floor and keeper commands require a separate `--allow-mainnet` option as well as
+`--execute` to operate on chain 8453. The deployment driver does not enable that option or install
+bot schedules. Mainnet operating mode checks matching reviewed configurations and deployed
+identities; see [PRODUCTION-OPERATING-MODE.md](PRODUCTION-OPERATING-MODE.md). A successful
+deployment alone does not complete custody handoffs, hosting, key separation or launch review.

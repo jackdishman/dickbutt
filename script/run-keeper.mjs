@@ -4,15 +4,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
+import { assertExecutionNetwork } from '../operations/execution-network.js';
 import { runKeeper, KEEPER_ABI } from '../keeper/engine.js';
 import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import { stringify } from '../calculator/journal.js';
 
 export function parseKeeperArgs(args) {
- const options={execute:false,propose:false,proposeOnly:false,confirmations:1,lockWaitSeconds:300};
+ const options={execute:false,allowMainnet:false,propose:false,proposeOnly:false,confirmations:1,lockWaitSeconds:300};
  for(let i=0;i<args.length;i++) {
   const arg=args[i];
   if(arg==='--execute') options.execute=true;
+  else if(arg==='--allow-mainnet') options.allowMainnet=true;
   else if(arg==='--propose') options.propose=true;
   else if(arg==='--propose-only') {options.propose=true;options.proposeOnly=true;}
   else if(arg==='--help') options.help=true;
@@ -37,7 +39,7 @@ export function parseKeeperArgs(args) {
 export async function main(args=process.argv.slice(2),env=process.env) {
  const options=parseKeeperArgs(args);
  if(options.help) {
-  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--propose|--propose-only] [--confirmations 1] [--lock-wait 300]\nDefault: dry run. Execution allows only chain 31337 or 84532.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.\n--lock-wait waits this many seconds for another run on the same signer to finish before failing.\nExit 2: recipients unpaid, a proposal rate limited, or a foreign root at a planned round id.');
+  console.log('Usage: node script/run-keeper.mjs --config calculator-config.json --journal ./data [--execute] [--allow-mainnet] [--propose|--propose-only] [--confirmations 1] [--lock-wait 300]\nDefault: dry run. Base mainnet execution additionally requires --allow-mainnet and a matching reviewed calculator config.\nEnvironment: RPC_URL; execution requires KEEPER_PRIVATE_KEY. Proposals use PROPOSER_PRIVATE_KEY (or OWNER_PRIVATE_KEY).\n--propose-only commits roots and stops; it refuses to run where KEEPER_PRIVATE_KEY is set.\n--lock-wait waits this many seconds for another run on the same signer to finish before failing.\nExit 2: recipients unpaid, a proposal rate limited, or a foreign root at a planned round id.');
   return;
  }
  if(!env.RPC_URL)throw Error('RPC_URL is required');
@@ -45,7 +47,7 @@ export async function main(args=process.argv.slice(2),env=process.env) {
  const provider=createRpcProvider(env.RPC_URL,undefined,{cacheTimeout:-1});
  try {
   const chainId=(await provider.getNetwork()).chainId.toString();
-  if(options.execute&&!['31337','84532'].includes(chainId))throw Error('production transaction execution is disabled; allowed chains: 31337, 84532');
+  assertExecutionNetwork({chainId,execute:options.execute,allowMainnet:options.allowMainnet,config,configKind:'calculator'});
   let signer,ownerSigner;
   if(options.execute) {
    // PROPOSER_PRIVATE_KEY is the bot role; OWNER_PRIVATE_KEY stays supported for a multisig

@@ -5,9 +5,8 @@ const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLow
 
 /**
  * Chains this repository is allowed to deploy to. Base mainnet is present so script/deploy-mainnet.mjs
- * can emit a manifest, and that is the ONLY gate it opens: the operating CLIs (operations/fees.js,
- * operations/floor.js, script/run-keeper.mjs) still refuse to execute on 8453. Deploying contracts
- * and running fee cycles against them are separate decisions with separate reviews.
+ * can emit a manifest. Operating on 8453 is a separate opt-in: every operating CLI requires
+ * --allow-mainnet plus its reviewed matching configuration. A deployment does not enable bots.
  */
 export const DEPLOYABLE_CHAINS = { 8453: 'base-mainnet', 84532: 'base-sepolia', 31337: 'local' };
 

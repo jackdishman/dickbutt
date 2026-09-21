@@ -8,23 +8,25 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ethers } from 'ethers';
+import { assertExecutionNetwork } from '../operations/execution-network.js';
 import { runFloorRefresh } from '../operations/floor.js';
 import { closeProvider, createRpcProvider } from '../operations/provider.js';
 
-const USAGE = `Usage: npm run floor -- --config deployment.json [--execute] [--monitor] [--force]
+const USAGE = `Usage: npm run floor -- --config deployment.json [--execute] [--allow-mainnet] [--monitor] [--force]
                     [--lifetime-hours 20] [--refresh-before-hours 8] [--warn-before-hours 4]
                     [--slippage-bps 500] [--max-deviation-bps 5000]
 
 Default is a dry run that reports the active floor and time remaining.
   --monitor   Read-only. Never loads a key. Exit 2 when the floor is inside the warning window
               or already expired. Run this on a third host, or in an uptime checker.
-  --execute   Refresh the floor. Requires OPS_PRIVATE_KEY and chain 31337 or 84532.
+  --execute   Refresh the floor. Requires OPS_PRIVATE_KEY.
+  --allow-mainnet  Explicit Base 8453 opt-in, with a matching reviewed deployment manifest.
 
 Environment: RPC_URL; OPS_PRIVATE_KEY for --execute. KEEPER_PRIVATE_KEY is never read.
 Exit codes: 0 fresh or refreshed, 2 needs attention, 1 failure.`;
 
 export function parseFloorArgs(args) {
-  const o = { execute: false, monitor: false, force: false,
+  const o = { execute: false, allowMainnet: false, monitor: false, force: false,
     lifetimeSeconds: 20 * 3600, refreshBeforeSeconds: 8 * 3600, warnBeforeSeconds: 4 * 3600,
     slippageBps: 500, maxDeviationBps: 5000 };
   const hours = { '--lifetime-hours': 'lifetimeSeconds', '--refresh-before-hours': 'refreshBeforeSeconds', '--warn-before-hours': 'warnBeforeSeconds' };
@@ -32,6 +34,7 @@ export function parseFloorArgs(args) {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--execute') o.execute = true;
+    else if (arg === '--allow-mainnet') o.allowMainnet = true;
     else if (arg === '--monitor') o.monitor = true;
     else if (arg === '--force') o.force = true;
     else if (arg === '--help') o.help = true;
@@ -70,7 +73,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   try {
     const chainId = (await provider.getNetwork()).chainId;
     if (String(chainId) !== String(config.chainId)) throw Error('RPC/config chain mismatch');
-    if (o.execute && ![31337n, 84532n].includes(chainId)) throw Error('production floor execution is disabled');
+    assertExecutionNetwork({chainId,execute:o.execute,allowMainnet:o.allowMainnet,config});
 
     let signer, signerAddress;
     if (o.execute) {
@@ -95,7 +98,7 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     const swapPath = await executor.swapPath();
 
     const result = await runFloorRefresh({
-      provider, executor, signerAddress, execute: o.execute, force: o.force,
+      provider, executor, signerAddress, execute: o.execute, allowMainnet:o.allowMainnet, config, force: o.force,
       lifetimeSeconds: o.lifetimeSeconds, refreshBeforeSeconds: o.refreshBeforeSeconds,
       warnBeforeSeconds: o.warnBeforeSeconds, slippageBps: o.slippageBps, maxDeviationBps: o.maxDeviationBps,
       quote: async amount => (await quoter.quoteExactInput.staticCall(swapPath, amount))[0],

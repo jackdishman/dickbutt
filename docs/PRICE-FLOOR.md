@@ -29,7 +29,9 @@ The local rehearsal exercises all of this: signer 0 owns the contracts, signer 8
 # Read-only: report the active floor, time remaining and the floor a refresh would set.
 npm run floor -- --config deployment.json
 
-# Refresh. Requires OPS_PRIVATE_KEY (an approved floor setter, or the owner) and chain 31337 or 84532.
+# Refresh on local/Sepolia. Requires OPS_PRIVATE_KEY (an approved floor setter, or the owner).
+# Base mainnet additionally needs --allow-mainnet and the separate manifest ops signer;
+# see PRODUCTION-OPERATING-MODE.md before preparing production commands.
 npm run floor -- --config deployment.json --execute
 
 # Alerting role. No key is ever loaded. Exit 2 means someone should look.

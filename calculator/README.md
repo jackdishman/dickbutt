@@ -41,7 +41,37 @@ Balances must be rebuilt from the token's first block, so the first period would
 
 ## Superseded plans
 
-If a round id the calculator planned is taken on-chain by a root it did not produce, the run stops while that foreign round is pending or active. Once it is closed, `reconcile` marks the local plan `superseded`, returns every payout in it to accrual as a recredit, and the next plan carries them under the next free id. Nothing was ever paid against the local root, so this recredits exactly once. The cap logic leaves room under `maxProposableTotal()` for carried accrual when it can; when the carry alone reaches the cap, the plan exceeds the cap and the run fails loudly for the owner to raise it.
+If a round id the calculator planned is taken on-chain by a root it did not produce, the run stops while that foreign round is pending or active. Once it is closed, `reconcile` marks the local plan `superseded`, returns every payout in it to accrual as a recredit, and the next plan carries them under the next free id. Nothing was ever paid against the local root, so this recredits exactly once. The cap logic limits each instalment to `maxProposableTotal()` and preserves unpaid credit for later periods.
+
+## Optional settled-plan pruning for a new journal
+
+For a new, independently reviewed configuration, the optional **last** JSON key
+`"pruneSettledPlans": true` stops copying settled plans into every later
+`record.state.plans`. It requires `finalityTag: "finalized"`. It is disabled when
+omitted or false, and is not enabled in any production configuration by this change.
+The configuration hash forbids toggling it on an existing journal; retain existing
+history and use an audited migration if a running deployment needs this policy.
+
+A plan is removed from retained state only after reconciliation verifies its closed
+round and payment events, or verifies closure of a foreign commitment and recredits
+the local plan. Every original `record.plan` and journal file remains immutable.
+The current record's compact `prunedRounds` list records settlement and supersession
+references. `state.highestPrunedRoundId` is a canonical uint256 string checked against
+those removals and prior state; the calculator refuses to reuse such an ID. Pending
+and active plans remain retained. A failed archive read or invalid payment event
+commits no deletion or recredit.
+
+The keeper still checks all historical plans and independently recomputes the full
+history before any transaction. An execute invocation with no available action can
+skip that expensive replay, and reports `historyVerification.status: "skipped"`;
+its journal, snapshot, commitment, nonce and recovery checks still run. A dry run
+always performs the full replay. After replay, transaction conditions are reread
+before submission. There is no persistent trusted verification cache.
+
+This reduces repeated settled-plan storage and idle replay work. It does not bound
+the number of holders, immutable historical records, historical reads needed for an
+active payout, or monthly hosting and RPC costs. Account balances are still present
+in each record, and long-lived production workloads require measurement.
 
 ## Recovery
 

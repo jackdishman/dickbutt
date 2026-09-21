@@ -1,7 +1,25 @@
+import { assertExecutionNetwork, verifyMainnetContractBindings, verifyMainnetExecutor, assertMainnetSigner } from './execution-network.js';
+import { verifyAerodromeRuntime } from './aerodrome.js';
 /** One finite fee cycle. Caller owns signer serialization; receipts are awaited and failed transactions are not blindly retried. */
-export async function runFeeCycle({provider,signerAddress,locker,aero,legacy,feeRouter,executor,weth,quote,execute=false,slippageBps=100,onEvent=()=>{}}) {
+export async function runFeeCycle({provider,signerAddress,locker,aero,legacy,feeRouter,executor,weth,quote,execute=false,allowMainnet=false,config,slippageBps=100,onEvent=()=>{}}) {
   const chainId=(await provider.getNetwork()).chainId;
-  if(execute&&![31337n,84532n].includes(chainId)) throw Error('production fee execution is disabled');
+  assertExecutionNetwork({chainId,execute,allowMainnet,config});
+  if(allowMainnet) {
+    await verifyMainnetContractBindings({provider,config,contracts:{clanker:locker,aero,legacy,feeRouter,weth}});
+    await verifyMainnetExecutor({provider,config,executor});
+    await verifyAerodromeRuntime(aero,config);
+    for(const [contract,getter,expected] of [
+      [feeRouter,'swapExecutor',config.contracts.executor],[feeRouter,'weth',config.contracts.weth],
+      [feeRouter,'dickbutt',config.contracts.dickbutt],[feeRouter,'kcGreen',config.roles.kcGreen],
+      [feeRouter,'cdbVault',config.roles.cdbVault],[feeRouter,'burnAddress',config.roles.burnAddress],
+      [locker,'destination',config.contracts.feeRouter],[legacy,'destination',config.contracts.feeRouter],
+      [legacy,'token',config.contracts.dickbutt],
+    ]) if((await contract[getter]()).toLowerCase()!==expected.toLowerCase()) throw Error(`mainnet fee path ${getter} differs from manifest`);
+    if(execute) {
+      assertMainnetSigner(signerAddress,config.roles.keeper,'keeper');
+      if(!await executor.isKeeper(signerAddress)) throw Error('swap signer is not an approved keeper');
+    }
+  }
   if(!Number.isInteger(slippageBps)||slippageBps<0||slippageBps>1000) throw Error('slippage must be 0..1000 basis points');
   const result={mode:execute?'execute':'dry-run',actions:[],awaitingHandoff:[],attention:[],legacyStatus:'absent',swapStatus:'not-evaluated'};
   let confirmedBlock;

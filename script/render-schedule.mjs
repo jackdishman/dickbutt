@@ -3,21 +3,26 @@
 // operations/schedule.js, several renderings, so the schedulers cannot disagree about which key
 // runs on which host.
 import path from 'node:path';
+import fs from 'node:fs';
+import { assertExecutionNetwork } from '../operations/execution-network.js';
 import { fileURLToPath } from 'node:url';
 import { JOBS, validateSchedule, hostPlan, CONTRACT_LIMITS } from '../operations/schedule.js';
 
 const USAGE = `Usage: npm run schedule -- [--format systemd|cron|plan] [--host keeper|ops|proposer|monitor]
                        [--workdir /srv/dickbutt] [--manifest deployment.json]
-                       [--calculator calculator-config.json] [--journal ./data]
+                       [--calculator calculator-config.json] [--journal ./data] [--allow-mainnet]
 
 Prints to stdout; nothing is installed. The schedule is validated first and refuses to render
-if a key would end up on two hosts or a cadence contradicts a contract limit.`;
+if a key would end up on two hosts or a cadence contradicts a contract limit.
+Mainnet flags are omitted by default. --allow-mainnet first validates the manifest and calculator
+files under --workdir; both must match Base 8453 and name the same token/distributor.`;
 
 export function parseScheduleArgs(args) {
   const o = { format: 'plan', workdir: '/srv/dickbutt', manifest: 'deployment.json',
-    calculator: 'calculator-config.json', journal: './data' };
+    calculator: 'calculator-config.json', journal: './data', allowMainnet: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+    if (arg === '--allow-mainnet') { o.allowMainnet = true; continue; }
     if (arg === '--help') { o.help = true; continue; }
     const map = { '--format': 'format', '--host': 'host', '--workdir': 'workdir',
       '--manifest': 'manifest', '--calculator': 'calculator', '--journal': 'journal' };
@@ -39,6 +44,33 @@ function validateRenderOptions(o) {
       throw Error(`scheduler ${key} must be a nonempty path without control characters`);
     }
   }
+  if (o.allowMainnet !== undefined && typeof o.allowMainnet !== 'boolean') throw Error('allowMainnet must be a boolean');
+  if (o.allowMainnet) {
+    const read = (file, label) => {
+      try { return JSON.parse(fs.readFileSync(path.resolve(o.workdir, file), 'utf8')); }
+      catch { throw Error(`mainnet schedule requires a readable reviewed ${label}`); }
+    };
+    const manifest = read(o.manifest, 'manifest'), calculator = read(o.calculator, 'calculator configuration');
+    assertExecutionNetwork({chainId:manifest.chainId,execute:true,allowMainnet:true,config:manifest});
+    assertExecutionNetwork({chainId:calculator.chainId,execute:true,allowMainnet:true,config:calculator,configKind:'calculator'});
+    const same = (a,b) => a.toLowerCase() === b.toLowerCase();
+    if (!same(manifest.contracts.distributor,calculator.distributor) || !same(manifest.contracts.dickbutt,calculator.token)) throw Error('mainnet schedule manifest/calculator identity mismatch');
+    const mustExclude = [...Object.values(manifest.roles), ...['distributor','executor','feeRouter','clanker','aero','legacy'].map(key => manifest.contracts[key]), manifest.sources.rewardsPool];
+    if (mustExclude.some(address => !calculator.excluded.some(value => same(value,address)))) throw Error('mainnet schedule calculator exclusions omit a pipeline address or role');
+  }
+}
+
+function executionCommand(job, o) {
+  const command = [...job.command];
+  if (!o.allowMainnet || !job.key) return command;
+  if (job.name === 'calculate-and-propose') {
+    if (command[0] !== 'sh' || !command[2].endsWith('--execute --propose-only')) throw Error('unexpected proposer command; review mainnet flag placement');
+    command[2] += ' --allow-mainnet';
+  } else {
+    if (!command.includes('--execute') || command[0] !== 'npm') throw Error('unexpected transaction command; review mainnet flag placement');
+    command.push('--allow-mainnet');
+  }
+  return command;
 }
 
 const substitute = (command, o) => command.map(part => part
@@ -60,7 +92,7 @@ const systemdQuote = part => systemdValue(part.replaceAll('$', () => '$$'));
 export function renderSystemd(jobs, o) {
   validateRenderOptions(o);
   return jobs.map(job => {
-    const exec = substitute(job.command, o).map(systemdQuote).join(' ');
+    const exec = substitute(executionCommand(job, o), o).map(systemdQuote).join(' ');
     const keys = [job.key, ...(job.alsoNeeds ?? [])].filter(Boolean);
     return `# ---- ${job.name} (host: ${job.host}) ----
 # ${job.description}
@@ -109,7 +141,7 @@ export function renderCron(jobs, o) {
     return '0 3 * * *';
   };
   const lines = jobs.map(job => {
-    const parts = substitute(job.command, o);
+    const parts = substitute(executionCommand(job, o), o);
     if ([o.workdir, ...parts].some(part => /[\0\r\n]/.test(part))) throw Error('scheduler arguments must not contain control characters');
     // Cron handles percent signs before the shell, including inside quoted arguments.
     const exec = parts.map(shellQuote).join(' ').replaceAll('%', '\\%');
