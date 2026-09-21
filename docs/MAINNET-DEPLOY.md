@@ -44,6 +44,8 @@ floor lower bound, swap cap or permanent unlock time is somebody's decision, and
 quietly picks one for you is worse than a script that refuses to run. Each field in the example
 carries the reason it cannot be defaulted.
 
+The owner selected a **365-day timed Aerodrome LP lock** on 21 September 2026; permanent locking was not selected. `rewardsPool.lockIntent` is a planning record, not a substitute for the required explicit `params.aerodromeUnlockTime` and not a duration check performed by the driver. Calculate that timestamp from the reviewed planned LP handoff time plus 31,536,000 seconds, show the exact calendar date before deployment, and recheck the intended full duration before handing over LP. Follow the delayed-handoff/extension checks in [the Aerodrome setup](../AERODROME-SETUP.md#selected-lp-lock--21-september-2026). No production lock has started yet.
+
 The Aerodrome quoter is **resolved, not configured**: the script matches the factory/router pair in
 `config/base-mainnet.json` against the generations recorded in `config/route-candidates.json` and
 uses that generation's quoter. Slipstream has shipped three generations on Base and they are not

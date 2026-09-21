@@ -37,6 +37,6 @@
   "_aerodromeMinIntervalSeconds": "Anti-spam gap between permissionless Aerodrome harvests. Contract maximum is 30 days.",
   "aerodromeMinIntervalSeconds": null,
 
-  "_aerodromeUnlockTime": "Unix timestamp before which AerodromeVammHarvester will not release its unstaked ERC-20 LP tokens. Constructor requires it in the future and within 100 years. Review this against the locker/legacy permanence discussion in AUDITOR-BRIEF.md before choosing.",
+  "_aerodromeUnlockTime": "Required explicit Unix timestamp before which AerodromeVammHarvester will not release its unstaked ERC-20 LP tokens. Owner selected a timed 365-day lock on 2026-09-21: use the planned production LP handoff time plus 31536000 seconds, not the date this choice was recorded. Finalize and review before deployment; verify remaining lock before LP transfer and review a Safe extension if handoff is delayed. rewardsPool.lockIntent is planning metadata, not automatically enforced by the driver. Constructor requires a future timestamp within 100 years. Permanent locking was not selected.",
   "aerodromeUnlockTime": null
 }

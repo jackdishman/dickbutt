@@ -36,6 +36,15 @@
     "stable": false,
     "swapFeeBps": 30,
     "staking": "unstaked",
+    "lockIntent": {
+      "kind": "timed",
+      "durationSeconds": 31536000,
+      "durationDays": 365,
+      "reference": "planned production LP custody handoff",
+      "unlockTime": null,
+      "permanentLockAuthorized": false,
+      "note": "Owner selected one year on 2026-09-21. Planning metadata only: the driver requires a separate explicit params.aerodromeUnlockTime. Finalize that absolute timestamp before deployment and verify the full intended lock before transferring LP; if handoff is delayed, review and extend the lock through the Safe first. No deployment or LP transfer is authorized by this record."
+    },
     "routingIntent": "USDC -> SPCXc -> DICKBUTT; routing depends on execution price and liquidity, not guaranteed",
     "note": "User-selected basic volatile pool and current LP-holder wallet; lpOwner is not the harvester or bot wallet. Verified and simulated locally at Base block 51612143; repeat finalized-state checks before deployment. The production harvester remains undeployed.",
     "verificationEvidence": "docs/SELECTED-POOL-VERIFICATION.md"

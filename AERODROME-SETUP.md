@@ -11,6 +11,14 @@ Current local candidate: **DICKBUTT/SPCXc basic volatile vAMM**, represented by 
 - Keep LP tokens **unstaked**. The harvester has no gauge staking, approval or liquidity-removal function. It receives no AERO gauge emissions through this design.
 - The owner may transfer LP tokens after the chosen unlock timestamp. `lockForever()` permanently removes that ability, including for the Safe owner. Fee claims continue. Rescue cannot transfer LP, DICKBUTT or SPCXc.
 
+## Selected LP lock — 21 September 2026
+
+The owner selected **one year, interpreted as 365 days (31,536,000 seconds)** from the planned production LP handoff. This replaces the previously undecided lock choice. It is a timed lock; calling `lockForever()` was not selected or authorized.
+
+`rewardsPool.lockIntent` records that decision only. The existing deployment driver still requires an explicit `params.aerodromeUnlockTime`; it does not derive or enforce the duration from this metadata. Finalize the planned handoff time and absolute unlock timestamp before deployment, show the calendar date in the deployment review, and verify the deployed timestamp, `lockedForever == false`, and Safe ownership before transferring LP. If handoff is delayed so the intended full year is no longer covered, review a later unlock timestamp and have the Safe extend the lock before transfer. Recording today's choice does not start the lock.
+
+The Safe cannot shorten the lock or withdraw LP before the unlock time. After it expires, the Safe may withdraw; withdrawal is not automatic. Harvesting fees is allowed during and after the lock, while the contract holds LP. The Safe retains the contract's existing ability to extend the lock or choose permanent locking through a separate future decision. Later LP deposits share the same absolute unlock date; they do not each start a new year. The prior selected-pool test report remains a historical snapshot; its one-year test setting was not itself production approval.
+
 ## Steps, with deployment still pending
 
 1. Create or locate the actual DICKBUTT/SPCXc **basic volatile** pool on Base. Verify both token addresses, initial price and amounts before adding liquidity. A DICKBUTT/WETH pool is a different pair and cannot be substituted.
@@ -19,7 +27,7 @@ Current local candidate: **DICKBUTT/SPCXc basic volatile vAMM**, represented by 
 4. Run read-only preflight and a local fork test against that actual pool. Check registry membership, both tokens, reserves, positive unstaked wallet LP balance, fee economics, pool accounting and fee delivery. Add the actual pool to calculator exclusions.
 5. Complete the security review, production settings, wallet checks and bot readiness. Review the unsigned deployment plan. The selected deployment must name `AerodromeVammHarvester(factory, pool, dickbutt, spcxc, burnAddress, distributor, unlockTime, minInterval, owner)`.
 6. After deployment is authorized and confirmed, verify the deployed code and immutable values and have the Safe accept administrative ownership. Record the **new production vAMM harvester address** from the deployment manifest and receipt. No existing test address is a substitute.
-7. Only after the preceding checks, transfer the agreed ERC-20 LP amount to that verified harvester address. Check its received balance and fee routing. An ERC-20 transfer has no receiver hook: sending LP to the wrong contract can strand it. Never send it to the NFT adapter, distributor, burn address or this assistant.
+7. Only after the preceding checks and the selected one-year lock checks above, transfer the agreed ERC-20 LP amount to that verified harvester address. Check its received balance and fee routing. An ERC-20 transfer has no receiver hook: sending LP to the wrong contract can strand it. Never send it to the NFT adapter, distributor, burn address or this assistant.
 8. Rehearse the separate Clanker locker and legacy creator-authority handoffs. They are not part of the LP transfer. Existing verified legacy safes may be claimed by their current creator before handoff or by the adapter afterwards; the adapter's creator handoff is permanent in the current design.
 9. Start the reviewed, gas-funded operating services only after the runtime launch gates are intentionally addressed. The selected payout period remains six hours with no extra review wait. A funded working bot, sufficient rewards and successful transactions are required; a contract does not wake itself up.
 
