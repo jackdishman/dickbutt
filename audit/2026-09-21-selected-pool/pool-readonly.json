@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-09-21T17:10:40.521Z",
+  "rpc": "https://base-rpc.publicnode.com",
+  "chainId": 8453,
+  "pool": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+  "blockNumber": 51610646,
+  "blockHash": "0xb55e01610f00b455dfff9be3c85fb8d3708d29132fed0e270d3012e01e6fdda4",
+  "blockTimestamp": 1790010639,
+  "blockPolicy": "Recent pinned block; finalized deployment preflight still required",
+  "values": {
+    "token0": "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+    "token1": "0xb2000000000000000000007b9fcbd005511aCBd5",
+    "factory": "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
+    "stable": false,
+    "getReserves": [
+      "1910220170040025270411941685",
+      "9617756168",
+      "1790010585"
+    ],
+    "totalSupply": "4286236718263510712",
+    "name": "Volatile AMM - DICKBUTT/SPCXc",
+    "symbol": "vAMM-DICKBUTT/SPCXc",
+    "decimals": "18"
+  },
+  "factoryChecks": {
+    "expectedFactory": "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
+    "registered": true,
+    "discoveredPool": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+    "feeBps": "30",
+    "paused": false
+  },
+  "tokens": [
+    {
+      "address": "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+      "symbol": "DICKBUTT",
+      "decimals": 18,
+      "balance": "1910220170.040025270411941685",
+      "reserve": "1910220170.040025270411941685"
+    },
+    {
+      "address": "0xb2000000000000000000007b9fcbd005511aCBd5",
+      "symbol": "SPCXc",
+      "decimals": 8,
+      "balance": "96.17756168",
+      "reserve": "96.17756168"
+    }
+  ]
+}

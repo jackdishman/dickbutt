@@ -1,5 +1,7 @@
 # Final Security Audit — internal review, 2026-09-20
 
+> September 21 follow-up: the user supplied the actual pool and LP-holder wallet. Their checks and three new local fork tests passed; the configuration update and remaining launch requirements are documented in [selected-pool verification](docs/SELECTED-POOL-VERIFICATION.md). The September 20 results and hashes below remain the original audit snapshot.
+
 ## Executive Summary
 
 **Review candidate, not production approval.** This fresh pass used three separate contract, accounting and operations reviewers plus a combined integration review. It reproduced and fixed **four additional findings: 3 Medium, 1 Low**, bringing the two September 20 passes to **6 Medium and 2 Low fixed findings**. Final results: **238 JavaScript tests, 163 Solidity tests, and 93 unique signed local transactions passed**. One optional historical NFT test was skipped. No Critical or High exploit was demonstrated; this is an internal AI-assisted review, not an external audit or proof that no vulnerabilities exist.

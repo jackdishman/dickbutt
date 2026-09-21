@@ -1,0 +1,254 @@
+✔ a dry run is the default and --params is mandatory (0.86275ms)
+✔ every production magnitude is required and none is defaulted (0.727667ms)
+✔ raw amounts must be decimal strings, because wei exceeds a safe integer (0.055292ms)
+✔ parameters that would revert their own constructor are rejected before signing (0.089917ms)
+✔ the quoter is resolved from the configured Slipstream generation, never pasted (0.994875ms)
+✔ the shipped mainnet config resolves against the shipped route candidates (0.907ms)
+✔ the deploying key may hold no lasting role (1.346958ms)
+✔ the plan refuses to build while a decision is still missing (0.83275ms)
+✔ the fee router points at the swap executor and the harvesters at the router (0.454166ms)
+✔ the floor bound is set before the floor setter is approved (0.236625ms)
+✔ ownership is handed only to the multisig, and only on contracts that have an owner (0.223416ms)
+✔ the permanent custody steps stay out of the script and are reported instead (0.054125ms)
+✔ vAMM deployment uses the registered pool address, records no NFT and hands off the right adapter (1.220167ms)
+✔ the production generator preserves both pool exclusions and every preflight-listed address (0.52075ms)
+✔ deployment explicitly applies the configured delay, cadence and round cap (0.28175ms)
+✔ zero extra review delay is explicit in the production plan without shortening the six-hour interval (0.189375ms)
+{
+  "type": "deploy-plan",
+  "dryRun": true,
+  "chainId": 8453,
+  "finalizedBlock": 2000,
+  "buildHash": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "inputHash": "0xe894152149f6069124d620dad889a628d3eb591bec2330f1df41b6ba500a8405",
+  "aerodromeGeneration": "gauges-v3",
+  "quoter": "0x514c8b5f54112481e28028f1166bd78501089259",
+  "deployments": [
+    {
+      "name": "DickbuttRewardsDistributor",
+      "args": [
+        "0xb2000000000000000000007b9fcbd005511aCBd5",
+        "1",
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "SpcxcSwapExecutor",
+      "args": [
+        "0x4200000000000000000000000000000000000006",
+        "0xb2000000000000000000007b9fcbd005511aCBd5",
+        "0x698Cb2b6dd822994581fEa6eA4Fc755d1363A92F",
+        {
+          "ref": "DickbuttRewardsDistributor"
+        },
+        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        1,
+        10,
+        "100000000000000",
+        21600,
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "SplitsFeeRouter",
+      "args": [
+        "0x8E8eB0cC6AE34A38B67D5Cf91ACa38f60bc3Ecf4",
+        "0x4200000000000000000000000000000000000006",
+        "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+        "0x331BB8664d032544327E61753485d06d663995B6",
+        "0x000000000000000000000000000000000000dEaD",
+        "0xB58f2Ce04bd5d397F34ba319316CfaB471E16cF3",
+        {
+          "ref": "SpcxcSwapExecutor"
+        }
+      ]
+    },
+    {
+      "name": "LockerHarvester",
+      "args": [
+        "0x2Ad4DB8ba8de03834DB14454Afcd74C2393d81C4",
+        "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
+        "1391176",
+        {
+          "ref": "SplitsFeeRouter"
+        },
+        3600,
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "AerodromeVammHarvester",
+      "args": [
+        "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
+        "0x000000000000000000000000000000000000232b",
+        "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+        "0xb2000000000000000000007b9fcbd005511aCBd5",
+        "0x000000000000000000000000000000000000dEaD",
+        {
+          "ref": "DickbuttRewardsDistributor"
+        },
+        1800086400,
+        3600,
+        {
+          "ref": "deployer"
+        }
+      ]
+    },
+    {
+      "name": "LegacyFeeHarvester",
+      "args": [
+        "0x10F4485d6f90239B72c6A5eaD2F2320993D285E4",
+        [
+          "0x1eaf444ebDf6495C57aD52A04C61521bBf564ace",
+          "0x04F6ef12a8B6c2346C8505eE4Cff71C43D2dd825"
+        ],
+        "0x2D57C47BC5D2432FEEEdf2c9150162A9862D3cCf",
+        {
+          "ref": "SplitsFeeRouter"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "label": "set-round-delay",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setRoundDelay",
+      "args": [
+        0
+      ]
+    },
+    {
+      "label": "set-round-limits",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setRoundLimits",
+      "args": [
+        5000,
+        21600
+      ]
+    },
+    {
+      "label": "set-keeper",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setKeeper",
+      "args": [
+        "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+        true
+      ]
+    },
+    {
+      "label": "set-proposer",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setProposer",
+      "args": [
+        "0x0000000000000000000000000000000000002329",
+        true
+      ]
+    },
+    {
+      "label": "set-guardian",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "setGuardian",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "set-swap-keeper",
+      "contract": "SpcxcSwapExecutor",
+      "method": "setKeeper",
+      "args": [
+        "0xddF3C9dc9AE1F68196F4a63dfAEaF34b3B61d26F",
+        true
+      ]
+    },
+    {
+      "label": "set-floor-lower-bound",
+      "contract": "SpcxcSwapExecutor",
+      "method": "setFloorLowerBound",
+      "args": [
+        "1"
+      ]
+    },
+    {
+      "label": "set-floor-setter",
+      "contract": "SpcxcSwapExecutor",
+      "method": "setFloorSetter",
+      "args": [
+        "0x000000000000000000000000000000000000232a",
+        true
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "label": "transfer-ownership-DickbuttRewardsDistributor",
+      "contract": "DickbuttRewardsDistributor",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "transfer-ownership-SpcxcSwapExecutor",
+      "contract": "SpcxcSwapExecutor",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "transfer-ownership-LockerHarvester",
+      "contract": "LockerHarvester",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    },
+    {
+      "label": "transfer-ownership-AerodromeVammHarvester",
+      "contract": "AerodromeVammHarvester",
+      "method": "transferOwnership",
+      "args": [
+        "0xA15BDE99c19E908db4fa07abe4220De13CFbcF7b"
+      ]
+    }
+  ],
+  "manualStepsAfterwards": [
+    "Accept ownership from the owner multisig on each contract (Ownable2Step acceptOwnership).",
+    "Review outstanding legacy fees: the current creator may claim first, or the verified adapter can claim its configured safes after authority is assigned.",
+    "Assign legacy tokenCreator authority to LegacyFeeHarvester. PERMANENT: the adapter has no relay to update it.",
+    "Transfer locker ownership to LockerHarvester, once its real fee collection has been observed.",
+    "Transfer the verified rewards pool position to the deployed adapter for its recorded kind: unstaked ERC-20 LP tokens to AerodromeVammHarvester, or an NFT to AerodromeFeeHarvester. Verify destination, lock and fee routing first.",
+    "Add every deployed address above to the production calculator exclusions before the first round."
+  ],
+  "note": "Nothing was signed. Re-run with --execute to deploy."
+}
+{"type":"deploy-start","chainId":8453,"deployer":"0x0122431dE2B4Ca18b7DC1C039c03f4564765C3FE","balance":"1.0"}
+✔ complete production dry run uses valid ethers block tags and never signs (19.276917ms)
+✔ a lock beyond the constructor maximum is refused during the unsigned dry run (8.133ms)
+✔ the deployment driver rejects changed recovery inputs before any signing and preserves progress (25.280291ms)
+✔ only accepts intended funded full-range 0.3% position (1.247042ms)
+✔ absent pool or position cannot pass preflight (0.057667ms)
+✔ deployment needs explicit distinct destinations and governance (2.697167ms)
+✔ production preflight requires an explicit proposer and guardian (0.766583ms)
+✔ production preflight rejects keeper administrators and treasury recipients that are bot wallets (1.021291ms)
+✔ swap route must resolve to the configured two-hop pools with liquidity (0.462625ms)
+✔ every recorded pipeline address, the locker and its pool must be in the exclusion set (2.550667ms)
+✔ vAMM preflight refuses the wrong pair, factory, pool, staking or fee economics (3.034542ms)
+✔ manifest selects the correct runtime ABI and preserves old NFT rehearsals explicitly (0.56875ms)
+✔ fee runtime refuses substituted pools, tokens or destinations before any writes (1.238875ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 226.376917

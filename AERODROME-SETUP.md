@@ -1,6 +1,6 @@
 # Aerodrome basic volatile vAMM setup
 
-Current local candidate: **DICKBUTT/SPCXc basic volatile vAMM**, represented by ERC-20 LP tokens. `AerodromeVammHarvester` holds those LP tokens unstaked and calls the pool's `claimFees()`. No NFT ID is needed. This candidate is not deployed or cleared for production; the security review has unresolved operating findings.
+Current local candidate: **DICKBUTT/SPCXc basic volatile vAMM**, represented by ERC-20 LP tokens. `AerodromeVammHarvester` holds those LP tokens unstaked and calls the pool's `claimFees()`. No NFT ID is needed. The selected public pool and LP holder are recorded and locally tested in [selected-pool verification](docs/SELECTED-POOL-VERIFICATION.md). Production harvesters are not deployed; the internal audit fixes passed, while launch parameters, roles, operating hosts and independent review remain outstanding.
 
 ## Fee behavior
 

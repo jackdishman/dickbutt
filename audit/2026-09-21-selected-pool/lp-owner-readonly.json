@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-09-21T18:00:34.672Z",
+  "chainId": 8453,
+  "rpc": "https://base-rpc.publicnode.com",
+  "pool": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+  "lpOwner": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
+  "block": 51612143,
+  "blockHex": "0x31389ef",
+  "blockHash": "0x24391f0829dc33cfe015bc59533a10f8b6ef67f009067593c7179b895440e00d",
+  "blockTimestamp": 1790013633,
+  "finalizedBlock": 51611498,
+  "lpSymbol": "vAMM-DICKBUTT/SPCXc",
+  "lpBalanceRaw": "4286236718263509712",
+  "lpBalance": "4.286236718263509712",
+  "lpTotalSupplyRaw": "4286236718263510712",
+  "shareOfTotalSupplyPercent": 99.999999,
+  "accruedFeesEstimate": {
+    "dickbutt": "1526657.685143919416064459",
+    "spcxc": "0.13757501",
+    "note": "Includes booked claimable amounts plus per-share fee-index accrual; snapshot only, not a signed claim."
+  },
+  "clankerLockerOwner": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
+  "legacyCreator": "0xDF3eFAfdA19D2dF229eF3fbEC73d2EE6C5fB6d7c",
+  "ownerMatchesClanker": true,
+  "ownerMatchesLegacy": true
+}

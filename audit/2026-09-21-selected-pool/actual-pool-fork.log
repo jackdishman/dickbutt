@@ -1,0 +1,21 @@
+Compiling 26 files with Solc 0.8.24
+Solc 0.8.24 finished in 14.37s
+Compiler run successful!
+
+Ran 3 tests for test/audit/SelectedVammPoolFork.t.sol:SelectedVammPoolForkTest
+[PASS] testSelectedPoolLockAndRecoveryAuthority() (gas: 258244)
+[PASS] testSelectedPoolPriorFeesRemainClaimableByWallet() (gas: 239422)
+Logs:
+  prior wallet DICKBUTT fees raw: 1526657685143919416064459
+  prior wallet SPCXc fees raw: 13757501
+
+[PASS] testSelectedPoolThreeSixHourHarvestsAndHolderPayouts() (gas: 1574072)
+Logs:
+  three cycles DICKBUTT burned raw: 8999999999999997900246
+  three cycles SPCXc collected raw: 899991
+  three cycles SPCXc holder paid raw: 637493
+  preserved original LP raw: 4286236718263509712
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 23.96s (25.62s CPU time)
+
+Ran 1 test suite in 23.97s (23.96s CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)
