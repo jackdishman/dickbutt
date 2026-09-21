@@ -26,11 +26,11 @@ Each is printed as a remaining step when the run completes.
 
 ## Current candidate
 
-The selected rewards pool kind is `vamm`. The actual new pool and LP-holder wallet remain unset;
-the driver must fail until they are recorded and verified. Historical manifests without a kind use
+The selected rewards pool kind is `vamm`. The selected public pool and LP-holder wallet are recorded and checked in
+[the September 21 verification](SELECTED-POOL-VERIFICATION.md). Missing roles and production magnitudes still block deployment. Historical manifests without a kind use
 the original Slipstream NFT adapter. New manifests record `sources.aerodromeKind`, `rewardsPool` and
 `rewardsFactory`; the fee CLI validates the vAMM immutable path. Runtime mainnet gates remain closed.
-The new adapter does not resolve the separate open calculator, scheduling and fee-runner audit findings.
+The internal audit fixes passed; independent review and production operating readiness remain required.
 
 ## Inputs
 
