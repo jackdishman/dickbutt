@@ -29,11 +29,10 @@ test('an absent guardian blocks: preflight requires the address written out', ()
   assert.equal(items.find(item => item.id === 'cfg.guardian').state, 'blocked');
 });
 
-// No derived item returns n/a any more, so the exclusion is exercised through a manual one.
 test('n/a items are excluded from the score rather than counted as done', () => {
   const overrides = applyOverride({}, 'custody.lpNft', 'n/a', 'no LP NFT in this configuration');
   const { summary } = buildReadiness({ ...configured, overrides });
-  assert.equal(summary.total, ITEMS.length - 1);
+  assert.equal(summary.total, ITEMS.length - 3); // manual NFT exclusion + two vAMM-only items
   assert.ok(summary.percent < 100);
 });
 
@@ -64,4 +63,12 @@ test('every item names an owner and every derived item returns a known state', (
     assert.ok(['Kevin', 'Jack', 'external'].includes(item.owner), `${item.id} has no owner`);
     if (item.derive) assert.ok(['done', 'pending', 'blocked', 'n/a'].includes(item.derive(context)), `${item.id} derived an unknown state`);
   }
+});
+
+test('vAMM requires an LP wallet and cannot inherit a completed NFT custody checkbox',()=>{
+  const ctx={...configured,mainnet:{...configured.mainnet,rewardsPool:{kind:'vamm',pool:'0x6',lpOwner:null}},
+    overrides:{'custody.lpNft':{state:'done'}}};
+  const {items}=buildReadiness(ctx),state=id=>items.find(i=>i.id===id).state;
+  assert.equal(state('pool.tokenId'),'n/a');assert.equal(state('pool.lpOwner'),'blocked');
+  assert.equal(state('custody.lpNft'),'n/a');assert.equal(state('custody.lpTokens'),'pending');
 });

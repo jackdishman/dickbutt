@@ -186,7 +186,8 @@ export function createServer({ token, allowExecute = false, root = ROOT, runs = 
           flow: resolveFlow(network, state.config),
           commands: describeCommands({ allowWrite: allowExecute, env: process.env, root }),
           runs: runs.summary(),
-          editableFields: EDITABLE_FIELDS,
+          editableFields: EDITABLE_FIELDS.filter(field => state.config.mainnet?.rewardsPool?.kind === 'vamm'
+            ? field !== 'rewardsPool.tokenId' : field !== 'rewardsPool.lpOwner'),
         });
       }
 

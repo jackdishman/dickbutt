@@ -1,4 +1,4 @@
-import fs from 'node:fs';import path from 'node:path';import {ethers} from 'ethers';import {Journal,hash} from './journal.js';import {amounts,sum,computeTWAB,computeShares,buildPlan} from './core.js';import {selectBoundary,reconcile,scanEvents,ERC20_ABI} from './chain.js';
+import fs from 'node:fs';import path from 'node:path';import {ethers} from 'ethers';import {Journal,hash} from './journal.js';import {amounts,sum,computeTWAB,computeShares,buildPlan,cappedPayouts} from './core.js';import {selectBoundary,reconcile,scanEvents,ERC20_ABI} from './chain.js';
 export async function runCalculator({dir='.',provider,token,distributor,config,bootstrap=false,rewardTokenFactory=(address)=>new ethers.Contract(address,ERC20_ABI,provider)}){
  const journal=new Journal(dir);journal.lock();try{
  const recovered=journal.rebuild();if(!recovered&&fs.existsSync(path.join(dir,'state.json')))throw Error('legacy state without journal: explicit audited migration required');
@@ -27,19 +27,18 @@ export async function runCalculator({dir='.',provider,token,distributor,config,b
  // The distributor caps one round at a share of its unreserved balance. Allocate at most that much
  // in new shares; the remainder stays in the contract and reappears in the next period's available.
  // Without this the calculator would plan rounds the contract always rejects.
- // Carry from earlier periods is paid in the same round as the new shares, so leave room for it under the
- // cap. When the carry alone reaches the cap there is no room to leave; the plan then exceeds the cap
- // below and fails loudly, which is preferable to silently deferring a specific holder.
+ // Preserve the historical new-share calculation. If accumulated credit exceeds the cap,
+ // cappedPayouts allocates proportional instalments and keeps every unpaid raw unit as credit.
  const uncapped=pot,room=carry<roundCap?roundCap-carry:roundCap;if(pot>room)pot=room;
  const fromBlock=state.lastProcessedBlock+1,startBlock=await provider.getBlock(state.lastProcessedBlock);if(!startBlock)throw Error('missing period start block');
  const transfers=await scanEvents(token,token.filters.Transfer(),fromBlock,blockTag,config.chunkSize),timestamps=new Map();for(const n of new Set(transfers.map(e=>e.blockNumber))){const b=await provider.getBlock(n);if(!b)throw Error('missing transfer block');timestamps.set(n,b.timestamp);}
  const {twab,endingBalances}=computeTWAB(state.balances,transfers,timestamps,startBlock.timestamp,boundary.timestamp,config.excluded);
  const {shares,qualifying,dust}=computeShares(twab,BigInt(config.holderThresholdRaw),pot,config.curve),accrued=amounts(state.accrued);for(const[a,v]of Object.entries(shares))accrued[a]=(accrued[a]??0n)+v;
- const threshold=BigInt(config.payoutThresholdRaw)>BigInt(minPayout)?BigInt(config.payoutThresholdRaw):BigInt(minPayout),payouts={};for(const[a,v]of Object.entries(accrued))if(v>0n&&v>=threshold){payouts[a]=v;delete accrued[a];}
+ const threshold=BigInt(config.payoutThresholdRaw)>BigInt(minPayout)?BigInt(config.payoutThresholdRaw):BigInt(minPayout);
+ const allocation=cappedPayouts(accrued,threshold,roundCap),payouts=allocation.payouts;
+ for(const a of Object.keys(accrued))delete accrued[a];Object.assign(accrued,allocation.accrued);
  const plan=buildPlan(roundId,payouts,config.batchSize);if(plan){if(BigInt(plan.total)>availableRaw-localReserved)throw Error('plan exceeds available funds');
-  // Carry from earlier periods can push the payable total past the cap even when new shares fit.
-  // Fail loudly rather than starving a specific holder by silently deferring them.
-  if(BigInt(plan.total)>roundCap)throw Error(`plan total ${plan.total} exceeds the distributor round share cap ${roundCap}: raise maxRoundBps or lower the payout threshold`);
+  if(BigInt(plan.total)>roundCap)throw Error('capped allocation exceeds the distributor round share cap');
   plan.toBlock=blockTag;state.plans[roundId]=plan;}
  const end=await provider.getBlock(blockTag);if(end?.hash!==boundary.hash)throw Error('snapshot hash changed during calculation');
  Object.assign(state,{lastProcessedBlock:blockTag,blockHash:boundary.hash,balances:endingBalances,accrued,configHash});

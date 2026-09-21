@@ -9,6 +9,7 @@ import { verifyPayoutHistory } from './verify-history.js';
 export const KEEPER_ABI = [
  'function rewardToken() view returns(address)',
  'function nextRoundId() view returns(uint256)',
+ 'function totalReserved() view returns(uint256)',
  'function roundInfo(uint256) view returns(bytes32 root,uint256 total,uint256 distributed,bool active,bool closed)',
  'function pending(uint256) view returns(bytes32 root,uint256 total,uint256 readyAt)',
  'function paid(uint256,address) view returns(bool)',
@@ -99,7 +100,18 @@ export async function runKeeper({dir,provider,distributor,config,execute=false,p
  const result={mode:execute?'execute':'dry-run',chainId,rounds:[],transactions:[]};
  const emit=event=>onEvent({...event,chainId});
  try {
-  if (execute) for (const address of [...new Set([signerAddress,...(propose?[ownerAddress]:[])].map(normalize))].sort()) locks.push(acquireExecutionLock(chainId,address,{waitMs:lockWaitSeconds*1000}));
+  if (execute) {
+   const signingAddresses=[...new Set([signerAddress,...(propose?[ownerAddress]:[])].map(normalize))].sort();
+   for (const address of signingAddresses) locks.push(acquireExecutionLock(chainId,address,{waitMs:lockWaitSeconds*1000}));
+   // Another job can broadcast while this run is waiting for its signer lock, then release
+   // the lock after an RPC timeout. A pre-lock nonce check cannot detect that unresolved send.
+   // Check every signer here, under all locks, before consulting this job's separate marker.
+   for (const address of signingAddresses) {
+    const [latest,pending]=await Promise.all([provider.getTransactionCount(address,'latest'),provider.getTransactionCount(address,'pending')]);
+    if (!Number.isSafeInteger(latest)||latest<0||!Number.isSafeInteger(pending)||pending<0) throw Error('invalid signer nonce response; reconcile RPC state before keeper execution');
+    if (latest!==pending) throw Error('signer has pending transactions; resolve them before keeper execution');
+   }
+  }
   journal.lock();
   const rows=journal.entries();
   if (!rows.length) throw Error('no calculator journal records');

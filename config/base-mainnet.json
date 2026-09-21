@@ -29,15 +29,15 @@
   },
   "verifiedAt": "artifacts/base-inspection.json",
   "rewardsPool": {
-    "factory": "0xf8f2eB4940CFE7d13603DDDD87f123820Fc061Ef",
-    "manager": "0xe1f8cd9AC4e4A65F54f38a5CdAfCA44f6dD68b53",
+    "kind": "vamm",
+    "factory": "0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
     "pool": null,
-    "tokenId": null,
-    "tickSpacing": 200,
-    "swapFee": 3000,
-    "fullRange": true,
+    "lpOwner": null,
+    "stable": false,
+    "swapFeeBps": 30,
     "staking": "unstaked",
-    "routingIntent": "USDC -> SPCXc -> DICKBUTT; routing depends on execution price and liquidity, not guaranteed"
+    "routingIntent": "USDC -> SPCXc -> DICKBUTT; routing depends on execution price and liquidity, not guaranteed",
+    "note": "Basic volatile ERC-20 LP position. Verify the actual pool, wallet balance and current 0.3% fee before deployment. New adapter remains local and undeployed."
   },
   "deployment": {
     "kcGreen": "0x331BB8664d032544327E61753485d06d663995B6",
@@ -87,17 +87,17 @@
         ],
         "note": "3-of-4 Safe on Base. Signer 0xB58f2Ce0 is also deployment.cdbVault, so the treasury recipient sits inside the governance set. Signer 0xDF3eFAfd is the current Clanker locker owner (artifacts/base-inspection.json), which is the key that must perform the locker and creator-authority handoffs."
       },
-      "warning": "The owner is implicitly a proposer (DickbuttRewardsDistributor.sol:132) and can call setKeeper on itself, so the signer set can pay itself a self-proposed round after the 24h timelock. The guardian is this same Safe, so there is no independent veto. Review the signer set before accepting ownership."
+      "warning": "The owner is implicitly a proposer and can call setKeeper on itself, so the signer set can pay itself a self-proposed round. The selected zero review delay provides no guaranteed cancellation window. The guardian is this same Safe, so there is no independent veto. Review the signer set before accepting ownership."
     },
     "ownerRoles": {
       "note": "Every contract takes its own owner_ constructor argument; they do not have to be the same address. deployment.owner is the high-stakes one.",
       "distributor": "Commits reward roots via proposeRound. Decides who gets paid. Use the multisig.",
-      "lockerHarvester/aerodromeHarvester": "Timelocked destination changes, LP NFT custody and lock extension. Use the multisig.",
+      "lockerHarvester/aerodromeHarvester": "Timelocked destination changes, ERC-20 LP custody and lock extension. Use the multisig.",
       "swapExecutor": "Owner should be the multisig, like everything else. The daily floor refresh is signed by a separate floorSetter bot key that can call setPriceFloor and nothing else, and cannot set a floor below floorLowerBound. Set the bound before approving the setter.",
       "keeper": "Not an owner. Hot signer that calls processWeth and distributeBatch only. Cannot choose recipients or amounts, weaken the floor, or redirect funds.",
       "keyIsolation": "The keeper key signs processWeth and distributeBatch. The floorSetter (ops) key signs setPriceFloor and is refused as a keeper on-chain; operations/floor.js refuses a keeper signer, and run-floor.mjs refuses OPS_PRIVATE_KEY equal to KEEPER_PRIVATE_KEY. Run them on separate hosts; they take separate lock namespaces.",
       "guardian": "Cancels any pending round and pauses proposals. Same multisig as owner by default; can be split later without redeploying.",
-      "proposer": "Bot key that calls proposeRound. Bounded on-chain by maxRoundBps, minRoundInterval, the timelock and the guardian pause. Cannot move tokens.",
+      "proposer": "Bot key that calls proposeRound. Bounded on-chain by maxRoundBps, minRoundInterval and the guardian pause. The configured zero review delay gives no guaranteed cancellation window. Cannot call the keeper-only payout function.",
       "floorSetter": "Hot bot key on the ops host. setPriceFloor only, held above floorLowerBound by the contract. Cannot be a keeper: the executor refuses the pairing in both directions. Worst case for a compromise is a floor at the bound, not a drained WETH stream."
     },
     "proposer": null,
@@ -157,7 +157,7 @@
       "SpcxcSwapExecutor",
       "DickbuttRewardsDistributor",
       "LockerHarvester",
-      "AerodromeFeeHarvester",
+      "AerodromeVammHarvester",
       "LegacyFeeHarvester",
       "the DICKBUTT/SPCXc rewards pool",
       "the proposer address",
@@ -165,9 +165,10 @@
     ]
   },
   "roundLimits": {
-    "roundDelay": "24 hours",
+    "roundDelay": "0 seconds",
+    "reviewPolicy": "User selected no extra review wait after six-hour reward calculations. New proposals may be activated immediately. The guardian can pause future proposals but has no guaranteed window to cancel a pending round before activation.",
     "maxRoundBps": 5000,
-    "minRoundInterval": "12 hours",
+    "minRoundInterval": "6 hours",
     "note": "maxRoundBps below 10000 permanently defers part of each pot; in a simplified immediate-payout model with fraction p=maxRoundBps/10000, the steady balance after payout is inflow*(1-p)/p and before payout is inflow/p; real pending rounds and accrual also affect vault balance. 5000 chosen because a stolen proposer key cannot move tokens, so the cap only bounds griefing. See docs/GOVERNANCE.md."
   }
 }

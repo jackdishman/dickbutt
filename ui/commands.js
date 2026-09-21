@@ -129,9 +129,11 @@ export const COMMANDS = [
   {
     id: 'rehearse', group: 'Rehearse', kind: 'local', label: 'Full local rehearsal',
     summary: 'Starts a disposable Anvil fork of Base, deploys the architecture against the genuine Splits factory, and runs the whole cycle: harvest, route, swap, calculate, propose, timelock, blocked recipient, retry, close, reconcile.',
+    inputs: [{ name: 'poolKind', label: 'Pool model (vamm = basic volatile; slipstream = historical NFT)',
+      type: 'choice', choices: ['vamm', 'slipstream'], default: 'vamm' }],
     needs: ['BASE_RPC_URL'],
-    note: 'Starts and stops its own node on chain 31337. Nothing signs against mainnet.',
-    argv: () => ['npm', 'run', 'rehearse'],
+    note: 'Defaults to basic volatile ERC-20 LP custody. Historical NFT custody is an explicit Slipstream choice. Starts and stops its own node on chain 31337.',
+    argv: o => ['npm', 'run', 'rehearse', ...(o.poolKind === 'vamm' ? ['--', '--vamm'] : [])],
   },
 
   // --- execute ---------------------------------------------------------------

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateRoles, buildManifest, buildCalculatorConfig, DEPLOYABLE_CHAINS } from '../deployment.js';
+import { computeTWAB, computeShares } from '../../calculator/core.js';
 
 const addr = n => '0x' + String(n).padStart(40, '0');
 const roles = {
@@ -93,4 +94,13 @@ test('deploy CLI rejects malformed invocations', async () => {
   assert.throws(() => parseDeployArgs(['--roles', '--force']), /missing value/);
   assert.throws(() => parseDeployArgs(['--roles', 'r.json', '--mainnet']), /unknown deploy option/);
   assert.throws(() => parseDeployArgs(['deploy']), /positional argument/);
+});
+
+test('generated production calculator config never pays pool or explicitly excluded balances', () => {
+  const clankerPool = addr(40), rewardsPool = addr(41), extraPool = addr(42), holder = addr(43);
+  const config = buildCalculatorConfig({ chainId: 8453, contracts: { ...contracts, clankerPool, rewardsPool },
+    roles, deployBlock: 1, holderThresholdRaw: '1', additionalExcluded: [extraPool] });
+  const { twab } = computeTWAB({ [clankerPool]: 1000000n, [rewardsPool]: 1000000n,
+    [extraPool]: 1000000n, [holder]: 100n }, [], new Map(), 0, 3600, config.excluded);
+  assert.deepEqual(computeShares(twab, 1n, 100n, 'linear').shares, { [holder]: 100n });
 });

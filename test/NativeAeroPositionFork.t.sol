@@ -4,7 +4,9 @@ import "./BaseFork.t.sol";
 interface AeroPositionVm is ForkVm {function envOr(string calldata,bool) external returns(bool);}
 interface ActualAeroManager is IERC721 {
     struct MintParams {address token0;address token1;int24 tickSpacing;int24 tickLower;int24 tickUpper;uint256 amount0Desired;uint256 amount1Desired;uint256 amount0Min;uint256 amount1Min;address recipient;uint256 deadline;uint160 sqrtPriceX96;}
+    struct IncreaseLiquidityParams {uint256 tokenId;uint256 amount0Desired;uint256 amount1Desired;uint256 amount0Min;uint256 amount1Min;uint256 deadline;}
     function mint(MintParams calldata) external payable returns(uint256,uint128,uint256,uint256);
+    function increaseLiquidity(IncreaseLiquidityParams calldata) external payable returns(uint128,uint256,uint256);
     function factory() external view returns(address);
     function positions(uint256) external view returns(uint96,address,address,address,int24,int24,int24,uint128,uint256,uint256,uint128,uint128);
 }
@@ -14,7 +16,7 @@ interface ActualAeroRouter {
 }
 interface ActualAeroFactory {function getPool(address,address,int24) external view returns(address);function getSwapFee(address) external view returns(uint24);function getUnstakedFee(address) external view returns(uint24);}
 
-/// The intended production DICK/SPCXc position does not exist. This creates a NEW position
+/// This creates a NEW DICKBUTT/SPCXc position at a pinned block
 /// only on the local fork with real contracts and tokens, executes trades in both directions,
 /// then checks actual accrued fees. It is not evidence that a production NFT was funded.
 contract NativeAeroPositionForkTest {
@@ -34,12 +36,18 @@ contract NativeAeroPositionForkTest {
         vm.createSelectFork(rpc,51223062);
     }
     function testNativeNewAeroPositionTradesCollectBurnAndRewardPush() public {
-        exercisePosition(false);
+        exercisePosition(false, false);
     }
     function testNativeDelayedNftHandoffAndPermanentLocksKeepFeesWorking() public {
-        exercisePosition(true);
+        exercisePosition(true, false);
     }
-    function exercisePosition(bool staged) internal {
+    function testNativeExternalWalletAddsLiquidityTwiceAfterNftHandoff() public {
+        exercisePosition(false, true);
+    }
+    function testNativeExternalTopUpsKeepPermanentLockAndFeeRouting() public {
+        exercisePosition(true, true);
+    }
+    function exercisePosition(bool staged, bool topUp) internal {
         address admin=staged?address(0xA2201):address(this);
         address keeper=staged?address(0xA2202):address(this);
         address proposer=staged?address(0xA2203):address(this);
@@ -77,6 +85,7 @@ contract NativeAeroPositionForkTest {
             vm.expectRevert();vm.prank(admin);harvester.withdrawPosition(admin);
             require(harvester.holdsPosition(),"permanent lock lost custody after original expiry");
         }
+        if(topUp) liquidity += addLiquidityFromExternalWallet(harvester, id);
         IERC20(DICK).approve(ROUTER,1_000_000 ether);IERC20(SPCXC).approve(ROUTER,1e8);
         uint256 soldDick=ActualAeroRouter(ROUTER).exactInputSingle(ActualAeroRouter.ExactInputSingleParams(DICK,SPCXC,200,address(this),block.timestamp+120,1_000_000 ether,1,0));
         uint256 soldSpcxc=ActualAeroRouter(ROUTER).exactInputSingle(ActualAeroRouter.ExactInputSingleParams(SPCXC,DICK,200,address(this),block.timestamp+120,1e8,1,0));
@@ -104,7 +113,48 @@ contract NativeAeroPositionForkTest {
         require(IERC20(SPCXC).balanceOf(accounts[0])-beforeHolder==amounts[0]&&distributor.totalReserved()==0,"fee-funded holder payment failed");
         emit log_named_uint("locally created real-manager NFT",id);emit log_named_uint("swap fee pips",ActualAeroFactory(FACTORY).getSwapFee(pool));
         emit log_named_uint("unstaked fee pips",ActualAeroFactory(FACTORY).getUnstakedFee(pool));
-        emit log_named_uint("actual Aero DICK burned",dickFees);emit log_named_uint("actual Aero SPCXc to distributor",spcxcFees);emit log_named_uint("actual Aero SPCXc holder payment",amounts[0]);
+        emit log_named_uint("actual Aero DICKBUTT burned",dickFees);emit log_named_uint("actual Aero SPCXc to distributor",spcxcFees);emit log_named_uint("actual Aero SPCXc holder payment",amounts[0]);
+    }
+
+    function addLiquidityFromExternalWallet(AerodromeFeeHarvester harvester, uint256 id) internal returns(uint128 totalAdded) {
+        address contributor = address(0xA2204);
+        ActualAeroManager manager = ActualAeroManager(MANAGER);
+        require(manager.ownerOf(id) == address(harvester), "harvester must already own NFT");
+        require(manager.getApproved(id) == address(0) && !manager.isApprovedForAll(address(harvester), contributor), "contributor must have no NFT approval");
+        require(IERC20(DICK).transfer(contributor, 10_000_000 ether), "DICKBUTT contributor funding failed");
+        vm.prank(SPCXC_SOURCE);
+        require(IERC20(SPCXC).transfer(contributor, 10 * 1e8), "SPCXc contributor funding failed");
+        vm.prank(contributor); IERC20(DICK).approve(MANAGER, 10_000_000 ether);
+        vm.prank(contributor); IERC20(SPCXC).approve(MANAGER, 10 * 1e8);
+        for(uint256 i; i < 2; ++i) {
+            (,,,,,,,uint128 beforeLiquidity,,,,) = manager.positions(id);
+            uint256 beforeDickbutt = IERC20(DICK).balanceOf(contributor);
+            uint256 beforeSpcxc = IERC20(SPCXC).balanceOf(contributor);
+            vm.prank(contributor);
+            (uint128 added, uint256 amount0, uint256 amount1) = manager.increaseLiquidity(
+                ActualAeroManager.IncreaseLiquidityParams(id, 5_000_000 ether, 5 * 1e8, 1, 1, block.timestamp + 120)
+            );
+            require(added > 0 && amount0 > 0 && amount1 > 0, "top-up added no liquidity");
+            require(beforeDickbutt - IERC20(DICK).balanceOf(contributor) == amount0, "wrong DICKBUTT payer");
+            require(beforeSpcxc - IERC20(SPCXC).balanceOf(contributor) == amount1, "wrong SPCXc payer");
+            (,,,,,,,uint128 afterLiquidity,,,,) = manager.positions(id);
+            require(afterLiquidity == beforeLiquidity + added, "top-up liquidity mismatch");
+            require(manager.ownerOf(id) == address(harvester), "top-up moved NFT custody");
+            require(manager.balanceOf(contributor) == 0, "contributor received an NFT");
+            totalAdded += added;
+        }
+        // Paying for liquidity does not grant the contributor fee or withdrawal authority.
+        vm.expectRevert(); vm.prank(contributor);
+        INonfungiblePositionManager(MANAGER).collect(INonfungiblePositionManager.CollectParams(id, contributor, type(uint128).max, type(uint128).max));
+        vm.expectRevert(); vm.prank(contributor); manager.safeTransferFrom(address(harvester), contributor, id);
+        require(IERC20(DICK).balanceOf(address(harvester)) == 0 && IERC20(SPCXC).balanceOf(address(harvester)) == 0, "top-up sent tokens to harvester");
+        if(harvester.lockedForever()) {
+            address admin = harvester.owner();
+            vm.expectRevert(); vm.prank(admin); harvester.withdrawPosition(admin);
+            require(harvester.lockedForever() && harvester.holdsPosition(), "top-up bypassed permanent lock");
+        }
+        emit log_named_uint("external top-ups completed", 2);
+        emit log_named_uint("additional position liquidity", totalAdded);
     }
     function onERC721Received(address,address,uint256,bytes calldata) external pure returns(bytes4){return IERC721Receiver.onERC721Received.selector;}
 }

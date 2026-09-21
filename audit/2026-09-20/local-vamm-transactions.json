@@ -1,0 +1,1202 @@
+{
+  "mode": "disposable-local-base-fork",
+  "forkBlock": 51223062,
+  "chainId": 31337,
+  "realDependencies": [
+    "Splits PushSplit V2.2 factory, implementation and Warehouse"
+  ],
+  "mockDependencies": [
+    "DICKBUTT/WETH/SPCXc/USDC assets",
+    "Clanker locker",
+    "Aerodrome volatile ERC-20 pool/factory",
+    "legacy module and Safes",
+    "swap router"
+  ],
+  "checks": [
+    "Three fee sources, actual immutable Splits percentages/dust, swap and rewards-vault funding verified",
+    "Real calculator journal \u2192 proposal \u2192 configured review delay \u2192 partial payout \u2192 retry \u2192 closure \u2192 reconciliation verified",
+    "Repeated keeper execution sends no duplicate payments",
+    "Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key",
+    "Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer",
+    "Bootstrap period commits balances with a zero pot",
+    "A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it",
+    "Two further six-hour earning cycles produced ready proposals and keeper payments without review time travel or holder signatures",
+    "ERC-20 vAMM LP transfer and repeated claims preserve all LP principal",
+    "Exactly 6.9M DICKBUTT qualifies; one raw unit below does not; neither holder signs payout transactions"
+  ],
+  "transactions": [
+    {
+      "action": "deploy-RewardMock",
+      "hash": "0x757aa21baa0d77271ed02ff5dd8f3aa6cc5fae76bf7e03b826c05635f1a1308b"
+    },
+    {
+      "action": "deploy-RewardMock",
+      "hash": "0x11f3468896ef23bd4c06cfc57bfb83e28640e121fb6044a766deed0abc4c09b8"
+    },
+    {
+      "action": "deploy-RehearsalRewardToken",
+      "hash": "0xb334d9bc0b4b7ab4e93fe0dd91024a158a6953858961e5479f14aa987b965b1e"
+    },
+    {
+      "action": "deploy-RewardMock",
+      "hash": "0x8c2b1746140a6534e86d28d1ffd671188d872c5e9ddbde6a5dbc2034adc5ab46"
+    },
+    {
+      "action": "deploy-DickbuttRewardsDistributor",
+      "hash": "0x99e3f52ab45631f73c83588f926bdb5e72b7e40da2922ffea8e0d78874cb8a82"
+    },
+    {
+      "action": "configured-review-delay",
+      "hash": "0x334e953a1868ba05cdc127de91a1c13b894acfcb4dacc1b5b632f091d09288a1"
+    },
+    {
+      "action": "configured-round-limits",
+      "hash": "0x3bfd1ff707e0a1730e59c873bdc70b73f1922f5dc6c0c7136e470a0131a12846"
+    },
+    {
+      "action": "deploy-ExecutorRouterMock",
+      "hash": "0x4819a6f94447fe671b7ef27cc8501edfec633305db4012b673406aa10eb51bb9"
+    },
+    {
+      "action": "deploy-SpcxcSwapExecutor",
+      "hash": "0x26e114a1f710162492f0adf7c4f1676032fcffc71bef54e0cff418b6223c14ab"
+    },
+    {
+      "action": "deploy-SplitsFeeRouter",
+      "hash": "0xc5e809b8272533643bc08480e183c1e52438994c9fd7c078262df3347c5c86f4"
+    },
+    {
+      "action": "deploy-PositionMock",
+      "hash": "0x2d3b290dbe17aed4e9e69a583e50ad4e900102127d15824df1fe3320e6637cfb"
+    },
+    {
+      "action": "deploy-FeeCycleLocker",
+      "hash": "0xb3ce58da5249840ff9b6b6f724c00d2f7c34140d0815e6edee8deb657f8c6f34"
+    },
+    {
+      "action": "locker-position",
+      "hash": "0x06d8bd86ef965b52dd2e86516a5694dd386a554aba252cd5677928e7ed34898d"
+    },
+    {
+      "action": "deploy-LockerHarvester",
+      "hash": "0x91ab2fac6ebb9515fadfcfbda4ec7ba23b99e20d781ad829c78bedb998570458"
+    },
+    {
+      "action": "locker-handoff",
+      "hash": "0xd409dbf9cd60f0ceaceb73b817ea86b73e4df8d4b9301a0137f6245f0052dce4"
+    },
+    {
+      "action": "deploy-VammFactoryMock",
+      "hash": "0x3564091357e0ef8c7bdf2f0913f32ffa6b4aa2f5fc5d310135ad349d0f1c80c9"
+    },
+    {
+      "action": "deploy-VammPoolMock",
+      "hash": "0x36c2c11ac760f8de6e4c53ef6ed2c17dfd768803d7f5735ea017820955005d18"
+    },
+    {
+      "action": "vamm-register",
+      "hash": "0x089431bfe6b28945bd77e29cca72a8270621eea1ab67a47396a2f93148c89f3e"
+    },
+    {
+      "action": "deploy-AerodromeVammHarvester",
+      "hash": "0x25796cc00995518eb8dd13964dc0b2f072c4c8f327bc74c772a97e294ba6ceaa"
+    },
+    {
+      "action": "vamm-lp-mint",
+      "hash": "0x6cd237b5c410bf187b32c696dae87a31aea507f94af89ddfcf4a27844dcd3ab0"
+    },
+    {
+      "action": "vamm-lp-handoff",
+      "hash": "0x2e0accf84223b83f98e68f32043f0455eec0236b4ce87a00ff495cefad0be8c2"
+    },
+    {
+      "action": "vamm-fees",
+      "hash": "0xfc8ed3625ce236ab050599c5e59896f6d195e1c2f4a560ddca012b102fda68d1"
+    },
+    {
+      "action": "deploy-LegacyModuleMock",
+      "hash": "0x564b9bebd73b34a8544d20da713191f4c7c1679573951aacd8f8e6d475b70b05"
+    },
+    {
+      "action": "deploy-LegacySafeMock",
+      "hash": "0x812fb5e000d06972e9cfda18ebd822170f4ebc1fa166b35b2786af1a6e051cad"
+    },
+    {
+      "action": "deploy-LegacySafeMock",
+      "hash": "0xadf7317796f327d604259d238f0eda6b6ab3653b233248d96d0e4cc41089f5fc"
+    },
+    {
+      "action": "deploy-LegacyFeeHarvester",
+      "hash": "0xd7b7829eaea91ad52b15939f284ee842683a58bfadbe20dfd8508098ad04d715"
+    },
+    {
+      "action": "legacy-handoff",
+      "hash": "0xc41a7db032c6c8a802b404917df9599ee212ca2b2c14eb582a0670b88e0559cb"
+    },
+    {
+      "action": "legacy-current-fees",
+      "hash": "0x5a17ddf42415575c05762644182e4de37e9f20bcf05b522c13663f0f2e9404e1"
+    },
+    {
+      "action": "legacy-historic-fees",
+      "hash": "0x785e01a0d8b2b3d76afc01ca0122ca2e0b0afae12ff8c07b590a5b735893584b"
+    },
+    {
+      "action": "holder-alice",
+      "hash": "0xb1129cbef1d1677f9086fbf8b1ad07ee4a6652088c3a781e39f989944f9bac50"
+    },
+    {
+      "action": "holder-bob",
+      "hash": "0xa95bf64a84a785138016e730f7aa45ebd79e1045b823749c52379eaee5bd69f1"
+    },
+    {
+      "action": "holder-below-minimum",
+      "hash": "0xff53097937842a09806838e83702e9080517f765ea3b8886582b07e5aadbf583"
+    },
+    {
+      "action": "swap-keeper",
+      "hash": "0x894da303474908eb50b447401dc6fa3db3aec79a2d819c0434a4f29e46b7cc2f"
+    },
+    {
+      "action": "payout-keeper",
+      "hash": "0x4b5de6906e4674c45fbd724bdf6200df24b6d1cb48faf3058fba0f611a2e7573"
+    },
+    {
+      "action": "floor-lower-bound",
+      "hash": "0x98bc01b98836af4471a8da7d1891198bbeaabaf73a6c9f6abc4032687b98d442"
+    },
+    {
+      "action": "floor-setter",
+      "hash": "0xd51f5698f6846573d7d4b22d591cfccdedbd9c9013728fb3dc07e6d3d913619b"
+    },
+    {
+      "action": "proposer",
+      "hash": "0x6839c47f277280ca7cf16a2c50c0bab11ca981513a46ab61fa570f0b4f45783f"
+    },
+    {
+      "action": "guardian",
+      "hash": "0x4d28450155186ac1e4dde06e8711709d2259dbc772239c17dc4ace1f612e0e3f"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "set-price-floor",
+      "hash": "0xbdaf41b1331a1cce29172c81b900b6800cf142149db4494e1c608dce970f1b2a"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "set-price-floor",
+      "hash": "0xbdaf41b1331a1cce29172c81b900b6800cf142149db4494e1c608dce970f1b2a"
+    },
+    {
+      "action": "price-floor",
+      "hash": "0xbdaf41b1331a1cce29172c81b900b6800cf142149db4494e1c608dce970f1b2a"
+    },
+    {
+      "action": "locker",
+      "status": "submitted",
+      "hash": "0xcba5fe239033bb0f1f2b15bc2fa9b37b8462fc4b170ac39516f181ff7bb3c622"
+    },
+    {
+      "action": "locker",
+      "status": "confirmed",
+      "hash": "0xcba5fe239033bb0f1f2b15bc2fa9b37b8462fc4b170ac39516f181ff7bb3c622"
+    },
+    {
+      "action": "aero",
+      "status": "submitted",
+      "hash": "0x455b3ce9f1a4609b502a715a22d457973ac6451fd34e177ecff65dfc874710eb"
+    },
+    {
+      "action": "aero",
+      "status": "confirmed",
+      "hash": "0x455b3ce9f1a4609b502a715a22d457973ac6451fd34e177ecff65dfc874710eb"
+    },
+    {
+      "action": "legacy0",
+      "status": "submitted",
+      "hash": "0x1432889f3d127a8c56bcb83ad9c917215f2b9716819ebe8e3f709908327064ca"
+    },
+    {
+      "action": "legacy0",
+      "status": "confirmed",
+      "hash": "0x1432889f3d127a8c56bcb83ad9c917215f2b9716819ebe8e3f709908327064ca"
+    },
+    {
+      "action": "legacy1",
+      "status": "submitted",
+      "hash": "0x1badf6a65e8d3e76f3711fc4548adcf2f7f3fecad2cb67183ae20b221d469388"
+    },
+    {
+      "action": "legacy1",
+      "status": "confirmed",
+      "hash": "0x1badf6a65e8d3e76f3711fc4548adcf2f7f3fecad2cb67183ae20b221d469388"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "submitted",
+      "hash": "0x4bf68957353d883675671604a2bdefc6683f446a3fabf4212c72ad2b60afd734"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "confirmed",
+      "hash": "0x4bf68957353d883675671604a2bdefc6683f446a3fabf4212c72ad2b60afd734"
+    },
+    {
+      "action": "split-weth",
+      "status": "submitted",
+      "hash": "0xe44beda99df6e19a8e6e0af0f4fb9f51d47e932a661c91d50d2a56d98d8fb5ec"
+    },
+    {
+      "action": "split-weth",
+      "status": "confirmed",
+      "hash": "0xe44beda99df6e19a8e6e0af0f4fb9f51d47e932a661c91d50d2a56d98d8fb5ec"
+    },
+    {
+      "action": "swap",
+      "status": "submitted",
+      "hash": "0x6ade59cd0f0d616ecdf27a68a92602dd1a48e31f4759e454a655f82b71650d94"
+    },
+    {
+      "action": "swap",
+      "status": "confirmed",
+      "hash": "0x6ade59cd0f0d616ecdf27a68a92602dd1a48e31f4759e454a655f82b71650d94"
+    },
+    {
+      "action": "guardian-pause",
+      "hash": "0xa49b717862e0e01df2e2c21db36ad5c37426c9ee8c0925dc2dbb6fa2f2cb5496"
+    },
+    {
+      "action": "guardian-unpause",
+      "hash": "0x14751f22c11cfbd794490fccd89639316c88db69612ca6a834ce9d41f180eb6c"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "propose",
+      "roundId": "1",
+      "hash": "0x39a8a32595baf8b3bf746c9ab4b6eff0e859ffeb76e376497bd994bbcdeebf2b",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "propose",
+      "roundId": "1",
+      "hash": "0x39a8a32595baf8b3bf746c9ab4b6eff0e859ffeb76e376497bd994bbcdeebf2b",
+      "chainId": "31337"
+    },
+    {
+      "action": "simulate-blocked-recipient",
+      "hash": "0x463ae75d127a75f0b1fdb4c59e2428e19a383030060106590b1de76cb5ca1155"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "activate",
+      "roundId": "1",
+      "hash": "0x977119d8636e8aa5ce41583efdd60c7529ddf52c16651cb4c426aacab559839e",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "activate",
+      "roundId": "1",
+      "hash": "0x977119d8636e8aa5ce41583efdd60c7529ddf52c16651cb4c426aacab559839e",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "1",
+      "hash": "0xd727d85b79b3e8dc2be80ad0c6b83da363a801fa98ca1b72f8665ef520261159",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "1",
+      "hash": "0xd727d85b79b3e8dc2be80ad0c6b83da363a801fa98ca1b72f8665ef520261159",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "1",
+      "hash": "0x522ce79a78d1547b604de6ea306baa798da3054a64eaff21a27b006497e8d29e",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "1",
+      "hash": "0x522ce79a78d1547b604de6ea306baa798da3054a64eaff21a27b006497e8d29e",
+      "chainId": "31337"
+    },
+    {
+      "action": "unblock-recipient",
+      "hash": "0x1b3ce3c97eb437d3ad971d5fae73720b7e01ecf802400b2f45dfd0376a6c5917"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "1",
+      "hash": "0x94ebad390693841652a689c002b8a9673ff5e8abcaa464c6f7685cd8db0558e7",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "1",
+      "hash": "0x94ebad390693841652a689c002b8a9673ff5e8abcaa464c6f7685cd8db0558e7",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "close",
+      "roundId": "1",
+      "hash": "0x51c0a19f1cc4dd6227874d9df5c03288a1e29b570af771689a96b0f47c1bbfe9",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "close",
+      "roundId": "1",
+      "hash": "0x51c0a19f1cc4dd6227874d9df5c03288a1e29b570af771689a96b0f47c1bbfe9",
+      "chainId": "31337"
+    },
+    {
+      "action": "foreign-proposal",
+      "hash": "0xdcf71418ce704d8a42b4d523de40b0af7200ae00edfedecf0c7b65a7587c5dfb"
+    },
+    {
+      "action": "guardian-cancel",
+      "hash": "0xc5778e4c8c9a0d7bd86ccd222adef26df4eab4b2e9497a505b1ac5784d4f059c"
+    },
+    {
+      "action": "lift-cap",
+      "hash": "0x65ae38f2379571a83d75f0e11233955cad7cef4e980cf19a1ca6e80eeec7696e"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "propose",
+      "roundId": "3",
+      "hash": "0x18af44e4bea6f5486be98d84fa773c4c7dcc189afeac706f05cdfb4749b69b12",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "propose",
+      "roundId": "3",
+      "hash": "0x18af44e4bea6f5486be98d84fa773c4c7dcc189afeac706f05cdfb4749b69b12",
+      "chainId": "31337"
+    },
+    {
+      "action": "restore-cap",
+      "hash": "0xafa06a9bdd3f3e5cccfd4f91639e6fa0654df9ce49379f7e90e4a50b54024173"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "activate",
+      "roundId": "3",
+      "hash": "0xdfb9bd7a8d8ba768cb7baa6f3bf304d4fd8f9aebd256f334a87dc767b7a2c9fe",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "activate",
+      "roundId": "3",
+      "hash": "0xdfb9bd7a8d8ba768cb7baa6f3bf304d4fd8f9aebd256f334a87dc767b7a2c9fe",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "3",
+      "hash": "0xa326a506d95f4246446118b65a892e57352840dbde9d05740c01e6cb6de070bb",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "3",
+      "hash": "0xa326a506d95f4246446118b65a892e57352840dbde9d05740c01e6cb6de070bb",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "3",
+      "hash": "0x2727c2eacbf2b98298d6c1e152121b5694843b96ec50fc2929d80ef44a694f67",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "3",
+      "hash": "0x2727c2eacbf2b98298d6c1e152121b5694843b96ec50fc2929d80ef44a694f67",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "close",
+      "roundId": "3",
+      "hash": "0x1f09bfad403adc02f7673a379e16f4296a03534835acb50456db70a8f5d2fb7d",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "close",
+      "roundId": "3",
+      "hash": "0x1f09bfad403adc02f7673a379e16f4296a03534835acb50456db70a8f5d2fb7d",
+      "chainId": "31337"
+    },
+    {
+      "action": "restore-normal-round-policy",
+      "hash": "0xf0d6606233a6f237a3019daa2d46d4b3c8b28e56758981134ef273c67fc216f2"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "set-price-floor",
+      "hash": "0x63cc4e72a8ec4da45289289cd127db9c1c40813c5d422ee8f3e0d53d241229d6"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "set-price-floor",
+      "hash": "0x63cc4e72a8ec4da45289289cd127db9c1c40813c5d422ee8f3e0d53d241229d6"
+    },
+    {
+      "action": "vamm-fees",
+      "hash": "0xb52416e1a8e395ceb87b95880b70ad4d31cb882f115e21bb18571610757542e4"
+    },
+    {
+      "action": "locker",
+      "status": "submitted",
+      "hash": "0xbde82d7015eb9fe660922cebf15dd0724b18c9f76aebf86302ca7e79082526bc"
+    },
+    {
+      "action": "locker",
+      "status": "confirmed",
+      "hash": "0xbde82d7015eb9fe660922cebf15dd0724b18c9f76aebf86302ca7e79082526bc"
+    },
+    {
+      "action": "aero",
+      "status": "submitted",
+      "hash": "0x8660e6b69069fa4acdef8903df616bc6df876b98c8f6961de3d282b0ec0b5691"
+    },
+    {
+      "action": "aero",
+      "status": "confirmed",
+      "hash": "0x8660e6b69069fa4acdef8903df616bc6df876b98c8f6961de3d282b0ec0b5691"
+    },
+    {
+      "action": "legacy0",
+      "status": "submitted",
+      "hash": "0x58133a7c1c0719a724358b91ed0e836d056de6b12bcbbaa718684ad42f62fa10"
+    },
+    {
+      "action": "legacy0",
+      "status": "confirmed",
+      "hash": "0x58133a7c1c0719a724358b91ed0e836d056de6b12bcbbaa718684ad42f62fa10"
+    },
+    {
+      "action": "legacy1",
+      "status": "submitted",
+      "hash": "0x87a05d97bba692f187943bc376776a007e1548b207e37cd19eb99ae82a7caa20"
+    },
+    {
+      "action": "legacy1",
+      "status": "confirmed",
+      "hash": "0x87a05d97bba692f187943bc376776a007e1548b207e37cd19eb99ae82a7caa20"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "submitted",
+      "hash": "0x09e8b58d981b8225bdc49082fb5080bdd83a80e6a56c5a607a800020067df3cd"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "confirmed",
+      "hash": "0x09e8b58d981b8225bdc49082fb5080bdd83a80e6a56c5a607a800020067df3cd"
+    },
+    {
+      "action": "split-weth",
+      "status": "submitted",
+      "hash": "0x375bb36637a6ea681bd92ed13fb299e903ab9ea29859aa5f29cfcdb3ff57e97f"
+    },
+    {
+      "action": "split-weth",
+      "status": "confirmed",
+      "hash": "0x375bb36637a6ea681bd92ed13fb299e903ab9ea29859aa5f29cfcdb3ff57e97f"
+    },
+    {
+      "action": "swap",
+      "status": "submitted",
+      "hash": "0x57e95777af7b7202fc3dddf502a3b87a15c0412d562bada4289cff80d9f60976"
+    },
+    {
+      "action": "swap",
+      "status": "confirmed",
+      "hash": "0x57e95777af7b7202fc3dddf502a3b87a15c0412d562bada4289cff80d9f60976"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "propose",
+      "roundId": "4",
+      "hash": "0x48cfd06e98291c74454f2de9f1da117d5e139d3183a510d817d590bfaf39d4f6",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "propose",
+      "roundId": "4",
+      "hash": "0x48cfd06e98291c74454f2de9f1da117d5e139d3183a510d817d590bfaf39d4f6",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "activate",
+      "roundId": "4",
+      "hash": "0x2a056b3244eae46a201ae1f30e22aa6d12699e1e0effe366c5aa1a3a3991f65a",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "activate",
+      "roundId": "4",
+      "hash": "0x2a056b3244eae46a201ae1f30e22aa6d12699e1e0effe366c5aa1a3a3991f65a",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "4",
+      "hash": "0x70df8ad1bc79faead5cc54a1844e46687a61e37fb0c85a20c0ad8cf299a436e5",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "4",
+      "hash": "0x70df8ad1bc79faead5cc54a1844e46687a61e37fb0c85a20c0ad8cf299a436e5",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "4",
+      "hash": "0x5c66a3e90675108a192d9425ef9ed16dcfcbdfb4a862bded22b210d17bdbc5a4",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "4",
+      "hash": "0x5c66a3e90675108a192d9425ef9ed16dcfcbdfb4a862bded22b210d17bdbc5a4",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "close",
+      "roundId": "4",
+      "hash": "0xdfb78f1d42af4e7ddcdcf15a133fc1c423e488d9365c3c74262cd0f07be1811f",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "close",
+      "roundId": "4",
+      "hash": "0xdfb78f1d42af4e7ddcdcf15a133fc1c423e488d9365c3c74262cd0f07be1811f",
+      "chainId": "31337"
+    },
+    {
+      "action": "vamm-fees",
+      "hash": "0x7d01a99a01885414f7275efa306b2d64f214e85b568fd1458318817a7d480073"
+    },
+    {
+      "action": "locker",
+      "status": "submitted",
+      "hash": "0x5217eab3919d1e426e250ceb9a8419d731e295270de666f6f029e20736a9f898"
+    },
+    {
+      "action": "locker",
+      "status": "confirmed",
+      "hash": "0x5217eab3919d1e426e250ceb9a8419d731e295270de666f6f029e20736a9f898"
+    },
+    {
+      "action": "aero",
+      "status": "submitted",
+      "hash": "0x8cafbf4339f64f6d684ac6645b3007e9b5f70ea44faaee300e77986830cb05ca"
+    },
+    {
+      "action": "aero",
+      "status": "confirmed",
+      "hash": "0x8cafbf4339f64f6d684ac6645b3007e9b5f70ea44faaee300e77986830cb05ca"
+    },
+    {
+      "action": "legacy0",
+      "status": "submitted",
+      "hash": "0xc39f011335c1dd38186f471f6128d8ba58039843d4dab69e170da7ab8e1f522b"
+    },
+    {
+      "action": "legacy0",
+      "status": "confirmed",
+      "hash": "0xc39f011335c1dd38186f471f6128d8ba58039843d4dab69e170da7ab8e1f522b"
+    },
+    {
+      "action": "legacy1",
+      "status": "submitted",
+      "hash": "0xceeb03345c4a224f1c1ea48bf89b166fae4167b1a262cfb6cf4c0465eb48a69f"
+    },
+    {
+      "action": "legacy1",
+      "status": "confirmed",
+      "hash": "0xceeb03345c4a224f1c1ea48bf89b166fae4167b1a262cfb6cf4c0465eb48a69f"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "submitted",
+      "hash": "0x0d3c57b3b3d6c0dd457bfc600528082435d84f99d2be25e92b652b10aec6daeb"
+    },
+    {
+      "action": "split-dickbutt",
+      "status": "confirmed",
+      "hash": "0x0d3c57b3b3d6c0dd457bfc600528082435d84f99d2be25e92b652b10aec6daeb"
+    },
+    {
+      "action": "split-weth",
+      "status": "submitted",
+      "hash": "0xaf59dc190998c2f829a800754ec556faf0b60ff0941bb4e2c2e4c1e33ffb625a"
+    },
+    {
+      "action": "split-weth",
+      "status": "confirmed",
+      "hash": "0xaf59dc190998c2f829a800754ec556faf0b60ff0941bb4e2c2e4c1e33ffb625a"
+    },
+    {
+      "action": "swap",
+      "status": "submitted",
+      "hash": "0x2c1dca673323ba26e3dab8741afa2246be209de68c434ed4de498ad010cf9fa6"
+    },
+    {
+      "action": "swap",
+      "status": "confirmed",
+      "hash": "0x2c1dca673323ba26e3dab8741afa2246be209de68c434ed4de498ad010cf9fa6"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "propose",
+      "roundId": "5",
+      "hash": "0x58c22a60452354a6a15cdb96627083431f4b3c80edf76633ace5b89efce96b33",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "propose",
+      "roundId": "5",
+      "hash": "0x58c22a60452354a6a15cdb96627083431f4b3c80edf76633ace5b89efce96b33",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "activate",
+      "roundId": "5",
+      "hash": "0xe2a37e9575ffc8c44a929764e523070b9f7e3c31eb2806d02cef2083d9b2c33e",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "activate",
+      "roundId": "5",
+      "hash": "0xe2a37e9575ffc8c44a929764e523070b9f7e3c31eb2806d02cef2083d9b2c33e",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "5",
+      "hash": "0x0d25ecd6911dde7a58906b5346ce6342147440f3de31c19b40393e822c0d529c",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "5",
+      "hash": "0x0d25ecd6911dde7a58906b5346ce6342147440f3de31c19b40393e822c0d529c",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "batch",
+      "roundId": "5",
+      "hash": "0x62c8986f79870b661b4e86ccd81dc59b425df94813075dbf4addf104738f9e0c",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "batch",
+      "roundId": "5",
+      "hash": "0x62c8986f79870b661b4e86ccd81dc59b425df94813075dbf4addf104738f9e0c",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-submitted",
+      "action": "close",
+      "roundId": "5",
+      "hash": "0x3905692f7d90588d338e7bab94c7ac9af218681252d7cfcfdf7527c0c23345f0",
+      "chainId": "31337"
+    },
+    {
+      "type": "transaction-confirmed",
+      "action": "close",
+      "roundId": "5",
+      "hash": "0x3905692f7d90588d338e7bab94c7ac9af218681252d7cfcfdf7527c0c23345f0",
+      "chainId": "31337"
+    }
+  ],
+  "rewardPolicy": {
+    "roundDelay": 0,
+    "minRoundInterval": 21600,
+    "maxRoundBps": 5000
+  },
+  "sixHourCycles": [
+    {
+      "roundId": "4",
+      "periodStart": 1789278693,
+      "periodEnd": 1789300294,
+      "earningTimeAdvancedSeconds": 21600,
+      "readyAt": "1789300294",
+      "paidAt": 1789300295,
+      "recipients": 2,
+      "payouts": {
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "269",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc": "539"
+      },
+      "extraReviewSeconds": 0,
+      "holderSignatures": 0
+    },
+    {
+      "roundId": "5",
+      "periodStart": 1789300294,
+      "periodEnd": 1789321895,
+      "earningTimeAdvancedSeconds": 21600,
+      "readyAt": "1789321895",
+      "paidAt": 1789321896,
+      "recipients": 2,
+      "payouts": {
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "404",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc": "809"
+      },
+      "extraReviewSeconds": 0,
+      "holderSignatures": 0
+    }
+  ],
+  "aerodromeKind": "vamm",
+  "contracts": {
+    "weth": "0x742b49cF43083584cb53467b119146Ef361b571f",
+    "dickbutt": "0xe3B1E81bB4ae2a723CF4fF23b7E66C71CC6A2330",
+    "spcxc": "0x787C53FA27340DAA779F3a1B8CDbf7936B14B68e",
+    "distributor": "0x6244434D825Df1dDE9eB4e092c0678f2edE19a97",
+    "executor": "0xB0f3492eca5DBf6B95f6Dc9661C42208d3906164",
+    "feeRouter": "0x1020c7053110150572Ca7905764451DbEf338c93",
+    "dickSplit": "0x002a245eF76363c6f4c670045f16518A129391a7",
+    "wethSplit": "0x393e202FaF0533578663E2751254ebF3AcDecD90",
+    "clanker": "0xC5F6eC8022Dd0e2f26d9378C5E7785DAc92c5a94",
+    "aero": "0x60C0415B58C47F5972F959b0149ab48248E33abe",
+    "legacy": "0x194c41a44DC0f11d13a6855c18B153123E1277E7"
+  },
+  "wallets": [
+    {
+      "role": "owner",
+      "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "ethWei": "9999982406954993722502",
+      "dickbuttRaw": "0",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "keeper",
+      "address": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+      "ethWei": "9999998035819675013349",
+      "dickbuttRaw": "0",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "proposer",
+      "address": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+      "ethWei": "9999999429931996009524",
+      "dickbuttRaw": "0",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "guardian",
+      "address": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+      "ethWei": "9999999847559998932920",
+      "dickbuttRaw": "0",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "ops",
+      "address": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+      "ethWei": "9999999889269910498712",
+      "dickbuttRaw": "0",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "holderA",
+      "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "ethWei": "10000000000000000000000",
+      "dickbuttRaw": "6900000000000000000000000",
+      "spcxcRaw": "1211"
+    },
+    {
+      "role": "holderB",
+      "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "ethWei": "10000000000000000000000",
+      "dickbuttRaw": "13800000000000000000000000",
+      "spcxcRaw": "2425"
+    },
+    {
+      "role": "holderBelowMinimum",
+      "address": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+      "ethWei": "10000000000000000000000",
+      "dickbuttRaw": "6899999999999999999999999",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "kcGreen",
+      "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "ethWei": "10000000000000000000000",
+      "dickbuttRaw": "409",
+      "spcxcRaw": "0"
+    },
+    {
+      "role": "cdbVault",
+      "address": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "ethWei": "10000000000000000000000",
+      "dickbuttRaw": "0",
+      "spcxcRaw": "0"
+    }
+  ],
+  "totalReserved": "0",
+  "signing": "Separate HD wallets; locally signed transactions; public development mnemonic",
+  "localManifest": {
+    "chainId": 31337,
+    "network": "local",
+    "deployedAtBlock": 51224564,
+    "contracts": {
+      "weth": "0x742b49cF43083584cb53467b119146Ef361b571f",
+      "dickbutt": "0xe3B1E81bB4ae2a723CF4fF23b7E66C71CC6A2330",
+      "spcxc": "0x787C53FA27340DAA779F3a1B8CDbf7936B14B68e",
+      "distributor": "0x6244434D825Df1dDE9eB4e092c0678f2edE19a97",
+      "executor": "0xB0f3492eca5DBf6B95f6Dc9661C42208d3906164",
+      "feeRouter": "0x1020c7053110150572Ca7905764451DbEf338c93",
+      "dickSplit": "0x002a245eF76363c6f4c670045f16518A129391a7",
+      "wethSplit": "0x393e202FaF0533578663E2751254ebF3AcDecD90",
+      "clanker": "0xC5F6eC8022Dd0e2f26d9378C5E7785DAc92c5a94",
+      "aero": "0x60C0415B58C47F5972F959b0149ab48248E33abe",
+      "legacy": "0x194c41a44DC0f11d13a6855c18B153123E1277E7"
+    },
+    "splits": {
+      "dickSplit": "0x002a245eF76363c6f4c670045f16518A129391a7",
+      "wethSplit": "0x393e202FaF0533578663E2751254ebF3AcDecD90"
+    },
+    "sources": {
+      "aerodromeKind": "vamm",
+      "rewardsPool": "0xAf3ddaC28ecEc261C258815c60ae3D9c959cb40b",
+      "rewardsFactory": "0x2B406c312590f7EE73197a0E4AFD0E2Ed7FEad23",
+      "locker": "0x2319e985ef0c833Afa54e087f685866446B467A5",
+      "positionManager": "0x0FCc503854A8d76893c2dAaF0A7aAAdBd7A284e6",
+      "legacySafes": [
+        "0x3Fd427D44721C07BE86CA8bFc22Eac55a591c59b",
+        "0xCf11dB6dA2416f94432c41953e982Bb8E46473bf"
+      ]
+    },
+    "roles": {
+      "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "keeper": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+      "proposer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+      "guardian": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+      "ops": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+      "kcGreen": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "cdbVault": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "burnAddress": "0x000000000000000000000000000000000000dEaD"
+    },
+    "notes": [
+      "Local chain only; mock tokens, fee sources and swap router. Genuine Splits from the Base fork."
+    ]
+  },
+  "keeper": {
+    "first": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "activation-ready",
+          "unpaid": [],
+          "failed": [],
+          "readyAt": "1789257091"
+        }
+      ],
+      "transactions": [
+        {
+          "action": "propose",
+          "roundId": "1",
+          "hash": "0x39a8a32595baf8b3bf746c9ab4b6eff0e859ffeb76e376497bd994bbcdeebf2b"
+        }
+      ],
+      "historyVerification": {
+        "periods": 2,
+        "finalizedThrough": 51223302
+      }
+    },
+    "partial": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "partial",
+          "unpaid": [
+            "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+          ],
+          "failed": [
+            {
+              "account": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "amount": "538"
+            }
+          ],
+          "readyAt": "1789257091"
+        }
+      ],
+      "transactions": [
+        {
+          "action": "activate",
+          "roundId": "1",
+          "hash": "0x977119d8636e8aa5ce41583efdd60c7529ddf52c16651cb4c426aacab559839e"
+        },
+        {
+          "action": "batch",
+          "roundId": "1",
+          "hash": "0xd727d85b79b3e8dc2be80ad0c6b83da363a801fa98ca1b72f8665ef520261159"
+        },
+        {
+          "action": "batch",
+          "roundId": "1",
+          "hash": "0x522ce79a78d1547b604de6ea306baa798da3054a64eaff21a27b006497e8d29e"
+        }
+      ],
+      "historyVerification": {
+        "periods": 2,
+        "finalizedThrough": 51223432
+      }
+    },
+    "retry": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        }
+      ],
+      "transactions": [
+        {
+          "action": "batch",
+          "roundId": "1",
+          "hash": "0x94ebad390693841652a689c002b8a9673ff5e8abcaa464c6f7685cd8db0558e7"
+        },
+        {
+          "action": "close",
+          "roundId": "1",
+          "hash": "0x51c0a19f1cc4dd6227874d9df5c03288a1e29b570af771689a96b0f47c1bbfe9"
+        }
+      ],
+      "historyVerification": {
+        "periods": 2,
+        "finalizedThrough": 51223436
+      }
+    },
+    "repeat": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        }
+      ],
+      "transactions": [],
+      "historyVerification": {
+        "periods": 2,
+        "finalizedThrough": 51223438
+      }
+    },
+    "blocked": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        },
+        {
+          "roundId": "2",
+          "root": "0x2bba8f077a3aaba843e7dd06a48c0a1d0343d2704c14a7e14e6141ca47a4c63e",
+          "total": "403",
+          "status": "foreign-commitment",
+          "unpaid": [],
+          "failed": [],
+          "foreignRoot": "0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+        }
+      ],
+      "transactions": [],
+      "historyVerification": {
+        "periods": 3,
+        "finalizedThrough": 51223696
+      }
+    },
+    "cancelled": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        },
+        {
+          "roundId": "2",
+          "root": "0x2bba8f077a3aaba843e7dd06a48c0a1d0343d2704c14a7e14e6141ca47a4c63e",
+          "total": "403",
+          "status": "superseded",
+          "unpaid": [],
+          "failed": [],
+          "foreignRoot": "0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+        }
+      ],
+      "transactions": [],
+      "historyVerification": {
+        "periods": 3,
+        "finalizedThrough": 51223697
+      }
+    },
+    "reproposed": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        },
+        {
+          "roundId": "2",
+          "root": "0x2bba8f077a3aaba843e7dd06a48c0a1d0343d2704c14a7e14e6141ca47a4c63e",
+          "total": "403",
+          "status": "superseded",
+          "unpaid": [],
+          "failed": [],
+          "foreignRoot": "0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+        },
+        {
+          "roundId": "3",
+          "root": "0x2d4dc5865597f2c340fb6c4ef0a03405ce775e50000aa6edf3836ea173c58c72",
+          "total": "808",
+          "status": "activation-ready",
+          "unpaid": [],
+          "failed": [],
+          "readyAt": "1789278693"
+        }
+      ],
+      "transactions": [
+        {
+          "action": "propose",
+          "roundId": "3",
+          "hash": "0x18af44e4bea6f5486be98d84fa773c4c7dcc189afeac706f05cdfb4749b69b12"
+        }
+      ],
+      "historyVerification": {
+        "periods": 4,
+        "finalizedThrough": 51223826
+      }
+    },
+    "paidOut": {
+      "mode": "execute",
+      "chainId": "31337",
+      "rounds": [
+        {
+          "roundId": "1",
+          "root": "0x5588cef4caa389090a9d514d0d6538349e692b786c9bc0639951b3d9e3d160ae",
+          "total": "807",
+          "status": "closed",
+          "unpaid": [],
+          "failed": []
+        },
+        {
+          "roundId": "2",
+          "root": "0x2bba8f077a3aaba843e7dd06a48c0a1d0343d2704c14a7e14e6141ca47a4c63e",
+          "total": "403",
+          "status": "superseded",
+          "unpaid": [],
+          "failed": [],
+          "foreignRoot": "0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+        },
+        {
+          "roundId": "3",
+          "root": "0x2d4dc5865597f2c340fb6c4ef0a03405ce775e50000aa6edf3836ea173c58c72",
+          "total": "808",
+          "status": "closed",
+          "unpaid": [],
+          "failed": [],
+          "readyAt": "1789278693"
+        }
+      ],
+      "transactions": [
+        {
+          "action": "activate",
+          "roundId": "3",
+          "hash": "0xdfb9bd7a8d8ba768cb7baa6f3bf304d4fd8f9aebd256f334a87dc767b7a2c9fe"
+        },
+        {
+          "action": "batch",
+          "roundId": "3",
+          "hash": "0xa326a506d95f4246446118b65a892e57352840dbde9d05740c01e6cb6de070bb"
+        },
+        {
+          "action": "batch",
+          "roundId": "3",
+          "hash": "0x2727c2eacbf2b98298d6c1e152121b5694843b96ec50fc2929d80ef44a694f67"
+        },
+        {
+          "action": "close",
+          "roundId": "3",
+          "hash": "0x1f09bfad403adc02f7673a379e16f4296a03534835acb50456db70a8f5d2fb7d"
+        }
+      ],
+      "historyVerification": {
+        "periods": 4,
+        "finalizedThrough": 51223956
+      }
+    }
+  },
+  "success": true
+}

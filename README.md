@@ -1,15 +1,15 @@
 # DICKBUTT holder rewards
 
-Latest alignment review: [claims, two-hop swap, replacement wallets, delayed NFT custody and permanent locks](docs/ALIGNMENT-RETEST-REPORT.md). The new F9 preflight fix brings the total to nine groups; final suites pass 169 application tests and 114 Solidity tests, with one production-NFT test skipped.
+Current local candidate uses **basic volatile vAMM ERC-20 LP tokens** through `AerodromeVammHarvester`. See [setup and custody steps](AERODROME-SETUP.md). This adapter is not deployed, the actual new pool is not yet recorded, and launch prerequisites remain outstanding. The final internal [audit and testing report](AUDIT_REPORT.md) records eight fixed findings across the two September 20 passes; 238 JavaScript and 163 Solidity tests passed, with one optional historical NFT skip. Historical reports below describe earlier candidates and are not production approval.
 
-Production targets **Base mainnet (8453)** and the **DICKBUTT** token, with separately selected production owner and bot wallets. The Sepolia deployment is a test deployment. The Aerodrome LP NFT may be handed over later, but its exact ID must be known before deploying its harvester. See [production deployment intent](docs/COMPLETE-DEVELOPER-REPORT.md) and [the staged NFT setup](AERODROME-SETUP.md).
+Production targets **Base mainnet (8453)** and the **DICKBUTT** token, with separately selected production owner and bot wallets. The Sepolia deployment is a test deployment. The actual Aerodrome vAMM pool must be known before deploying its harvester; ERC-20 LP custody may be handed over later. See [production deployment intent](docs/COMPLETE-DEVELOPER-REPORT.md) and [the staged vAMM setup](AERODROME-SETUP.md).
 
-Read the [complete developer report](docs/COMPLETE-DEVELOPER-REPORT.md), [file-by-file change inventory](docs/FILE-CHANGE-INVENTORY.md) and [current results](docs/TEST-RESULTS.md). Nine fix groups are documented. Four public testnet fee cycles and one holder round have completed, including a reviewed swap-only recovery after an RPC interruption. The RPC cause, observation gaps, unfinished 48-hour test and production prerequisites remain documented limitations. Mainnet launch is not approved.
+Historical September 13 work: read the [complete developer report](docs/COMPLETE-DEVELOPER-REPORT.md), [file-by-file change inventory](docs/FILE-CHANGE-INVENTORY.md) and [historical test results](docs/TEST-RESULTS.md). Nine fix groups are documented. Four public testnet fee cycles and one holder round have completed, including a reviewed swap-only recovery after an RPC interruption. The RPC cause, observation gaps, unfinished 48-hour test and production prerequisites remain documented limitations. Mainnet launch is not approved.
 
 
 Trading fees fund SPCXc rewards for DICKBUTT holders. Holders receive payments in their wallets; they do not claim or sign. The repository contains contracts, a time-weighted reward calculator, execution tools and a disposable deployment rehearsal.
 
-The current design uses **actual Splits PushSplit V2.2 contracts** for fee allocations and a **0.3% concentrated, full-range DICKBUTT/SPCXc position**. It includes returned legacy Clanker DICKBUTT fees. Mainnet ownership and creator authority have not been transferred by this project work.
+The current design uses **actual Splits PushSplit V2.2 contracts** for fee allocations and an **unstaked basic volatile DICKBUTT/SPCXc ERC-20 LP position**. It includes returned legacy Clanker DICKBUTT fees. Mainnet ownership and creator authority have not been transferred by this project work.
 
 ## Fee flow
 
@@ -27,7 +27,7 @@ flowchart TD
     WS -->|10%| CDB[CDB treasury]
     WS -->|80%| X[SPCXc swap executor]
     X -->|WETH → USDC → SPCXc| V[Rewards distributor]
-    A[0.3% DICKBUTT/SPCXc concentrated position] --> AH[AerodromeFeeHarvester]
+    A[DICKBUTT/SPCXc basic volatile LP] --> AH[AerodromeVammHarvester]
     AH -->|DICKBUTT fees| B
     AH -->|SPCXc fees| V
     V -->|Committed, verified batches| P[Eligible holders]
@@ -47,7 +47,8 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 | `src/LegacyFeeHarvester.sol` | Permissionless DICKBUTT recovery from both verified current/historical fee Safes to the fixed receiver. Requires a separate legacy creator-authority handoff. |
 | `src/SplitsFeeRouter.sol` | Creates two immutable upstream PushSplits through the official factory and forwards each token to its correct Split. No custom percentage-transfer implementation. |
 | `src/SpcxcSwapExecutor.sol` | Swaps the WETH allocation to SPCXc using a fixed two-hop route, capped size, deadline, approved keeper and a price floor refreshed by a narrow floor-setter role above an owner bound. |
-| `src/AerodromeFeeHarvester.sol` | Holds the concentrated LP NFT; burns its DICKBUTT fees and forwards its SPCXc fees. |
+| `src/AerodromeVammHarvester.sol` | Holds basic volatile ERC-20 LP; claims its fee share, burns DICKBUTT and forwards SPCXc. |
+| `src/AerodromeFeeHarvester.sol` | Historical Slipstream NFT adapter, retained for existing rehearsal/testnet manifests. |
 | `src/DickbuttRewardsDistributor.sol` | Reserves proposed/active obligations and pushes proof-verified rewards, allowing failed recipients to be retried. Bot proposer bounded by a share cap, rate limit, timelock and guardian pause. |
 | `calculator/` | Finalized time-weighted balances, eligibility, accrual, Merkle plans and immutable journal. |
 | `keeper/` and `script/run-keeper.mjs` | Verifies journal/configuration/commitments, handles proposals and timelocks, submits unpaid batches and closes completed rounds. |
@@ -58,9 +59,9 @@ The CDB treasury receives WETH on Base. Bridging and buying CryptoDickbutts NFTs
 
 ## Pool and aggregator intent
 
-Use a **0.3% concentrated full-range** position, with around $30k initial TVL as the stated liquidity target. The intended alternative route is USDC → SPCXc → DICKBUTT. Aggregators choose based on executable price, depth, fees, gas and supported routes; pool creation cannot force their routing. Additional liquidity may improve competitiveness against the deeper WETH route.
+Use a **basic volatile DICKBUTT/SPCXc** pool. The selected expected fee remains 0.3%; actual funding and starting price require verification. The intended alternative route is USDC → SPCXc → DICKBUTT. Aggregators choose based on executable price, depth, fees, gas and supported routes; pool creation cannot force their routing. Additional liquidity may improve competitiveness against the deeper WETH route.
 
-The selected factory maps tick spacing 200 to a 3000-unit base swap fee (0.3%). Its fee module can change the effective fee. Verify the pool's actual fee, factory generation and any unstaked fee rather than assuming spacing permanently fixes the rate. [Setup and inspection](AERODROME-SETUP.md).
+The basic factory reports fees in basis points: 30 is 0.3%. Fee settings may change. Verify the actual pool, fee, registered factory and unstaked LP balance. [Setup and inspection](AERODROME-SETUP.md).
 
 That rewards pool is **not** the swap route. Converting the WETH allocation uses the existing two-hop **WETH → USDC → SPCXc** path, because the only direct WETH/SPCXc pool is shallow and quotes worse at the same size. The executor encodes tick spacings rather than pool addresses, so `npm run preflight` confirms both hops still resolve to the intended pools and hold liquidity. [Route evidence and re-quoting](docs/REHEARSAL.md#swap-route).
 
@@ -70,7 +71,7 @@ The calculator defaults to a 6.9M DICKBUTT time-weighted minimum. `WEIGHTING` mu
 
 Harvesting, token routing, activation after the timelock and closing a fully paid round are permissionless. **Swaps and payouts require an approved keeper; each payout root requires a proposer.** Normal operation needs no multisig signature: bots propose, activate and pay, and the multisig acts only as guardian to cancel a pending round or pause proposals.
 
-The proposer cannot directly call keeper-only payouts. The standard keeper independently reconstructs holder eligibility and amounts from historical chain data before signing; copied journal hashes alone are insufficient. On-chain proof checks enforce the committed root, not fair allocation. A 24-hour delay, 50% default round cap, 12-hour minimum proposal interval and guardian pause bound normal proposals. The owner can appoint keepers and propose roots, so administrative authority remains broader than the bot roles. Keep the keeper code/configuration/RPC independently controlled and review multisig ownership. The floor setter is limited by the owner's lower bound; it is not an independent price oracle. [Roles and operating limits](docs/GOVERNANCE.md).
+The proposer cannot directly call keeper-only payouts. The standard keeper independently reconstructs holder eligibility and amounts from historical chain data before signing; copied journal hashes alone are insufficient. On-chain proof checks enforce the committed root, not fair allocation. The selected deployment uses zero extra review delay, a 50% round cap, a six-hour minimum proposal interval and a guardian pause for future proposals. The constructor retains a 24-hour default until the owner explicitly changes it; zero removes the guaranteed cancellation window. The owner can appoint keepers and propose roots, so administrative authority remains broader than the bot roles. Keep the keeper code/configuration/RPC independently controlled and review multisig ownership. The floor setter is limited by the owner's lower bound; it is not an independent price oracle. [Roles and operating limits](docs/GOVERNANCE.md).
 
 Gas is funded externally. No WETH gas deduction exists. Freezing fee destinations does not remove downstream proposer, price-floor or issuer dependencies.
 
@@ -143,8 +144,12 @@ For Base mainnet, `npm run deploy:mainnet` deploys these same six contracts agai
 Splits factory, Aerodrome router, Clanker locker and legacy module — no stand-ins. It is a dry run
 until `--execute`, every production magnitude must be stated rather than defaulted, and it performs
 no custody handoff: ownership is nominated for the multisig to accept, and the legacy claim, creator
-authority, locker ownership and LP NFT transfer stay manual. [Mainnet deployment](docs/MAINNET-DEPLOY.md).
+authority, locker ownership and ERC-20 LP transfer stay manual. [Mainnet deployment](docs/MAINNET-DEPLOY.md).
 
 ## Before production
 
-Complete recipient/multisig/keeper/floor-setter configuration, select and fund the actual pool/NFT, verify all deployed source/destination addresses, confirm the calculator exclusion set covers every pool and pipeline address (`npm run preflight` checks it), decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and LP NFT handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. Public testnet receipts now exist for the new deployment; neither those nor local tests approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).
+Complete recipient/multisig/keeper/floor-setter configuration, select and fund the actual vAMM pool/LP, verify all deployed source/destination addresses, confirm the calculator exclusion set covers every pool and pipeline address (`npm run preflight` checks it), decide the permanent legacy-adapter migration policy, and obtain an independent contract review. Rehearse the **separate** locker ownership, legacy creator and ERC-20 LP handoffs before performing any production handoff. Test the actual new pool's fee collection after creation. Public testnet receipts now exist for the new deployment; neither those nor local tests approve mainnet custody changes. [Review scope and remaining checks](AUDITOR-BRIEF.md).
+
+## Current internal security review
+
+See [AUDIT_REPORT.md](AUDIT_REPORT.md) and [audit-findings.json](audit-findings.json) for the 2026-09-20 candidate, repaired payout/monitoring failures, local evidence and remaining deployment prerequisites. `npm test` includes the separate audit regressions. `npm run rehearse -- --vamm` exercises signed transactions on a disposable local chain using mock assets and real forked Splits; native-token compatibility has separate fork suites. No production custody change or launch approval is implied.

@@ -3,6 +3,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import {Contract,JsonRpcProvider,ZeroAddress} from 'ethers';
 import {validatePoolFacts,validateDeployment,validateSwapRoute,validateExclusions} from '../operations/preflight.js';
+import { inspectRewardPool } from '../operations/aerodrome.js';
 import { closeProvider } from '../operations/provider.js';
 const args=process.argv.slice(2),configPath=args.includes('--config')?args[args.indexOf('--config')+1]:'config/base-mainnet.json';
 const config=JSON.parse(fs.readFileSync(configPath));
@@ -16,18 +17,9 @@ try {
   const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.toLowerCase()===b.toLowerCase();
   const desired=config.rewardsPool;
   if(!desired) throw Error('Missing rewardsPool specification');
-  const factory=new Contract(desired.factory,['function getPool(address,address,int24) view returns(address)','function tickSpacingToFee(int24) view returns(uint24)','function getUnstakedFee(address) view returns(uint24)'],provider);
-  const discovered=await factory.getPool(config.dickbutt,config.spcxc,desired.tickSpacing,tag);
-  const baseFee=await factory.tickSpacingToFee(desired.tickSpacing,tag);
-  let facts=null;
-  if(discovered!==ZeroAddress&&desired.pool&&desired.tokenId) {
-    if(discovered.toLowerCase()!==desired.pool.toLowerCase()) errors.push('Configured pool differs from factory discovery');
-    const pool=new Contract(desired.pool,['function token0() view returns(address)','function token1() view returns(address)','function factory() view returns(address)','function fee() view returns(uint24)','function tickSpacing() view returns(int24)','function liquidity() view returns(uint128)'],provider);
-    const manager=new Contract(desired.manager,['function factory() view returns(address)','function ownerOf(uint256) view returns(address)','function positions(uint256) view returns(uint96,address,address,address,int24,int24,int24,uint128,uint256,uint256,uint128,uint128)'],provider);
-    const pos=await manager.positions(desired.tokenId,tag);
-    facts={token0:await pool.token0(tag),token1:await pool.token1(tag),factory:await pool.factory(tag),managerFactory:await manager.factory(tag),fee:await pool.fee(tag),tickSpacing:await pool.tickSpacing(tag),liquidity:await pool.liquidity(tag),positionOwner:await manager.ownerOf(desired.tokenId,tag),positionToken0:pos[2],positionToken1:pos[3],positionTickSpacing:pos[4],tickLower:pos[5],tickUpper:pos[6],positionLiquidity:pos[7],unstakedFee:await factory.getUnstakedFee(desired.pool,tag)};
-  }
-  errors.push(...validatePoolFacts(facts,{tokens:[config.dickbutt,config.spcxc],...desired}));
+  const inspection=await inspectRewardPool(provider,config,block.number);
+  const facts=inspection.facts;
+  errors.push(...inspection.errors,...validatePoolFacts(facts,{tokens:[config.dickbutt,config.spcxc],...desired}));
   // The executor's path encodes tick spacings; confirm they still resolve to the intended two-hop pools.
   const route=config.aerodrome;
   const routeFactory=new Contract(route.factory,['function getPool(address,address,int24) view returns(address)'],provider);
@@ -40,7 +32,7 @@ try {
   errors.push(...validateSwapRoute(swapRoute,route));
   const locker=new Contract(config.clankerLocker,['function owner() view returns(address)','function _fee() view returns(uint256)','function _feeRecipient() view returns(address)'],provider);
   const reward=new Contract(config.spcxc,['function decimals() view returns(uint8)'],provider);
-  const output={readOnly:true,chainId:8453,block:block.number,blockHash:block.hash,baseFee,discoveredPool:discovered,rewardsPool:facts,swapRoute,locker:{owner:await locker.owner(tag),deductionPercent:await locker._fee(tag),feeSink:await locker._feeRecipient(tag)},rewardDecimals:await reward.decimals(tag),readyForCustodyHandoff:false,configurationChecksPass:errors.length===0,errors,remainingChecks:['Verify actual Splits factory and immutable recipient allocations','Verify independent legacy tokenCreator authority and sink module','Re-quote production swap path and validate real B20 payments','Verify deployed destinations, custody targets and review rehearsal receipts']};
+  const output={readOnly:true,chainId:8453,block:block.number,blockHash:block.hash,rewardsPoolKind:inspection.kind,discoveredPool:facts?.discoveredPool??null,rewardsPool:facts,swapRoute,locker:{owner:await locker.owner(tag),deductionPercent:await locker._fee(tag),feeSink:await locker._feeRecipient(tag)},rewardDecimals:await reward.decimals(tag),readyForCustodyHandoff:false,configurationChecksPass:errors.length===0,errors,remainingChecks:['Verify actual Splits factory and immutable recipient allocations','Verify independent legacy tokenCreator authority and sink module','Re-quote production swap path and validate real B20 payments','Verify deployed destinations, custody targets and review rehearsal receipts']};
   const end=await provider.getBlock(block.number);
   if(end?.hash!==block.hash) throw Error('Snapshot hash changed');
   console.log(JSON.stringify(output,(_,v)=>typeof v==='bigint'?v.toString():v,2));

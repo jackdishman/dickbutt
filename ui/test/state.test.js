@@ -40,6 +40,14 @@ test('nodes carry the geometry the client draws with', () => {
   }
 });
 
+test('production shows ERC-20 LP while the historical NFT rehearsal keeps its own model',()=>{
+  const config=loadState(REPO).config;
+  const main=resolveFlow('base-mainnet',config).nodes.find(n=>n.id==='aeroHarvester');
+  assert.equal(main.contract,'src/AerodromeVammHarvester.sol');assert.match(main.sub,/ERC-20/);
+  const old=resolveFlow('base-sepolia',config).nodes.find(n=>n.id==='aeroHarvester');
+  assert.equal(old.contract,'src/AerodromeFeeHarvester.sol');assert.match(old.sub,/NFT/);
+});
+
 test('environment reporting states presence and never the value', () => {
   const entries = envPresence({ RPC_URL: 'https://secret.example', KEEPER_PRIVATE_KEY: '0xdeadbeef' }, os.tmpdir());
   assert.ok(!JSON.stringify(entries).includes('secret.example'));
@@ -53,7 +61,8 @@ test('config edits are limited to the fields the console owns', () => {
   assert.throws(() => updateConfigField(dir, 'dickbutt', '0x' + '11'.repeat(20)), /not editable/);
   assert.throws(() => updateConfigField(dir, 'clankerLocker', '0x' + '11'.repeat(20)), /not editable/);
   assert.throws(() => updateConfigField(dir, 'deployment.owner', 'not-an-address'), /20-byte hex address/);
-  assert.throws(() => updateConfigField(dir, 'rewardsPool.tokenId', '12a'), /numeric token id/);
+  assert.throws(() => updateConfigField(dir, 'rewardsPool.tokenId', '42'), /vAMM uses ERC-20 LP/);
+  assert.throws(() => updateConfigField(dir, 'rewardsPool.lpOwner', 'bad-wallet'), /20-byte hex address/);
 });
 
 test('a config edit changes only its own field and leaves the evidence intact', () => {

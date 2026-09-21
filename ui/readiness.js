@@ -10,6 +10,7 @@
 
 const get = (object, path) => path.split('.').reduce((value, key) => (value == null ? value : value[key]), object);
 const set = (value) => (value ? 'done' : 'blocked');
+const vamm = c => get(c.mainnet, 'rewardsPool.kind') === 'vamm';
 
 export const STATES = ['done', 'pending', 'blocked', 'n/a'];
 
@@ -17,7 +18,7 @@ export const STATES = ['done', 'pending', 'blocked', 'n/a'];
 export const ITEMS = [
   // --- addresses -------------------------------------------------------------
   { id: 'cfg.owner', group: 'Addresses', owner: 'Kevin', label: 'Owner multisig',
-    detail: 'Owns the distributor, both harvesters and the swap executor: roles, limits, timelocked destinations, LP NFT custody, the floor lower bound. Also the default guardian.',
+    detail: 'Owns the distributor, both harvesters and the swap executor: roles, limits, timelocked destinations, LP custody, the floor lower bound. Also the default guardian.',
     doc: 'docs/GOVERNANCE.md', derive: c => set(get(c.mainnet, 'deployment.owner')) },
   { id: 'cfg.proposer', group: 'Addresses', owner: 'Kevin', label: 'Proposer bot key',
     detail: 'Calls proposeRound. Cannot move tokens: payment is keeper-gated and the keeper rejects any root its own journal did not produce.',
@@ -42,28 +43,36 @@ export const ITEMS = [
     doc: 'docs/SPLITS-INTEGRATION.md' },
 
   // --- the pool --------------------------------------------------------------
-  { id: 'pool.create', group: 'Rewards pool', owner: 'Kevin', label: 'Create the 0.3% DICKBUTT/SPCXc pool',
-    detail: 'Concentrated, full-range, unstaked, tick spacing 200, ~$30k TVL target. Chosen over 1% to stay competitive for USDC → SPCXc → DICKBUTT aggregator routing.',
+  { id: 'pool.create', group: 'Rewards pool', owner: 'Kevin', label: 'Record the DICKBUTT/SPCXc pool',
+    detail: c => vamm(c) ? 'Basic volatile vAMM. Keep ERC-20 LP tokens unstaked in your wallet until the deployed adapter and fee routing are verified. Preflight checks the actual fee and liquidity.' : 'Concentrated, full-range, unstaked, tick spacing 200. Verify the selected pool and position.',
     doc: 'AERODROME-SETUP.md', derive: c => set(get(c.mainnet, 'rewardsPool.pool')) },
   { id: 'pool.tokenId', group: 'Rewards pool', owner: 'Kevin', label: 'Record the position NFT id',
-    detail: 'Unblocks testForkOptionalAeroCollect, which is the only coverage of real Aerodrome fee collection anywhere in this repository.',
-    doc: 'AERODROME-SETUP.md', derive: c => set(get(c.mainnet, 'rewardsPool.tokenId')) },
+    detail: 'Only for the historical Slipstream adapter. Basic volatile vAMM uses ERC-20 LP tokens instead.',
+    doc: 'AERODROME-SETUP.md', derive: c => vamm(c) ? 'n/a' : set(get(c.mainnet, 'rewardsPool.tokenId')) },
+  { id: 'pool.lpOwner', group: 'Rewards pool', owner: 'Kevin', label: 'Record the wallet holding the ERC-20 LP',
+    detail: 'Preflight must find a positive balance of the actual pool token in this wallet. Staked gauge balances do not qualify.',
+    doc: 'AERODROME-SETUP.md', derive: c => vamm(c) ? set(get(c.mainnet, 'rewardsPool.lpOwner')) : 'n/a' },
   { id: 'pool.route', group: 'Rewards pool', owner: 'Jack', label: 'Pin the two-hop swap route',
     detail: 'WETH → USDC → SPCXc, enforced by preflight against factory discovery. The direct WETH/SPCXc pool is shallow and quotes worse; it is recorded as an explicitly rejected alternative.',
     doc: 'docs/REHEARSAL.md', derive: c => set(get(c.mainnet, 'aerodrome.usdcSpcxcPool')) },
 
   // --- custody ---------------------------------------------------------------
-  { id: 'custody.legacyClaim', group: 'Custody handoffs', owner: 'Kevin', label: 'Claim the outstanding legacy fees',
-    detail: 'Clanker returns the token side of historical fees to the creator. Claim before changing creator authority.',
+  { id: 'custody.legacyClaim', group: 'Custody handoffs', owner: 'Kevin', label: 'Review the outstanding legacy fees',
+    detail: 'The current creator may claim first, or the verified adapter can claim its configured Safes after creator authority is assigned. Claiming first is not a protocol requirement.',
     doc: 'docs/LEGACY-FEES.md' },
   { id: 'custody.locker', group: 'Custody handoffs', owner: 'Kevin', label: 'Hand locker ownership to LockerHarvester',
-    detail: 'Makes fee collection permissionless. Separate from creator authority and from LP NFT custody — rehearse the three independently.',
+    detail: 'Makes fee collection permissionless. Separate from creator authority and from Aerodrome LP custody — rehearse the three independently.',
     doc: 'AUDITOR-BRIEF.md' },
   { id: 'custody.creator', group: 'Custody handoffs', owner: 'Kevin', label: 'Assign legacy tokenCreator authority',
     detail: 'PERMANENT. The adapter has no relay to update the creator, so settle migration and recovery policy before assigning it. Rehearsal does not imply approval of this choice.',
     doc: 'docs/LEGACY-FEES.md' },
   { id: 'custody.lpNft', group: 'Custody handoffs', owner: 'Kevin', label: 'Transfer the LP NFT to AerodromeFeeHarvester',
+    applicable: c => !vamm(c),
     detail: 'Do this only after the pool exists and its real fee collection has been tested.',
+    doc: 'AERODROME-SETUP.md' },
+  { id: 'custody.lpTokens', group: 'Custody handoffs', owner: 'Kevin', label: 'Transfer ERC-20 LP to AerodromeVammHarvester',
+    applicable: vamm,
+    detail: 'Only after verifying the deployed vAMM adapter, actual pool, lock and fee routing. The NFT adapter is not an ERC-20 LP destination. Past fees remain with the prior LP holder.',
     doc: 'AERODROME-SETUP.md' },
 
   // --- rehearsal -------------------------------------------------------------
@@ -116,10 +125,10 @@ export const GROUPS = [...new Set(ITEMS.map(i => i.group))];
 export function buildReadiness(context = {}) {
   const overrides = context.overrides ?? {};
   const items = ITEMS.map(item => {
-    const derived = item.derive ? item.derive(context) : null;
+    const derived = item.applicable && !item.applicable(context) ? 'n/a' : item.derive ? item.derive(context) : null;
     const override = overrides[item.id];
     return {
-      id: item.id, group: item.group, owner: item.owner, label: item.label, detail: item.detail,
+      id: item.id, group: item.group, owner: item.owner, label: item.label, detail: typeof item.detail === 'function' ? item.detail(context) : item.detail,
       doc: item.doc ?? null,
       // Derived items are not overridable: a tick box must never outrank the config it describes.
       source: derived ? 'derived' : 'manual',

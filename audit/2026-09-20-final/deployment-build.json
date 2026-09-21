@@ -1,0 +1,161 @@
+{
+  "buildHash": "0x27dbf1dfa8f70db8b39c5de8b27912a8fe23819e5056449599d7d258407ea5b9",
+  "contracts": [
+    {
+      "name": "DickbuttRewardsDistributor",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/DickbuttRewardsDistributor.sol": "DickbuttRewardsDistributor"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "initBytes": 8678,
+      "runtimeBytes": 8114
+    },
+    {
+      "name": "SpcxcSwapExecutor",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SpcxcSwapExecutor.sol": "SpcxcSwapExecutor"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "initBytes": 8529,
+      "runtimeBytes": 6901
+    },
+    {
+      "name": "SplitsFeeRouter",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SplitsFeeRouter.sol": "SplitsFeeRouter"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "initBytes": 6062,
+      "runtimeBytes": 2780
+    },
+    {
+      "name": "LockerHarvester",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/LockerHarvester.sol": "LockerHarvester"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "initBytes": 5006,
+      "runtimeBytes": 3983
+    },
+    {
+      "name": "AerodromeVammHarvester",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/AerodromeVammHarvester.sol": "AerodromeVammHarvester"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "initBytes": 8635,
+      "runtimeBytes": 6008
+    },
+    {
+      "name": "LegacyFeeHarvester",
+      "compiler": {
+        "version": "0.8.24+commit.e11b9ed9"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/LegacyFeeHarvester.sol": "LegacyFeeHarvester"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "viaIR": true
+      },
+      "initBytes": 3037,
+      "runtimeBytes": 1768
+    }
+  ]
+}

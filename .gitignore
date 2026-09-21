@@ -13,3 +13,6 @@ periods/
 ui/checklist.local.json
 .context/
 .tools/
+
+# Local watchdog observations, never a source/deployment input
+monitor-progress-*.json

@@ -51,7 +51,7 @@ export const NODES = [
 
   { id: 'rewardsPool', col: 2, y: 470, h: 96, kind: 'source', label: '0.3% DICKBUTT/SPCXc',
     sub: 'full-range LP', address: 'rewardsPool.pool', manifest: null,
-    detail: 'Concentrated, full-range, unstaked, tick spacing 200. Chosen at 0.3% rather than 1% to stay competitive for USDC → SPCXc → DICKBUTT aggregator routing. Does not exist yet — this is the single remaining blocker with no code behind it.',
+    detail: 'Concentrated, full-range, unstaked, tick spacing 200. The intended pool and its NFT still need verification. Production also needs completed bot roles and settings, mainnet runtime support, review and deployment.',
     doc: 'AERODROME-SETUP.md', caveat: 'pool does not exist yet' },
 
   { id: 'aeroHarvester', col: 3, y: 470, h: 96, kind: 'contract', label: 'Aerodrome harvester', contract: 'src/AerodromeFeeHarvester.sol',
@@ -96,7 +96,7 @@ export const NODES = [
 
   { id: 'distributor', col: 6, y: 460, h: 96, kind: 'contract', label: 'Rewards distributor', contract: 'src/DickbuttRewardsDistributor.sol',
     sub: 'committed rounds', manifest: 'contracts.distributor',
-    detail: 'Reserves proposed and active obligations, then pushes proof-verified rewards. A bot proposer is bounded by a 24h timelock, a 50% per-round share cap, a 12h interval and a guardian pause.',
+    detail: 'Reserves proposed and active obligations, then pushes proof-verified rewards. New rounds are scheduled every 6h with no extra review wait. The 50% per-round share cap and guardian pause for future proposals remain; payouts are checked every minute.',
     doc: 'docs/GOVERNANCE.md', caveat: 'needs the owner multisig and a proposer key' },
 
   { id: 'holders', col: 7, y: 460, h: 96, kind: 'terminal', label: 'Eligible holders',

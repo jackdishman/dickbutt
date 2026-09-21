@@ -31,8 +31,8 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 /// promise the same tokens.
 ///
 /// SAFETY PROPERTIES RETAINED FROM THE CLAIM DESIGN
-///   - Plans are committed as a Merkle root and timelocked before any token
-///     moves, so a bad round can be cancelled with nothing lost.
+///   - Plans are committed as a Merkle root. A nonzero review delay gives the
+///     guardian a cancellation window; zero delay explicitly removes that window.
 ///   - Batches are idempotent: re-send a failed batch verbatim, already-paid
 ///     accounts are skipped.
 ///   - A single reverting recipient is caught and skipped, never reverting
@@ -71,9 +71,9 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     /// @notice roundId => recipient => paid.
     mapping(uint256 => mapping(address => bool)) public paid;
 
-    /// @notice Longer than the original 6 hours: routine operation needs no
-    /// human signature, so the only reason to shorten this is impatience,
-    /// while the guardian needs time to wake up and act.
+    /// @notice Constructor default. The owner may explicitly select zero for immediate
+    /// activation of new proposals, giving up the guaranteed guardian review window.
+    /// Changing this value never alters the readyAt of an already pending round.
     uint256 public roundDelay = 24 hours;
 
     /// @notice Guidance for the off-chain calculator: it defers a holder's accrual
@@ -107,7 +107,7 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
 
     /// @notice Minimum spacing between proposals. A cancellation does NOT
     /// refund the slot, so a compromised proposer cannot immediately retry.
-    uint256 public minRoundInterval = 12 hours;
+    uint256 public minRoundInterval = 6 hours;
 
     uint256 public lastProposalAt;
 
@@ -153,7 +153,7 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
     // ---------------------------------------------------------------
 
     /// @notice Commit a payout plan. Moves no tokens. A bot key may hold this
-    /// role: the plan is timelocked, capped as a share of the unreserved
+    /// role: the plan has the configured review delay, is capped as a share of the unreserved
     /// balance, rate limited, and the guardian can cancel or pause it.
     /// @dev A stolen proposer key still cannot move tokens -- distributeBatch
     /// is keeper-gated and pays only amounts inside the committed root, and an
@@ -351,8 +351,10 @@ contract DickbuttRewardsDistributor is Ownable2Step, ReentrancyGuard {
         emit RoundLimitsUpdated(newMaxRoundBps, newMinRoundInterval);
     }
 
+    /// @notice Zero allows immediate activation of NEW proposals. The guardian cannot rely
+    /// on cancelling them before anyone activates; pause only blocks future proposals.
     function setRoundDelay(uint256 newDelay) external onlyOwner {
-        require(newDelay >= 1 hours && newDelay <= 3 days, "unreasonable delay");
+        require(newDelay <= 3 days, "unreasonable delay");
         roundDelay = newDelay;
     }
 

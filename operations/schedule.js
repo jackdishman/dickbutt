@@ -9,11 +9,11 @@
  * Cadences are constrained by the contracts, not by taste. `validateSchedule` checks them.
  */
 
-/** Contract-side limits the schedule has to respect. Mirrors the deployed defaults. */
+/** Contract-side limits the schedule has to respect. Mirrors the selected deployment settings. */
 export const CONTRACT_LIMITS = {
   floorLifetimeSeconds: 24 * 3600, // SpcxcSwapExecutor.MAX_FLOOR_LIFETIME
-  roundDelaySeconds: 24 * 3600, // DickbuttRewardsDistributor.roundDelay
-  minRoundIntervalSeconds: 12 * 3600, // DickbuttRewardsDistributor.minRoundInterval
+  roundDelaySeconds: 0, // Explicit setRoundDelay(0) during deployment; constructor defaults to 24h.
+  minRoundIntervalSeconds: 6 * 3600, // DickbuttRewardsDistributor.minRoundInterval
 };
 
 /**
@@ -43,18 +43,30 @@ export const JOBS = [
     name: 'calculate-and-propose',
     host: 'proposer',
     key: 'PROPOSER_PRIVATE_KEY',
-    everySeconds: 12 * 3600,
+    everySeconds: 6 * 3600,
     description: 'Build a plan from finalized state, then commit its root.',
-    command: ['sh', '-lc',
-      'node calculate-rewards.js --config ${CALCULATOR_CONFIG} && npm run keeper -- --config ${CALCULATOR_CONFIG} --journal ${JOURNAL} --execute --propose-only'],
+    // Paths are positional arguments, never interpolated into shell source. Bind the calculator
+    // writer to the same explicit journal every reader uses, overriding stale host environment.
+    command: ['sh', '-c',
+      'CALCULATOR_DATA_DIR="$1" node calculate-rewards.js --config "$2" && npm run keeper -- --config "$2" --journal "$1" --execute --propose-only',
+      'dickbutt-calculate-and-propose', '${JOURNAL}', '${CALCULATOR_CONFIG}'],
     attention: 'exit 2 means the round was rate limited; exit 1 means the plan was rejected',
+  },
+  {
+    name: 'propose-pending',
+    host: 'proposer',
+    key: 'PROPOSER_PRIVATE_KEY',
+    everySeconds: 60,
+    description: 'Retry an already calculated plan when the six-hour on-chain interval has elapsed; do not calculate a new period.',
+    command: ['npm', 'run', 'keeper', '--', '--config', '${CALCULATOR_CONFIG}', '--journal', '${JOURNAL}', '--execute', '--propose-only'],
+    attention: 'exit 2 means the existing plan is still rate limited; retry on the next minute',
   },
   {
     name: 'payout',
     host: 'keeper',
     key: 'KEEPER_PRIVATE_KEY',
-    everySeconds: 900,
-    description: 'Activate rounds past the timelock, pay outstanding batches, close completed rounds.',
+    everySeconds: 60,
+    description: 'Check for ready rounds, pay outstanding batches, and close completed rounds. New rounds are proposed every six hours.',
     command: ['npm', 'run', 'keeper', '--', '--config', '${CALCULATOR_CONFIG}', '--journal', '${JOURNAL}', '--execute'],
     attention: 'exit 2 means recipients remain unpaid and a rerun is expected',
   },
@@ -118,8 +130,13 @@ export function validateSchedule(jobs = JOBS, limits = CONTRACT_LIMITS) {
     errors.push(`calculate-and-propose runs faster than the contract's ${limits.minRoundIntervalSeconds}s round interval, so most runs will be rejected`);
   }
   const payout = jobs.find(j => j.name === 'payout');
-  if (payout && payout.everySeconds > limits.roundDelaySeconds) {
-    errors.push('payout runs less often than the round timelock, so rounds will sit activated and unpaid');
+  const retry = jobs.find(j => j.name === 'propose-pending');
+  if (propose && (!retry || retry.everySeconds > 60 || retry.host !== propose.host || retry.key !== propose.key)) {
+    errors.push('propose-pending must retry within 60 seconds on the proposer host with its separate key');
+  }
+  const payoutCheckLimit = limits.roundDelaySeconds > 0 ? limits.roundDelaySeconds : 60;
+  if (payout && payout.everySeconds > payoutCheckLimit) {
+    errors.push('payout checks are too slow for the selected review delay; rounds will sit activated and unpaid');
   }
   return errors;
 }

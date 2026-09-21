@@ -9,7 +9,9 @@
  * floor bound, swap cap or permanent unlock time is somebody's decision, and a script that guesses
  * one is worse than a script that refuses to run.
  */
-import { isAddress, ZeroAddress } from 'ethers';
+import { isAddress, ZeroAddress, MaxUint256 } from 'ethers';
+import { buildCalculatorConfig } from './deployment.js';
+import { aerodromeHarvesterName, rewardsPoolKind, validateRewardPoolConfig } from './aerodrome.js';
 
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
 
@@ -27,9 +29,9 @@ export const PARAMETERS = [
   { key: 'payoutThresholdRaw', kind: 'uint',
     why: 'Minimum SPCXc a recipient must earn to be included, in SPCXc raw units (8 decimals).' },
   { key: 'minPayoutRaw', kind: 'uint',
-    why: 'Distributor constructor. The on-chain floor below which a recipient transfer is skipped.' },
+    why: 'Calculator payout guidance stored in the distributor. Committed payouts are not filtered on-chain.' },
   { key: 'batchSize', kind: 'count',
-    why: 'Recipients per distributeBatch call. Estimate from real gas: 256 native recipients measured 14.66M against Base’s 16,777,216 per-transaction cap.' },
+    why: 'Recipients per distributeBatch call. The 3,000-holder fork supports estimating 200 per batch; the conservative 256-recipient envelope exceeds Base’s 16,777,216 gas cap. Estimate exact production calldata.' },
   { key: 'chunkSize', kind: 'count',
     why: 'Event scan window. A production RPC will reject a range it considers too wide.' },
   { key: 'curve', kind: 'curve',
@@ -45,7 +47,7 @@ export const PARAMETERS = [
   { key: 'aerodromeMinIntervalSeconds', kind: 'count',
     why: 'Anti-spam gap between permissionless Aerodrome harvests. Contract rejects more than 30 days.' },
   { key: 'aerodromeUnlockTime', kind: 'timestamp',
-    why: 'Unix time before which the harvester will not release the LP NFT. Constructor requires it in the future and within 100 years.' },
+    why: 'Unix time before which the harvester will not release its LP position. Constructor requires it in the future and within 100 years.' },
 ];
 
 /**
@@ -83,6 +85,7 @@ export function validateParams(params = {}) {
     if (value === undefined || value === null || value === '') { errors.push(`params.${key} is required and has no default`); continue; }
     if (kind === 'uint') {
       if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) errors.push(`params.${key} must be a decimal string in raw units, not a number literal`);
+      else if (BigInt(value) > MaxUint256) errors.push(`params.${key} exceeds uint256`);
     } else if (kind === 'count' || kind === 'block' || kind === 'timestamp') {
       if (!Number.isSafeInteger(value) || value < 0) errors.push(`params.${key} must be a non-negative integer`);
     } else if (kind === 'curve') {
@@ -92,6 +95,7 @@ export function validateParams(params = {}) {
   if (errors.length) return errors;
 
   if (params.batchSize < 1) errors.push('params.batchSize must be at least 1');
+  if (params.dickbuttDeployBlock < 1) errors.push('params.dickbuttDeployBlock must be at least 1');
   if (params.chunkSize < 1) errors.push('params.chunkSize must be at least 1');
   // Mirrors the constructors' own requires, so an invalid interval fails here rather than halfway
   // through a deployment that has already created immutable Splits.
@@ -103,6 +107,40 @@ export function validateParams(params = {}) {
   // the bound is zero. Approving the ops key would revert, so catch the intent here.
   if (BigInt(params.floorLowerBoundRaw) === 0n) errors.push('params.floorLowerBoundRaw must be nonzero: the executor refuses a floor setter while the bound is zero');
   return errors;
+}
+
+/** Preserve the exclusions approved in preflight when producing the actual runtime config. */
+export function buildProductionCalculatorConfig({ config, params, contracts }) {
+  if (![config.clankerPool, config.rewardsPool?.pool].every(a => isAddress(a ?? '') && !same(a, ZeroAddress))) {
+    throw Error('both production liquidity pools must be recorded for calculator exclusions');
+  }
+  const additionalExcluded = (config.calculatorExclusions?.required ?? [])
+    .flatMap(entry => Array.isArray(entry.address) ? entry.address : [entry.address]);
+  return buildCalculatorConfig({
+    chainId: MAINNET, contracts: { ...contracts, clankerPool: config.clankerPool, rewardsPool: config.rewardsPool.pool },
+    roles: { ...config.deployment, ops: config.deployment.floorSetter },
+    deployBlock: params.dickbuttDeployBlock, holderThresholdRaw: params.holderThresholdRaw,
+    payoutThresholdRaw: params.payoutThresholdRaw, curve: params.curve,
+    batchSize: params.batchSize, chunkSize: params.chunkSize, additionalExcluded,
+  });
+}
+
+/** Human-readable config durations are made explicit in the signed configuration calls. */
+export function resolveRoundLimits(limits = {}) {
+  const seconds = (value, name) => {
+    const match = typeof value === 'string' && /^(\d+) (seconds?|minutes?|hours?|days?)$/.exec(value);
+    const scale = match && { second: 1, minute: 60, hour: 3600, day: 86400 }[match[2].replace(/s$/, '')];
+    const result = match ? Number(match[1]) * scale : value;
+    if (!Number.isSafeInteger(result) || result < 0) throw Error(`invalid roundLimits.${name}`);
+    return result;
+  };
+  const roundDelay = seconds(limits.roundDelay, 'roundDelay');
+  const minRoundInterval = seconds(limits.minRoundInterval, 'minRoundInterval');
+  const maxRoundBps = limits.maxRoundBps;
+  if (roundDelay > 3 * 86400) throw Error('roundDelay must be 0 seconds..3 days');
+  if (minRoundInterval > 7 * 86400) throw Error('minRoundInterval must be at most 7 days');
+  if (!Number.isSafeInteger(maxRoundBps) || maxRoundBps < 1 || maxRoundBps > 10000) throw Error('maxRoundBps must be 1..10000');
+  return { roundDelay, minRoundInterval, maxRoundBps };
 }
 
 /**
@@ -150,10 +188,11 @@ export function buildDeploymentPlan({ config, params, legacy, splits, quoter }) 
   const missing = ['owner', 'keeper', 'proposer', 'guardian', 'floorSetter', 'kcGreen', 'cdbVault', 'burnAddress']
     .filter(name => !isAddress(d[name] ?? '') || same(d[name], ZeroAddress));
   if (missing.length) throw Error(`deployment roles are incomplete: ${missing.join(', ')}`);
-  if (!isAddress(pool.pool ?? '') || pool.tokenId === null || pool.tokenId === undefined) {
-    throw Error('rewardsPool.pool and rewardsPool.tokenId must be recorded before deployment');
-  }
+  const poolErrors = validateRewardPoolConfig(pool);
+  if (poolErrors.length) throw Error(poolErrors.join('; '));
+  const harvesterName = aerodromeHarvesterName(pool);
   if (!isAddress(quoter ?? '')) throw Error('a resolved quoter address is required');
+  const limits = resolveRoundLimits(config.roundLimits);
 
   // Addresses of contracts deployed earlier in the sequence are referenced by step name; the driver
   // substitutes them once each deployment confirms. Keeping them symbolic is what lets this whole
@@ -171,14 +210,16 @@ export function buildDeploymentPlan({ config, params, legacy, splits, quoter }) 
     { name: 'LockerHarvester',
       args: [config.clankerLocker, config.clankerPositionManager, config.clankerTokenId,
         ref('SplitsFeeRouter'), params.lockerMinIntervalSeconds, ref('deployer')] },
-    { name: 'AerodromeFeeHarvester',
-      args: [pool.manager, pool.tokenId, config.dickbutt, config.spcxc, d.burnAddress,
+    { name: harvesterName,
+      args: [...(rewardsPoolKind(pool) === 'vamm' ? [pool.factory, pool.pool] : [pool.manager, pool.tokenId]), config.dickbutt, config.spcxc, d.burnAddress,
         ref('DickbuttRewardsDistributor'), params.aerodromeUnlockTime, params.aerodromeMinIntervalSeconds, ref('deployer')] },
     { name: 'LegacyFeeHarvester',
       args: [legacy.feeModule, legacy.safes.map(s => s.address ?? s), config.dickbutt, ref('SplitsFeeRouter')] },
   ];
 
   const actions = [
+    { label: 'set-round-delay', contract: 'DickbuttRewardsDistributor', method: 'setRoundDelay', args: [limits.roundDelay] },
+    { label: 'set-round-limits', contract: 'DickbuttRewardsDistributor', method: 'setRoundLimits', args: [limits.maxRoundBps, limits.minRoundInterval] },
     { label: 'set-keeper', contract: 'DickbuttRewardsDistributor', method: 'setKeeper', args: [d.keeper, true] },
     { label: 'set-proposer', contract: 'DickbuttRewardsDistributor', method: 'setProposer', args: [d.proposer, true] },
     { label: 'set-guardian', contract: 'DickbuttRewardsDistributor', method: 'setGuardian', args: [d.guardian] },
@@ -191,7 +232,7 @@ export function buildDeploymentPlan({ config, params, legacy, splits, quoter }) 
 
   // Ownable2Step: this only nominates. Each contract stays with the deployer until the multisig
   // sends acceptOwnership, which is the point -- a fat-fingered owner address is recoverable here.
-  const handoffs = ['DickbuttRewardsDistributor', 'SpcxcSwapExecutor', 'LockerHarvester', 'AerodromeFeeHarvester']
+  const handoffs = ['DickbuttRewardsDistributor', 'SpcxcSwapExecutor', 'LockerHarvester', harvesterName]
     .map(contract => ({ label: `transfer-ownership-${contract}`, contract, method: 'transferOwnership', args: [d.owner] }));
 
   return { deployments, actions, handoffs, quoter };
@@ -203,9 +244,9 @@ export function buildDeploymentPlan({ config, params, legacy, splits, quoter }) 
  */
 export const MANUAL_STEPS = [
   'Accept ownership from the owner multisig on each contract (Ownable2Step acceptOwnership).',
-  'Claim outstanding legacy fees BEFORE assigning creator authority; Clanker returns the token side to the current creator.',
+  'Review outstanding legacy fees: the current creator may claim first, or the verified adapter can claim its configured safes after authority is assigned.',
   'Assign legacy tokenCreator authority to LegacyFeeHarvester. PERMANENT: the adapter has no relay to update it.',
   'Transfer locker ownership to LockerHarvester, once its real fee collection has been observed.',
-  'Transfer the rewards pool LP NFT to AerodromeFeeHarvester, once the pool has collected real fees.',
+  'Transfer the verified rewards pool position to the deployed adapter for its recorded kind: unstaked ERC-20 LP tokens to AerodromeVammHarvester, or an NFT to AerodromeFeeHarvester. Verify destination, lock and fee routing first.',
   'Add every deployed address above to the production calculator exclusions before the first round.',
 ];

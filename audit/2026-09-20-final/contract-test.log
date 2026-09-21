@@ -1,0 +1,21 @@
+Compiling 35 files with Solc 0.8.24
+Solc 0.8.24 finished in 32.58s
+Compiler run successful!
+
+Ran 1 test for test/audit/FinalContractGovernance.t.sol:FinalContractGovernanceAuditTest
+[PASS] testFrozenClankerDestinationDoesNotRemovePostUnlockRecoveryAuthority() (gas: 3359014)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.46ms (1.08ms CPU time)
+
+Ran 9 tests for test/audit/FinalContractBoundaries.t.sol:FinalContractBoundaryAuditTest
+[PASS] testAuthorizedRouterCallbackCannotReenterOrEscalateRoles() (gas: 5846702)
+[PASS] testFalseReturnThenNoReturnTransferKeepsExactRetryAccounting() (gas: 2567434)
+[PASS] testFuzzSwapCeilingNeverRoundsProtocolMinimumDown(uint96,uint64) (runs: 2048, μ: 5761241, ~: 5761241)
+[PASS] testPermissionlessActivationDuringCallbackPreservesBothRoundReserves() (gas: 2842991)
+[PASS] testRoundDomainPreventsProofReplayEvenWithSameRecipientAndAmount() (gas: 2697273)
+[PASS] testSwapMaliciousOutputInputAndRevertCannotLeaveApprovalsOrPartialState() (gas: 6158992)
+[PASS] testVammCancellationClearsMatureProposalAndPreservesOriginalRouting() (gas: 3918739)
+[PASS] testVammFreezeRequiresCancellationAndUnrelatedRescueCannotTouchLP() (gas: 4372482)
+[PASS] testVammNewOwnerCanCancelInheritedPendingDestination() (gas: 3846408)
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 74.33ms (80.00ms CPU time)
+
+Ran 2 test suites in 75.09ms (75.78ms CPU time): 10 tests passed, 0 failed, 0 skipped (10 total tests)

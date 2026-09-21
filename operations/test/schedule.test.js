@@ -5,6 +5,18 @@ import { renderSystemd, renderCron, renderPlan, parseScheduleArgs } from '../../
 
 const opts = { workdir: '/srv/d', manifest: 'm.json', calculator: 'c.json', journal: './data' };
 
+test('six-hour reward rounds have no extra review delay and check for payouts each minute', () => {
+  const proposer = JOBS.find(j => j.name === 'calculate-and-propose');
+  assert.equal(proposer.everySeconds, 6 * 3600);
+  assert.equal(CONTRACT_LIMITS.minRoundIntervalSeconds, proposer.everySeconds);
+  assert.equal(CONTRACT_LIMITS.roundDelaySeconds, 0);
+  assert.equal(JOBS.find(j => j.name === 'fee-cycle').everySeconds, 6 * 3600);
+  assert.equal(JOBS.find(j => j.name === 'payout').everySeconds, 60);
+  assert.ok(renderSystemd([proposer], opts).includes('OnUnitActiveSec=21600s'));
+  assert.ok(renderCron([proposer], opts).includes('0 */6 * * *'));
+  assert.deepEqual(validateSchedule(), []);
+});
+
 test('the shipped schedule keeps every key on exactly one host', () => {
   assert.deepEqual(validateSchedule(), []);
   const plan = hostPlan();
@@ -55,12 +67,12 @@ test('renderers substitute paths and mark exit 2 as non-fatal', () => {
   const systemd = renderSystemd(JOBS, opts);
   assert.ok(systemd.includes('SuccessExitStatus=0 2'), 'exit 2 is "needs a human", not a crash loop');
   assert.ok(systemd.includes('WorkingDirectory=/srv/d'));
-  assert.ok(systemd.includes('OnUnitActiveSec=900s'));
+  assert.ok(systemd.includes('OnUnitActiveSec=60s'));
   assert.ok(!systemd.includes('${MANIFEST}'), 'placeholders must be substituted');
   assert.ok(systemd.includes('EnvironmentFile=/srv/d/env/keeper.env'));
 
   const cron = renderCron(JOBS, opts);
-  assert.ok(cron.includes('*/15 * * * *'));
+  assert.ok(cron.includes('*/1 * * * *'));
   assert.ok(cron.includes('0 */6 * * *'));
   assert.ok(!cron.includes('${JOURNAL}'));
   assert.ok(!cron.match(/PRIVATE_KEY=/), 'a rendered crontab must never contain a key value');

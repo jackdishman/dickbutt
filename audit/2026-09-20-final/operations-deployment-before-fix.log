@@ -1,0 +1,30 @@
+{"type":"deploy-start","chainId":8453,"deployer":"0xea5e72362FB2880B64829857DA4d40A72D28507F","balance":"1.0"}
+{"type":"deploy-start","chainId":8453,"deployer":"0xA839C21663241717617C9CA9b545213e44aD90aF","balance":"1.0"}
+✖ OPS-M-02: simultaneous fresh deployments cannot both enter one output ledger (111.011375ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 253.999125
+
+✖ failing tests:
+
+test at test/audit/final-operations-deployment.test.mjs:63:1
+✖ OPS-M-02: simultaneous fresh deployments cannot both enter one output ledger (111.011375ms)
+  AssertionError [ERR_ASSERTION]: only one process may pass the fresh-ledger boundary; the other must stop on its exclusive lock
+
+  2 !== 1
+
+      at TestContext.<anonymous> (file:///Users/m4mini/Documents/Codex/2026-09-17/github-plugin-github-openai-curated-remote/work/dickbutt-practice/test/audit/final-operations-deployment.test.mjs:67:10)
+      at async Test.run (node:internal/test_runner/test:1116:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

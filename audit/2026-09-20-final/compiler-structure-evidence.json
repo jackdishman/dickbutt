@@ -1,0 +1,1145 @@
+{
+  "buildFile": "audit/2026-09-20-final/compiler-build-info.json.gz",
+  "buildSha256": "25a2b04f765ff441cf57235bf7783521aed9631cb1bb695eb68798d1b9744ab4",
+  "compiler": "0.8.24",
+  "settings": {
+    "remappings": [
+      "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"
+    ],
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "metadata": {
+      "useLiteralContent": false,
+      "bytecodeHash": "ipfs",
+      "appendCBOR": true
+    },
+    "outputSelection": {
+      "*": {
+        "": [
+          "ast"
+        ],
+        "*": [
+          "abi",
+          "evm.bytecode.object",
+          "evm.bytecode.sourceMap",
+          "evm.bytecode.linkReferences",
+          "evm.deployedBytecode.object",
+          "evm.deployedBytecode.sourceMap",
+          "evm.deployedBytecode.linkReferences",
+          "evm.deployedBytecode.immutableReferences",
+          "evm.methodIdentifiers",
+          "metadata",
+          "storageLayout"
+        ]
+      }
+    },
+    "evmVersion": "cancun",
+    "viaIR": true,
+    "libraries": {}
+  },
+  "sourceCount": 33,
+  "implementedFunctionsAndModifiers": 247,
+  "directInternalGraphCycles": [],
+  "externalCallsExcludedFromInternalGraph": 2,
+  "note": "AST declaration-reference graph is an adjunct to manual virtual/super dispatch analysis, not a proof about compiler-generated Yul. External calls use separate EVM frames and are deliberately excluded.",
+  "applicationTextPatterns": {
+    "src/AerodromeFeeHarvester.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/AerodromeVammHarvester.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/DickbuttRewardsDistributor.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/FeeSplitter.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/LegacyFeeHarvester.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/LockerHarvester.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/SpcxcSwapExecutor.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/SplitsFeeRouter.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    },
+    "src/SplitsV2Interfaces.sol": {
+      "assembly": false,
+      "delegatecall": false,
+      "transient": false,
+      "customLayout": false
+    }
+  },
+  "assembly": [
+    {
+      "file": "node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol",
+      "src": "17557:95:8",
+      "externalReferences": [
+        {
+          "declaration": 2303,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "17607:6:8",
+          "valueSize": 1
+        },
+        {
+          "declaration": 2303,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "17622:6:8",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/Address.sol",
+      "src": "6046:142:12",
+      "externalReferences": [
+        {
+          "declaration": 2724,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6102:10:12",
+          "valueSize": 1
+        },
+        {
+          "declaration": 2724,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6145:10:12",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/Strings.sol",
+      "src": "921:76:15",
+      "externalReferences": [
+        {
+          "declaration": 2877,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "959:6:15",
+          "valueSize": 1
+        },
+        {
+          "declaration": 2868,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "975:6:15",
+          "valueSize": 1
+        },
+        {
+          "declaration": 2884,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "948:3:15",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/Strings.sol",
+      "src": "1115:95:15",
+      "externalReferences": [
+        {
+          "declaration": 2849,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "1180:10:15",
+          "valueSize": 1
+        },
+        {
+          "declaration": 2884,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "1154:3:15",
+          "valueSize": 1
+        },
+        {
+          "declaration": 2862,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "1168:5:15",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol",
+      "src": "9632:119:16",
+      "externalReferences": [
+        {
+          "declaration": 3621,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "9668:1:16",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3623,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "9696:1:16",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3626,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "9711:5:16",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/math/Math.sol",
+      "src": "4383:131:19",
+      "externalReferences": [
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "4478:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "4493:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3948,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "4457:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3932,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "4427:1:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3934,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "4430:1:19",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/math/Math.sol",
+      "src": "5435:300:19",
+      "externalReferences": [
+        {
+          "declaration": 3936,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5539:11:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5667:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5691:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5704:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3948,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5633:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3948,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5646:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3969,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5513:9:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3969,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5656:9:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3969,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5711:9:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3932,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5533:1:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3934,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "5536:1:19",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    },
+    {
+      "file": "node_modules/@openzeppelin/contracts/utils/math/Math.sol",
+      "src": "5999:371:19",
+      "externalReferences": [
+        {
+          "declaration": 3936,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6073:11:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3936,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6092:11:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6177:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3942,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6190:5:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3973,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6105:4:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3973,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6197:4:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3973,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6317:4:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3973,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6340:4:19",
+          "valueSize": 1
+        },
+        {
+          "declaration": 3973,
+          "isOffset": false,
+          "isSlot": false,
+          "src": "6347:4:19",
+          "valueSize": 1
+        }
+      ],
+      "yulFunctions": []
+    }
+  ],
+  "layouts": {
+    "AerodromeVammHarvester": {
+      "storage": [
+        {
+          "astId": 8,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "_owner",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 156,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "_pendingOwner",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 2781,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "_status",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 6432,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "spcxcDestination",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "astId": 6434,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "pendingDestination",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "astId": 6436,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "pendingDestinationReadyAt",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 6441,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "destinationLocked",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_bool"
+        },
+        {
+          "astId": 6443,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "unlockTime",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 6445,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "lockedForever",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_bool"
+        },
+        {
+          "astId": 6447,
+          "contract": "src/AerodromeVammHarvester.sol:AerodromeVammHarvester",
+          "label": "lastHarvestAt",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint256"
+        }
+      ],
+      "types": {
+        "t_address": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        },
+        "t_bool": {
+          "encoding": "inplace",
+          "label": "bool",
+          "numberOfBytes": "1"
+        },
+        "t_uint256": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    "DickbuttRewardsDistributor": {
+      "storage": [
+        {
+          "astId": 8,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "_owner",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 156,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "_pendingOwner",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 2781,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "_status",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7335,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "nextRoundId",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7340,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "rounds",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_mapping(t_uint256,t_struct(Round)7324_storage)"
+        },
+        {
+          "astId": 7345,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "pending",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_mapping(t_uint256,t_struct(PendingRound)7331_storage)"
+        },
+        {
+          "astId": 7348,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "totalReserved",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7355,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "paid",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))"
+        },
+        {
+          "astId": 7359,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "roundDelay",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7362,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "minPayout",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7366,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "isKeeper",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_mapping(t_address,t_bool)"
+        },
+        {
+          "astId": 7371,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "isProposer",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_mapping(t_address,t_bool)"
+        },
+        {
+          "astId": 7374,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "guardian",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_address"
+        },
+        {
+          "astId": 7377,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "proposalsPaused",
+          "offset": 20,
+          "slot": "12",
+          "type": "t_bool"
+        },
+        {
+          "astId": 7381,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "maxRoundBps",
+          "offset": 0,
+          "slot": "13",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7385,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "minRoundInterval",
+          "offset": 0,
+          "slot": "14",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7387,
+          "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+          "label": "lastProposalAt",
+          "offset": 0,
+          "slot": "15",
+          "type": "t_uint256"
+        }
+      ],
+      "types": {
+        "t_address": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        },
+        "t_bool": {
+          "encoding": "inplace",
+          "label": "bool",
+          "numberOfBytes": "1"
+        },
+        "t_bytes32": {
+          "encoding": "inplace",
+          "label": "bytes32",
+          "numberOfBytes": "32"
+        },
+        "t_mapping(t_address,t_bool)": {
+          "encoding": "mapping",
+          "key": "t_address",
+          "label": "mapping(address => bool)",
+          "numberOfBytes": "32",
+          "value": "t_bool"
+        },
+        "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+          "encoding": "mapping",
+          "key": "t_uint256",
+          "label": "mapping(uint256 => mapping(address => bool))",
+          "numberOfBytes": "32",
+          "value": "t_mapping(t_address,t_bool)"
+        },
+        "t_mapping(t_uint256,t_struct(PendingRound)7331_storage)": {
+          "encoding": "mapping",
+          "key": "t_uint256",
+          "label": "mapping(uint256 => struct DickbuttRewardsDistributor.PendingRound)",
+          "numberOfBytes": "32",
+          "value": "t_struct(PendingRound)7331_storage"
+        },
+        "t_mapping(t_uint256,t_struct(Round)7324_storage)": {
+          "encoding": "mapping",
+          "key": "t_uint256",
+          "label": "mapping(uint256 => struct DickbuttRewardsDistributor.Round)",
+          "numberOfBytes": "32",
+          "value": "t_struct(Round)7324_storage"
+        },
+        "t_struct(PendingRound)7331_storage": {
+          "encoding": "inplace",
+          "label": "struct DickbuttRewardsDistributor.PendingRound",
+          "numberOfBytes": "96",
+          "members": [
+            {
+              "astId": 7326,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "root",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_bytes32"
+            },
+            {
+              "astId": 7328,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "total",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256"
+            },
+            {
+              "astId": 7330,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "readyAt",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_uint256"
+            }
+          ]
+        },
+        "t_struct(Round)7324_storage": {
+          "encoding": "inplace",
+          "label": "struct DickbuttRewardsDistributor.Round",
+          "numberOfBytes": "128",
+          "members": [
+            {
+              "astId": 7315,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "root",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_bytes32"
+            },
+            {
+              "astId": 7317,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "total",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_uint256"
+            },
+            {
+              "astId": 7319,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "distributed",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_uint256"
+            },
+            {
+              "astId": 7321,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "active",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_bool"
+            },
+            {
+              "astId": 7323,
+              "contract": "src/DickbuttRewardsDistributor.sol:DickbuttRewardsDistributor",
+              "label": "closed",
+              "offset": 1,
+              "slot": "3",
+              "type": "t_bool"
+            }
+          ]
+        },
+        "t_uint256": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    "LegacyFeeHarvester": {
+      "storage": [
+        {
+          "astId": 2781,
+          "contract": "src/LegacyFeeHarvester.sol:LegacyFeeHarvester",
+          "label": "_status",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 9376,
+          "contract": "src/LegacyFeeHarvester.sol:LegacyFeeHarvester",
+          "label": "feeSafes",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_address)dyn_storage"
+        }
+      ],
+      "types": {
+        "t_address": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        },
+        "t_array(t_address)dyn_storage": {
+          "encoding": "dynamic_array",
+          "label": "address[]",
+          "numberOfBytes": "32",
+          "base": "t_address"
+        },
+        "t_uint256": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    "LockerHarvester": {
+      "storage": [
+        {
+          "astId": 8,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "_owner",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 156,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "_pendingOwner",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 2781,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "_status",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 9717,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "destination",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "astId": 9719,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "destinationLocked",
+          "offset": 20,
+          "slot": "3",
+          "type": "t_bool"
+        },
+        {
+          "astId": 9721,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "pendingDestination",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "astId": 9723,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "pendingDestinationReadyAt",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 9726,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "destinationDelay",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 9728,
+          "contract": "src/LockerHarvester.sol:LockerHarvester",
+          "label": "lastHarvestAt",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_uint256"
+        }
+      ],
+      "types": {
+        "t_address": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        },
+        "t_bool": {
+          "encoding": "inplace",
+          "label": "bool",
+          "numberOfBytes": "1"
+        },
+        "t_uint256": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    "SpcxcSwapExecutor": {
+      "storage": [
+        {
+          "astId": 8,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "_owner",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 156,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "_pendingOwner",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 2781,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "_status",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 10247,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "swapPath",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_bytes_storage"
+        },
+        {
+          "astId": 10249,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "maxSwapPerCall",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 10251,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "minSwapInterval",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 10253,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "lastSwapAt",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 10255,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "hasSwapped",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_bool"
+        },
+        {
+          "astId": 10257,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "minSpcxcPerWeth",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 10259,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "priceFloorExpiresAt",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 10263,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "isKeeper",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_mapping(t_address,t_bool)"
+        },
+        {
+          "astId": 10268,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "isFloorSetter",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_mapping(t_address,t_bool)"
+        },
+        {
+          "astId": 10271,
+          "contract": "src/SpcxcSwapExecutor.sol:SpcxcSwapExecutor",
+          "label": "floorLowerBound",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_uint256"
+        }
+      ],
+      "types": {
+        "t_address": {
+          "encoding": "inplace",
+          "label": "address",
+          "numberOfBytes": "20"
+        },
+        "t_bool": {
+          "encoding": "inplace",
+          "label": "bool",
+          "numberOfBytes": "1"
+        },
+        "t_bytes_storage": {
+          "encoding": "bytes",
+          "label": "bytes",
+          "numberOfBytes": "32"
+        },
+        "t_mapping(t_address,t_bool)": {
+          "encoding": "mapping",
+          "key": "t_address",
+          "label": "mapping(address => bool)",
+          "numberOfBytes": "32",
+          "value": "t_bool"
+        },
+        "t_uint256": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    "SplitsFeeRouter": {
+      "storage": [
+        {
+          "astId": 2781,
+          "contract": "src/SplitsFeeRouter.sol:SplitsFeeRouter",
+          "label": "_status",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        }
+      ],
+      "types": {
+        "t_uint256": {
+          "encoding": "inplace",
+          "label": "uint256",
+          "numberOfBytes": "32"
+        }
+      }
+    }
+  },
+  "dynamicBases": [
+    {
+      "contract": "LegacyFeeHarvester",
+      "label": "feeSafes",
+      "slot": "1",
+      "base": "0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6",
+      "distanceToWrap": "35707666377435648211887908874984608119992236509074197713628505308453184860938"
+    },
+    {
+      "contract": "SpcxcSwapExecutor",
+      "label": "swapPath",
+      "slot": "3",
+      "base": "0xc2575a0e9e593c00f959f8c92f12db2869c3395a3b0502d05e2516446f71f85b",
+      "distanceToWrap": "27889059366240281169193357100633332908378892778709981755071813198463099602853"
+    }
+  ],
+  "runtimeOpcodeChecks": {
+    "AerodromeVammHarvester": {
+      "runtimeBytes": 6008,
+      "metadataBytes": 53,
+      "delegatecall": 0,
+      "callcode": 0,
+      "selfdestruct": 0
+    },
+    "DickbuttRewardsDistributor": {
+      "runtimeBytes": 8114,
+      "metadataBytes": 53,
+      "delegatecall": 0,
+      "callcode": 0,
+      "selfdestruct": 0
+    },
+    "LegacyFeeHarvester": {
+      "runtimeBytes": 1768,
+      "metadataBytes": 53,
+      "delegatecall": 0,
+      "callcode": 0,
+      "selfdestruct": 0
+    },
+    "LockerHarvester": {
+      "runtimeBytes": 3983,
+      "metadataBytes": 53,
+      "delegatecall": 0,
+      "callcode": 0,
+      "selfdestruct": 0
+    },
+    "SpcxcSwapExecutor": {
+      "runtimeBytes": 6901,
+      "metadataBytes": 53,
+      "delegatecall": 0,
+      "callcode": 0,
+      "selfdestruct": 0
+    },
+    "SplitsFeeRouter": {
+      "runtimeBytes": 2780,
+      "metadataBytes": 53,
+      "delegatecall": 0,
+      "callcode": 0,
+      "selfdestruct": 0
+    }
+  }
+}

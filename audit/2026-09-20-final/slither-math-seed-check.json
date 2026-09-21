@@ -1,0 +1,46 @@
+{
+  "property": "For all odd d modulo 16, d * ((3*d) XOR 2) == 1 modulo 16",
+  "rows": [
+    {
+      "odd_denominator_residue": "1",
+      "seed": "1",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "3",
+      "seed": "11",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "5",
+      "seed": "13",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "7",
+      "seed": "23",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "9",
+      "seed": "25",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "11",
+      "seed": "35",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "13",
+      "seed": "37",
+      "product_mod_16": "1"
+    },
+    {
+      "odd_denominator_residue": "15",
+      "seed": "47",
+      "product_mod_16": "1"
+    }
+  ],
+  "note": "Confirms the intentionally XOR-based four-bit seed; not a formal proof of all 512-bit mulDiv behavior."
+}

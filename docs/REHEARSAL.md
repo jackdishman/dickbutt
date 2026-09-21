@@ -1,3 +1,5 @@
+> 2026-09-20: run `npm run rehearse -- --vamm` for the current ERC-20 LP adapter. Omitting `--vamm` retains the historical NFT rehearsal. Both use public development wallets on a disposable local chain. The current reward policy is read from config: 6.9M inclusive eligibility, six-hour spacing, zero extra review delay. See [AUDIT_REPORT.md](../AUDIT_REPORT.md) for the latest results; older narrative below describes the original rehearsal.
+
 # Deployment rehearsal
 
 `npm run rehearse` deploys the whole architecture to a **disposable local Anvil fork of Base**, drives one complete fee-to-holder cycle through the real calculator and real keeper, and writes structured evidence. It never connects a signer to public mainnet. It simulates custody handoffs and mock legacy claims locally; separate native fork suites also exercise actual external contracts and locally create an Aerodrome position.
@@ -44,7 +46,7 @@ The fee sources, assets and swap router are mocks with fixed amounts; the Splits
 
 **7. Repetition is safe.** A fourth keeper invocation submits **zero transactions**. `totalReserved` returns to 0 and a second calculator pass marks the plan `settled` and plans the remaining half as round 2.
 
-**8. A foreign root at our round id.** The owner proposes a root the journal never produced at round 2, standing in for a stolen proposer key. The keeper reports round 2 as `foreign-commitment`, signs nothing, and still reports round 1 as `closed`; the calculator refuses to run while the foreign round is pending. The guardian cancels it, the keeper reports `superseded`, and the next calculator run recredits the abandoned plan exactly once and re-plans it as round 3, which then proposes, times out and pays both holders their planned amounts. The cap is lifted for that one recovery round, as the runbook prescribes.
+**8. A foreign root at our round id.** The owner proposes a root the journal never produced at round 2, standing in for a stolen proposer key. The keeper reports round 2 as `foreign-commitment`, signs nothing, and still reports round 1 as `closed`; the calculator refuses to run while the foreign round is pending. The guardian cancels it, the keeper reports `superseded`, and the next calculator run recredits the abandoned plan exactly once and re-plans it as round 3, which then proposes, times out and pays both holders their planned amounts. The cap is lifted for that one recovery round, to retain the original administrative-cap exercise; capped accrual no longer requires this operational workaround.
 
 **Roles.** Signer 0 owns everything; signer 5 is the keeper; signer 6 the proposer; signer 7 the guardian; signer 8 the floor setter, which the contract holds above the owner's bound and refuses as a keeper.
 
@@ -88,7 +90,7 @@ This swap route is separate from the **rewards pool** — the 0.3% full-range DI
 ## What the rehearsal does not prove
 
 - **No production deployment.** The rehearsal itself is not a public receipt. A separate fresh Base Sepolia deployment and holder payout have now completed; public production deployment has not.
-- **No real fee sources.** Locker, Aerodrome manager, legacy module, Safes and the swap router are mocks in the rehearsal. Their real behavior is covered only by the separate fork suites, including a newly added real-manager/native-token Aerodrome position created locally. The intended public production NFT remains absent.
+- **No real fee sources.** Locker, Aerodrome manager, legacy module, Safes and the swap router are mocks in the rehearsal. Their real behavior is covered only by the separate fork suites, including a newly added real-manager/native-token Aerodrome position created locally. The intended new public vAMM pool has not yet been supplied.
 - **No custody change.** Locker ownership, legacy creator authority and LP NFT custody are three separate handoffs. They were simulated in local tests; no public production custody was transferred.
 - **No governance judgement.** The distributor enforces proof membership, solvency and the round bounds, not whether a root fairly represents holders. Exclusions, thresholds and weighting stay off-chain policy. The guardian only helps if somebody is alerted and acts inside the 24-hour timelock.
 - **No liveness guarantee.** The keeper processes one invocation and exits. Schedule rendering and monitoring exist, and an extended public test is running. Production host isolation, uptime and backup/recovery still need validation. [Keeper behavior](KEEPER.md).

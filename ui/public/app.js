@@ -500,12 +500,16 @@ async function renderWallets() {
       h('h2', {}, 'Local wallet rehearsal'),
       h('p', {}, `Chain ${result.chainId} · block ${result.block} · ${result.rpcUrl}`),
       h('p', {}, 'Live balances from the disposable Base fork. Eligible holders receive rewards automatically; they do not connect a wallet or sign a claim. These tokens and ETH are for local testing.'),
+      h('p', {}, 'WETH is a separate token from the ETH used for gas. KC and CDB receive WETH. The rehearsal uses tiny fee amounts, so the smallest token units are shown beneath each balance: 1 WETH or DICKBUTT = 10¹⁸ raw units; 1 SPCXc = 10⁸ raw units.'),
+      h('p', {}, 'These balances are the result of one completed practice scenario. No recurring fee or payout scheduler is running.'),
       h('button', { type: 'button', onclick: renderWallets }, 'Refresh balances'),
       h('div', { class: 'wallet-scroll' }, h('table', { class: 'wallet-table' },
-        h('thead', {}, h('tr', {}, ...['Role', 'Wallet address', 'Test ETH', 'DICKBUTT', 'SPCXc', 'SPCXc raw units'].map(x => h('th', {}, x)))),
+        h('thead', {}, h('tr', {}, ...['Role', 'Wallet address', 'Test ETH (gas)', 'WETH', 'DICKBUTT', 'SPCXc'].map(x => h('th', {}, x)))),
         h('tbody', {}, ...result.wallets.map(w => h('tr', {},
           h('td', {}, w.role), h('td', {}, h('code', {}, w.address)), h('td', {}, w.eth),
-          h('td', {}, w.dickbutt), h('td', {}, w.spcxc), h('td', {}, w.spcxcRaw))))
+          h('td', {}, w.weth, h('div', { class: 'p' }, `${w.wethRaw} raw units`)),
+          h('td', {}, w.dickbutt, h('div', { class: 'p' }, `${w.dickbuttRaw} raw units`)),
+          h('td', {}, w.spcxc, h('div', { class: 'p' }, `${w.spcxcRaw} raw units`)))))
       )),
       h('p', {}, `Transaction and accounting evidence: ${result.evidence}/report.json`)
     ));

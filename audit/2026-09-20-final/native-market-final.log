@@ -1,0 +1,32 @@
+Compiling 24 files with Solc 0.8.24
+Solc 0.8.24 finished in 8.36s
+Compiler run successful!
+
+Ran 2 tests for test/audit/FinalNativeMarketBounds.t.sol:FinalNativeMarketBoundsTest
+[PASS] testNativeMovedMarketSensitivityAtIndependentQuotedMinimums() (gas: 13243254)
+Logs:
+  hypothetical victim WETH wei: 1000000000000000
+  attacker starting WETH wei: 1000000000000000000
+  unmoved SPCXc quote raw: 1680591
+  victim received SPCXc raw: 1674648
+  attacker WETH change excluding gas and capital carrying costs: -1154200188262496
+  hypothetical victim WETH wei: 10000000000000000
+  attacker starting WETH wei: 1000000000000000000
+  unmoved SPCXc quote raw: 16805708
+  victim received SPCXc raw: 16746226
+  attacker WETH change excluding gas and capital carrying costs: -1122370664220131
+  hypothetical victim WETH wei: 100000000000000000
+  attacker starting WETH wei: 1000000000000000000
+  unmoved SPCXc quote raw: 168035802
+  victim received SPCXc raw: 167434922
+  attacker WETH change excluding gas and capital carrying costs: -800423361297256
+  hypothetical victim WETH wei: 1000000000000000000
+  attacker starting WETH wei: 1000000000000000000
+  unmoved SPCXc quote raw: 1677692069
+  victim received SPCXc raw: 1671620095
+  attacker WETH change excluding gas and capital carrying costs: 2463954883861282
+
+[PASS] testNativePremanipulationMinimumRejectsLargerPriceMove() (gas: 4046721)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 73.83s (72.81s CPU time)
+
+Ran 1 test suite in 73.84s (73.83s CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)

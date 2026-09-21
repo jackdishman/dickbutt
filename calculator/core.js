@@ -15,9 +15,28 @@ export function computeTWAB(start,transfers,timestamps,startTs,endTs,excluded=[]
 export function computeShares(twab,threshold,pot,curve){
  if(!['sqrt','linear'].includes(curve))throw Error('WEIGHTING must be sqrt or linear');if(threshold<0n||pot<0n)throw Error('negative threshold/pot');const rows=Object.entries(amounts(twab)).filter(([,v])=>v>=threshold),weights=rows.map(([a,v])=>[a,curve==='sqrt'?bigIntSqrt(v):v]),total=sum(Object.fromEntries(weights)),shares={};if(total)for(const[a,w]of weights){const v=w*pot/total;if(v)shares[a]=v;}return {shares,qualifying:rows.length,dust:pot-sum(shares)};
 }
+
+/** Allocate a capped instalment across otherwise-payable balances. The threshold selects
+ * eligible accrued balances; a cap-limited transfer may be smaller. Unpaid credit is retained.
+ * Largest remainders spend the exact budget, with address order breaking raw-unit ties. */
+export function cappedPayouts(accrual, threshold, cap) {
+ const accrued=amounts(accrual),payouts={};threshold=BigInt(threshold);cap=BigInt(cap);
+ if(threshold<0n||cap<0n)throw Error('negative payout threshold/cap');
+ // Preserve insertion order when uncapped: existing hash-chained journal records bind it.
+ const eligible=Object.entries(accrued).filter(([,v])=>v>0n&&v>=threshold);
+ const total=eligible.reduce((n,[,v])=>n+v,0n);
+ if(total===0n||cap===0n)return {payouts,accrued};
+ if(total<=cap){for(const[a,v]of eligible){payouts[a]=v;delete accrued[a];}return {payouts,accrued};}
+ const rows=eligible.map(([account,value])=>({account,amount:value*cap/total,remainder:value*cap%total}));
+ let left=cap-rows.reduce((n,row)=>n+row.amount,0n);
+ rows.sort((a,b)=>a.remainder===b.remainder?a.account.localeCompare(b.account):a.remainder>b.remainder?-1:1);
+ for(const row of rows){if(left===0n)break;row.amount++;left--;}
+ for(const {account,amount}of rows){if(amount===0n)continue;payouts[account]=amount;accrued[account]-=amount;if(accrued[account]===0n)delete accrued[account];}
+ return {payouts,accrued};
+}
 export function buildPlan(roundId,payouts,batchSize){
- // No default: 250 was the old contract comment's unsupported figure, and 256 native recipients
- // already measured 14.66M execution gas against Base's 16,777,216 per-transaction cap. A config
+ // No default: 250 was an unsupported figure, and the 3,000-holder fork's conservative envelope
+ // for 256 recipients exceeds Base's 16,777,216 per-transaction cap. A config
  // that forgets batchSize must fail here, not silently build batches that cannot be mined.
  if(!Number.isSafeInteger(batchSize)||batchSize<1)throw Error('invalid batch size: set batchSize explicitly from measured gas');roundId=BigInt(roundId).toString();const total=sum(payouts);if(!total)return null;
  const tree=StandardMerkleTree.of(Object.entries(amounts(payouts)).sort(([a],[b])=>a.localeCompare(b)).map(([a,v])=>[roundId,a,v.toString()]),['uint256','address','uint256']);const recipients=[...tree.entries()].map(([i,v])=>({account:v[1],amount:v[2],proof:tree.getProof(i)})),batches=[];for(let i=0;i<recipients.length;i+=batchSize){const rows=recipients.slice(i,i+batchSize);batches.push({roundId,accounts:rows.map(r=>r.account),amounts:rows.map(r=>r.amount),proofs:rows.map(r=>r.proof)});}return {roundId,root:tree.root,total:total.toString(),payouts,tree:tree.dump(),batches};

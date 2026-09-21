@@ -1,0 +1,9 @@
+✔ Final keeper nonce PoC: a pending transaction appearing after the CLI precheck is not rechecked under lock (100.087ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 313.862875

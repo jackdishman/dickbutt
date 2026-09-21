@@ -3,6 +3,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import {Contract,JsonRpcProvider,Wallet} from 'ethers';
+import {aerodromeHarvesterName, verifyAerodromeRuntime} from '../operations/aerodrome.js';
 import {runFeeCycle} from '../operations/fees.js';
 import { closeProvider, createRpcProvider } from '../operations/provider.js';
 import {acquireExecutionLock} from '../keeper/engine.js';
@@ -39,17 +40,19 @@ try {
   const executor=at('SpcxcSwapExecutor',c.executor),feeRouter=at('SplitsFeeRouter',c.feeRouter);
   const same=(a,b)=>a.toLowerCase()===b.toLowerCase();
   if(!same(await executor.weth(),c.weth)||!same(await executor.spcxc(),c.spcxc)||!same(await executor.distributor(),c.distributor)||!same(await feeRouter.swapExecutor(),c.executor)||!same(await feeRouter.weth(),c.weth)||!same(await feeRouter.dickbutt(),c.dickbutt))throw Error('deployed fee path differs from config');
+  const aero=c.aero?at(aerodromeHarvesterName({kind:config.sources?.aerodromeKind}),c.aero):null;
+  await verifyAerodromeRuntime(aero,config);
   const quoter=new Contract(config.quoter,['function quoteExactInput(bytes,uint256) returns(uint256,uint160[],uint32[],uint256)'],provider);
   const swapPath=await executor.swapPath();
   const onEvent=event=>{
     if(event.status==='submitted'){
       const fd=fs.openSync(marker,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify({...event,chainId:String(chainId),signer:address}));fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
     }
-    if(event.status==='confirmed'&&fs.existsSync(marker))fs.unlinkSync(marker);
+    if(['confirmed','reverted'].includes(event.status)&&fs.existsSync(marker))fs.unlinkSync(marker);
     console.log(JSON.stringify(event));
   };
   const result=await runFeeCycle({provider,signerAddress:address,execute,
-    locker:c.clanker?at('LockerHarvester',c.clanker):null,aero:c.aero?at('AerodromeFeeHarvester',c.aero):null,legacy:c.legacy?at('LegacyFeeHarvester',c.legacy):null,
+    locker:c.clanker?at('LockerHarvester',c.clanker):null,aero,legacy:c.legacy?at('LegacyFeeHarvester',c.legacy):null,
     feeRouter,executor,weth:new Contract(c.weth,['function balanceOf(address) view returns(uint256)'],provider),quote:async (amount,snapshot)=>(await quoter.quoteExactInput.staticCall(swapPath,amount,snapshot))[0],onEvent});
   console.log(JSON.stringify(result));if(result.swapStatus==='price-floor-refresh-required'||result.attention?.length)process.exitCode=2;
 } catch(e) {console.error(e.code?'Fee operation failed; inspect transaction events and RPC status':e.message);process.exitCode=1;}

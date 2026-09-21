@@ -1,0 +1,642 @@
+[
+  {
+    "index": 0,
+    "id": "0f4be3f07b1eca9fad21305f663318cdd0d2632d51acd72c095c75625163770b",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),amount) (src/SpcxcSwapExecutor.sol#124)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/SpcxcSwapExecutor.sol#116)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 1,
+    "id": "24b56ac5f0f2ddc6fdc2ffed1c227b8174bd01591db42e82f60ddb85de30fbb5",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):\n\tExternal call allowing reentrancy:\n\t- router.exactInput(ISpcxcSwapRouter.ExactInputParams(swapPath,distributor,deadline,amount,minimum)) (src/SpcxcSwapExecutor.sol#125)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/SpcxcSwapExecutor.sol#116)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 2,
+    "id": "31a8f87f091f0985a8c06f141aa723e44f8a06eff7f067921b48185869f7fb42",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),0) (src/SpcxcSwapExecutor.sol#126)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/SpcxcSwapExecutor.sol#116)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 3,
+    "id": "7055ca5973a56bfbd8c57f327ead419d4d47cf4a8e65c92cb455d663a8e45425",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),toSwap) (src/FeeSplitter.sol#141)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 4,
+    "id": "7aac33388f966761b3bed7de7b9f091ce290bb96e698c3b4c7e2f48dc7e3ad2d",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- weth.safeTransfer(kcGreen,toKcGreen) (src/FeeSplitter.sol#138)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 5,
+    "id": "7fc0d5a9bf98b3b1480f91a106af052ec373ce53728d3b0a57fa2fb6c5b886e2",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):\n\tExternal call allowing reentrancy:\n\t- router.exactInput(ISpcxcSwapRouter.ExactInputParams(swapPath,distributor,deadline,amount,minimum)) (src/SpcxcSwapExecutor.sol#125)\n\tBalance read before the call:\n\t- beforeOut = spcxc.balanceOf(distributor) (src/SpcxcSwapExecutor.sol#123)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)\n\t\t- stale variable `spcxcOut`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 6,
+    "id": "812d079848ded13430da143e052dcd85f91ef6ec17be9fe53d0560c2951f60e7",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- router.exactInput(ISwapRouter.ExactInputParams(swapPath,distributor,deadline,toSwap,minimum)) (src/FeeSplitter.sol#142)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 7,
+    "id": "84322b6e60bb398f2fadb56eaeccc69b991262b31cd65bacefd6082f69eeb195",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),0) (src/SpcxcSwapExecutor.sol#126)\n\tBalance read before the call:\n\t- beforeOut = spcxc.balanceOf(distributor) (src/SpcxcSwapExecutor.sol#123)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)\n\t\t- stale variable `spcxcOut`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 8,
+    "id": "a8087507fdba3983f14281f28339e17c042d57b0276032bc2f531c955b592409",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),0) (src/FeeSplitter.sol#143)\n\tBalance read before the call:\n\t- beforeOut = spcxc.balanceOf(distributor) (src/FeeSplitter.sol#140)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `spcxcOut`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 9,
+    "id": "acf5beb0b685309a3d24465c71574af497ec93afe7bb61047a4bed94459fd5f7",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- router.exactInput(ISwapRouter.ExactInputParams(swapPath,distributor,deadline,toSwap,minimum)) (src/FeeSplitter.sol#142)\n\tBalance read before the call:\n\t- beforeOut = spcxc.balanceOf(distributor) (src/FeeSplitter.sol#140)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `spcxcOut`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 10,
+    "id": "af655872c68048a48751776ba4d99481ee8e78a5efa3296494e7b9af508e606c",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),0) (src/FeeSplitter.sol#143)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 11,
+    "id": "c20cb1bc2d8a46bfd56915616afa09040e6a735440f9f6260639050ab78208f7",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96):\n\tExternal call allowing reentrancy:\n\t- pool.claimFees() (src/AerodromeVammHarvester.sol#89)\n\tBalance read before the call:\n\t- principal = pool.balanceOf(address(this)) (src/AerodromeVammHarvester.sol#87)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(pool.balanceOf(address(this)) == principal,LP principal changed) (src/AerodromeVammHarvester.sol#90)\n\t\t- stale variable `principal`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Intentional before/after LP conservation check. harvest is nonReentrant; the configured official pool cannot receive arbitrary calls/approvals. A mock claim that burns LP reverts atomically; callback and stateful conservation tests cover the boundary."
+  },
+  {
+    "index": 12,
+    "id": "c568c51a9b14a84fc768fdb278629daed754876f436dfe6102c46b9459fe4649",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- weth.safeTransfer(cdbVault,toCdbVault) (src/FeeSplitter.sol#139)\n\tBalance read before the call:\n\t- balance = weth.balanceOf(address(this)) (src/FeeSplitter.sol#128)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)\n\t\t- stale variable `balance`\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `minimum`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 13,
+    "id": "dee681869b269f2a3dcea5e634bdba5aad46f9a71947638ee48c1bb70976e169",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),toSwap) (src/FeeSplitter.sol#141)\n\tBalance read before the call:\n\t- beforeOut = spcxc.balanceOf(distributor) (src/FeeSplitter.sol#140)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/FeeSplitter.sol#145)\n\t\t- stale variable `spcxcOut`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 14,
+    "id": "e5b3a8e33fcd6e45751263f8e8ef32e2a3f84bc6bc84ef3b125846db8926705e",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in LegacyFeeHarvester._harvest(uint256) (src/LegacyFeeHarvester.sol#52-61):\n\tExternal call allowing reentrancy:\n\t- feeModule.tokenCreatorTransfer(feeSafe,address(token),destination) (src/LegacyFeeHarvester.sol#57)\n\tBalance read before the call:\n\t- beforeBalance = token.balanceOf(destination) (src/LegacyFeeHarvester.sol#56)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(amount > 0,no fees received) (src/LegacyFeeHarvester.sol#59)\n\t\t- stale variable `amount`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Actual received DICKBUTT delta follows the immutable module call, inside guarded harvest/harvestFrom. A positive balance in a Safe followed by no received tokens reverts. Native module/Safe tests verify both transfers and zero-fee repeats."
+  },
+  {
+    "index": 15,
+    "id": "ebd9855c28e2f016596b7e0ec09db02176270493e442639106464ff048048c2e",
+    "detector": "reentrancy-balance",
+    "scanner_severity": "High",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131):\n\tExternal call allowing reentrancy:\n\t- weth.forceApprove(address(router),amount) (src/SpcxcSwapExecutor.sol#124)\n\tBalance read before the call:\n\t- beforeOut = spcxc.balanceOf(distributor) (src/SpcxcSwapExecutor.sol#123)\n\tPossible stale balance used after the call in a condition:\n\t- require(bool,string)(spcxcOut >= minimum,insufficient actual output) (src/SpcxcSwapExecutor.sol#128)\n\t\t- stale variable `spcxcOut`\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Pre-call balances define required actual input consumption/output delivery, not an entitlement paid from stale storage. Fixed router/tokens, onlyKeeper and nonReentrant apply. Exact input delta, minimum received output and zero residual allowance are tested against malicious router returns and native route. Malicious/rebasing/taxed replacement assets remain unsupported."
+  },
+  {
+    "index": 16,
+    "id": "31a238fd423b9d1d40597e957668c5b1a02e3b40293d7af50c6ac5b9b20b325d",
+    "detector": "incorrect-equality",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "High",
+    "description": "SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131) uses a dangerous strict equality:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/SpcxcSwapExecutor.sol#129)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Equality is an explicit atomic conservation postcondition: supported WETH must spend exactly amount, and harvesting must preserve LP shares. Incoming adversarial callback donations can revert an incompatible-token operation, not release principal. Fixed verified dependencies and malicious-router/LP-consumption tests bound this assumption."
+  },
+  {
+    "index": 17,
+    "id": "732b7239a471ece56d9f1d94825d5f9543b8abded4c5d26fa71c2c097f9b32c9",
+    "detector": "incorrect-equality",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "High",
+    "description": "DickbuttRewardsDistributor.nextProposalAllowedAt() (src/DickbuttRewardsDistributor.sol#397-399) uses a dangerous strict equality:\n\t- lastProposalAt == 0 (src/DickbuttRewardsDistributor.sol#398)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Zero is the initialized sentinel for no prior proposal. Deployed Base timestamps are positive; cancellation intentionally retains the slot. Boundary and zero-delay tests cover six-hour spacing."
+  },
+  {
+    "index": 18,
+    "id": "aef5db59585c156e554f40a61d2c9e3b0e21f5809f15be9d49855cddfc0370dc",
+    "detector": "incorrect-equality",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "High",
+    "description": "AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96) uses a dangerous strict equality:\n\t- require(bool,string)(pool.balanceOf(address(this)) == principal,LP principal changed) (src/AerodromeVammHarvester.sol#90)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Equality is an explicit atomic conservation postcondition: supported WETH must spend exactly amount, and harvesting must preserve LP shares. Incoming adversarial callback donations can revert an incompatible-token operation, not release principal. Fixed verified dependencies and malicious-router/LP-consumption tests bound this assumption."
+  },
+  {
+    "index": 19,
+    "id": "afc8f626eaef53aee58c402d27d56c4de121c1337ff3cfe75b735944f27f05a3",
+    "detector": "incorrect-equality",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "High",
+    "description": "FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148) uses a dangerous strict equality:\n\t- require(bool,string)(weth.balanceOf(address(this)) == balance - amount,incorrect input spent) (src/FeeSplitter.sol#146)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Equality is an explicit atomic conservation postcondition: supported WETH must spend exactly amount, and harvesting must preserve LP shares. Incoming adversarial callback donations can revert an incompatible-token operation, not release principal. Fixed verified dependencies and malicious-router/LP-consumption tests bound this assumption."
+  },
+  {
+    "index": 20,
+    "id": "d36652d34f7ee0d5190094904d26dc91ada43a585ad6c4c476e9235006c1774d",
+    "detector": "incorrect-equality",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "High",
+    "description": "LegacyFeeHarvester._harvest(uint256) (src/LegacyFeeHarvester.sol#52-61) uses a dangerous strict equality:\n\t- token.balanceOf(feeSafe) == 0 (src/LegacyFeeHarvester.sol#55)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "An empty supported-token Safe is deliberately a no-op; a nonzero balance must yield a positive measured transfer. Token donation does not block claim. Fee-on-transfer/rebasing tokens are outside supported assumptions."
+  },
+  {
+    "index": 21,
+    "id": "39e3db534cda52a9f4712fa39db85dfba8009486cdb8a95b6722fcbb32dfc0d5",
+    "detector": "reentrancy-no-eth",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293):\n\tExternal calls:\n\t- this.executeTransfer(account,amount) (src/DickbuttRewardsDistributor.sol#278-287)\n\tState variables written after the call(s):\n\t- paid[roundId][account] = true (src/DickbuttRewardsDistributor.sol#274)\n\tDickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72) can be used in cross function reentrancies:\n\t- DickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72)\n\t- paid[roundId][account] = false (src/DickbuttRewardsDistributor.sol#285)\n\tDickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72) can be used in cross function reentrancies:\n\t- DickbuttRewardsDistributor.paid (src/DickbuttRewardsDistributor.sol#72)\n\t- r.distributed += batchPaid (src/DickbuttRewardsDistributor.sol#290)\n\tDickbuttRewardsDistributor.rounds (src/DickbuttRewardsDistributor.sol#64) can be used in cross function reentrancies:\n\t- DickbuttRewardsDistributor.activateRound(uint256) (src/DickbuttRewardsDistributor.sol#208-218)\n\t- DickbuttRewardsDistributor.cancelPendingRound(uint256) (src/DickbuttRewardsDistributor.sol#194-201)\n\t- DickbuttRewardsDistributor.closeRound(uint256) (src/DickbuttRewardsDistributor.sol#224-238)\n\t- DickbuttRewardsDistributor.roundInfo(uint256) (src/DickbuttRewardsDistributor.sol#401-408)\n\t- DickbuttRewardsDistributor.rounds (src/DickbuttRewardsDistributor.sol#64)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Batch is keeper-gated and nonReentrant; paid is set before each external self-call and reset only if its atomic transfer fails. executeTransfer accepts only self. Aggregate reserves/distributed update after the loop. Callback tests attempt close/propose/reentry/direct transfer; reserve invariants include partial payment and cancellation. Privileged malicious token/admin combinations are outside supported token assumptions and can cause rollback/DoS."
+  },
+  {
+    "index": 22,
+    "id": "1e2e1182abb52e92847b651d66f419af7639bbdc487ff0322161c1ec8c4dfd97",
+    "detector": "uninitialized-local",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]).batchPaid (src/DickbuttRewardsDistributor.sol#260) is a local variable never initialized\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Solidity initializes the uint256 batch accumulator to zero. It is incremented only after a successful self-transfer. Accounting invariants and failed-recipient retries check delivered sums."
+  },
+  {
+    "index": 23,
+    "id": "49b553e2ad5192652eb1e70486dd64128d297b37a6ac7169c4cc4efebeb338ea",
+    "detector": "unused-return",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "Medium",
+    "description": "SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131) ignores return value by router.exactInput(ISpcxcSwapRouter.ExactInputParams(swapPath,distributor,deadline,amount,minimum)) (src/SpcxcSwapExecutor.sol#125)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Intentional use of actual token balances/deltas instead of trusting router or collector return values. Harvester sweeps supported fee token balances to fixed destinations. Malicious return-value and native integration tests cover this."
+  },
+  {
+    "index": 24,
+    "id": "b6881e043b758279c89cba35d62e7e89c834b78b60fa112789d03ad2a317e144",
+    "detector": "unused-return",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "Medium",
+    "description": "FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148) ignores return value by router.exactInput(ISwapRouter.ExactInputParams(swapPath,distributor,deadline,toSwap,minimum)) (src/FeeSplitter.sol#142)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Intentional use of actual token balances/deltas instead of trusting router or collector return values. Harvester sweeps supported fee token balances to fixed destinations. Malicious return-value and native integration tests cover this."
+  },
+  {
+    "index": 25,
+    "id": "b7e30523ac41407de4c550249ded5d10bacdf6fb0e95c318c4b1632c727383d5",
+    "detector": "unused-return",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeFeeHarvester.harvest() (src/AerodromeFeeHarvester.sol#133-152) ignores return value by positionManager.collect(INonfungiblePositionManager.CollectParams({tokenId:tokenId,recipient:address(this),amount0Max:type()(uint128).max,amount1Max:type()(uint128).max})) (src/AerodromeFeeHarvester.sol#139-143)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Intentional use of actual token balances/deltas instead of trusting router or collector return values. Harvester sweeps supported fee token balances to fixed destinations. Malicious return-value and native integration tests cover this."
+  },
+  {
+    "index": 26,
+    "id": "cfa93ffbed519774db7f248bfea454199f3141dc5dca4e82c34b139f1a59cdf2",
+    "detector": "unused-return",
+    "scanner_severity": "Medium",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96) ignores return value by pool.claimFees() (src/AerodromeVammHarvester.sol#89)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Intentional use of actual token balances/deltas instead of trusting router or collector return values. Harvester sweeps supported fee token balances to fixed destinations. Malicious return-value and native integration tests cover this."
+  },
+  {
+    "index": 27,
+    "id": "614fdfaffc2b3dbf791aba82b72f510f463643bc200591d600b1245d5ef17125",
+    "detector": "missing-zero-check",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.constructor(address,address,address,address,address,address,uint256,uint256,address).spcxcDestination_ (src/AerodromeVammHarvester.sol#60) lacks a zero-check on :\n\t\t- spcxcDestination = spcxcDestination_ (src/AerodromeVammHarvester.sol#80)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Constructor owner is checked by OpenZeppelin Ownable(owner_); vAMM constructor and proposeDestination call _checkDestination, which rejects zero before assignment. Constructor/recipient rejection tests exercise these paths."
+  },
+  {
+    "index": 28,
+    "id": "698cbf58b02600f2106f1fc83a98109c52f814b90d020b6aa985ee56de8119d3",
+    "detector": "missing-zero-check",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.constructor(address,uint256,address).owner_ (src/DickbuttRewardsDistributor.sol#143) lacks a zero-check on :\n\t\t- guardian = owner_ (src/DickbuttRewardsDistributor.sol#147)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Constructor owner is checked by OpenZeppelin Ownable(owner_); vAMM constructor and proposeDestination call _checkDestination, which rejects zero before assignment. Constructor/recipient rejection tests exercise these paths."
+  },
+  {
+    "index": 29,
+    "id": "7903010209c50597e0b2009f85d85c14e2bfc3643beb04d348ad0bf795b993e6",
+    "detector": "missing-zero-check",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.proposeDestination(address).newDestination (src/AerodromeVammHarvester.sol#106) lacks a zero-check on :\n\t\t- pendingDestination = newDestination (src/AerodromeVammHarvester.sol#109)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Constructor owner is checked by OpenZeppelin Ownable(owner_); vAMM constructor and proposeDestination call _checkDestination, which rejects zero before assignment. Constructor/recipient rejection tests exercise these paths."
+  },
+  {
+    "index": 30,
+    "id": "717fddf68051822760f86d28b134d60a89de787171d65121bda39e45beb036ef",
+    "detector": "calls-loop",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "LegacyFeeHarvester.constructor(address,address[],address,address) (src/LegacyFeeHarvester.sol#28-42) has external calls inside a loop: require(bool,string)(ILegacyFeeSafe(feeSafes_[i]).isModuleEnabled(feeModule_),module not enabled) (src/LegacyFeeHarvester.sol#35)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Immutable Safe list is bounded to 1..8 and module enabled is verified in the constructor; malformed dependencies fail deployment."
+  },
+  {
+    "index": 31,
+    "id": "9617396a0c81315a9ef1b3d95ebf36b30192d88314c6d3cc38ea9af184e92776",
+    "detector": "calls-loop",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293) has external calls inside a loop: this.executeTransfer(account,amount) (src/DickbuttRewardsDistributor.sol#278-287)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Proof-driven payout batching is deliberate. Each recipient transfer is caught individually; invalid proofs abort atomically. Gas bounds need actual calldata estimates: native 3000-recipient tests compare 200/256 batching. Keeper chooses bounded batches; malicious supported-token policy can still fail specific recipients."
+  },
+  {
+    "index": 32,
+    "id": "582f031a340e3be679a52b57362e8fa68fb3f2c17078630843556b38f26a2bfd",
+    "detector": "reentrancy-benign",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "Reentrancy in DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293):\n\tExternal calls:\n\t- this.executeTransfer(account,amount) (src/DickbuttRewardsDistributor.sol#278-287)\n\tState variables written after the call(s):\n\t- totalReserved -= batchPaid (src/DickbuttRewardsDistributor.sol#292)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Batch is keeper-gated and nonReentrant; paid is set before each external self-call and reset only if its atomic transfer fails. executeTransfer accepts only self. Aggregate reserves/distributed update after the loop. Callback tests attempt close/propose/reentry/direct transfer; reserve invariants include partial payment and cancellation. Privileged malicious token/admin combinations are outside supported token assumptions and can cause rollback/DoS."
+  },
+  {
+    "index": 33,
+    "id": "25dcbb64bcff48dce77fb9534233a4f3b295806a0d8809b8a030f6258712c992",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.closeRound(uint256) (src/DickbuttRewardsDistributor.sol#224-238) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(r.active,round not active) (src/DickbuttRewardsDistributor.sol#226)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 34,
+    "id": "2674836dd83a155de6cffe27a8903f9fd6250cfc93f64d188f7d7ae6620dd3f6",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "SpcxcSwapExecutor.setPriceFloor(uint256,uint256) (src/SpcxcSwapExecutor.sol#164-171) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(expiresAt > block.timestamp && expiresAt - block.timestamp <= MAX_FLOOR_LIFETIME,bad expiry) (src/SpcxcSwapExecutor.sol#167)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 35,
+    "id": "27995983c4dfca7f3a092028789a2337d49782191fbc8fcee9dfeb6ca0282ff5",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.proposeRound(bytes32,uint256) (src/DickbuttRewardsDistributor.sol#163-186) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(lastProposalAt == 0 || block.timestamp >= lastProposalAt + minRoundInterval,round interval not elapsed) (src/DickbuttRewardsDistributor.sol#167-170)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 36,
+    "id": "301c51921aa9357fa43daccde059a1d3609c904293ad6ef9dfc657e0d422ab9e",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.distributeBatch(uint256,address[],uint256[],bytes32[][]) (src/DickbuttRewardsDistributor.sol#250-293) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(r.active,round not active) (src/DickbuttRewardsDistributor.sol#257)\n\t- require(bool,string)(MerkleProof.verify(proofs[i],r.root,leaf),invalid proof) (src/DickbuttRewardsDistributor.sol#271)\n\t- require(bool,string)(r.distributed <= r.total,round overspend) (src/DickbuttRewardsDistributor.sol#291)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 37,
+    "id": "339003286463014c00f255966625a46c8c87678a232f8f02d28d74b5cb0d7c6d",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.constructor(address,address,address,address,address,address,uint256,uint256,address) (src/AerodromeVammHarvester.sol#58-81) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(unlockTime_ > block.timestamp && unlockTime_ <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeVammHarvester.sol#75)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 38,
+    "id": "57f346d3b91d736f89f5f439757dcd9f2868cf3a9676de89d82727c76d7432ee",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.activateRound(uint256) (src/DickbuttRewardsDistributor.sol#208-218) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(p.root != bytes32(0),nothing pending) (src/DickbuttRewardsDistributor.sol#210)\n\t- require(bool,string)(block.timestamp >= p.readyAt,still timelocked) (src/DickbuttRewardsDistributor.sol#211)\n\t- require(bool,string)(! rounds[roundId].active && ! rounds[roundId].closed,already activated) (src/DickbuttRewardsDistributor.sol#212)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 39,
+    "id": "633154f60284c38eb35772c9421fb48617a45722521b977a9979c6d1cb551690",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "LockerHarvester.recoverReleasedPosition(address) (src/LockerHarvester.sol#122-130) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(block.timestamp >= locker.end(),still locked) (src/LockerHarvester.sol#125)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 40,
+    "id": "6bab1d5acc1cc41b525db84c182bd69c5113ece534e88823f161a65d51da6b25",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeFeeHarvester.constructor(address,uint256,address,address,address,address,uint256,uint256,address) (src/AerodromeFeeHarvester.sol#94-122) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(unlockTime_ > block.timestamp && unlockTime_ <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeFeeHarvester.sol#112)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 41,
+    "id": "74bab4f4b817e2e4e218f2fe11235f911a1d8bec4214d123ad5672679f05d4a4",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "FeeSplitter.processWeth(uint256,uint256) (src/FeeSplitter.sol#124-148) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(deadline >= block.timestamp,deadline already passed) (src/FeeSplitter.sol#125)\n\t- require(bool,string)(minSpcxcPerWeth > 0 && block.timestamp <= priceFloorExpiresAt,price floor expired) (src/FeeSplitter.sol#126)\n\t- require(bool,string)(! hasSwapped || block.timestamp - lastSwapAt >= minSwapInterval,cooldown active) (src/FeeSplitter.sol#127)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 42,
+    "id": "75a914218bddfc6ae02e87b3364468082478cf71b90c87e36546378e9b084a2f",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "LockerHarvester.applyDestination() (src/LockerHarvester.sol#151-161) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(block.timestamp >= pendingDestinationReadyAt,still timelocked) (src/LockerHarvester.sol#154)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 43,
+    "id": "75c615704bfe131c23e28c1746c03bedd405eb055ac56acd1dfdeac3d50beadf",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeFeeHarvester.applyDestination() (src/AerodromeFeeHarvester.sol#171-181) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(block.timestamp >= pendingDestinationReadyAt,still timelocked) (src/AerodromeFeeHarvester.sol#174)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 44,
+    "id": "78f37ccf600752f2f5fd7aeab45d1b1a57f2a6a32945654963a7977bcd36d31f",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.applyDestination() (src/AerodromeVammHarvester.sol#112-119) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(block.timestamp >= pendingDestinationReadyAt,still timelocked) (src/AerodromeVammHarvester.sol#115)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 45,
+    "id": "90507cb8485da0ef6933b26baaaf358b4ef2d521f53034da9d8e806a59aaabab",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.harvest() (src/AerodromeVammHarvester.sol#85-96) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(lastHarvestAt == 0 || block.timestamp >= lastHarvestAt + minInterval,too soon) (src/AerodromeVammHarvester.sol#86)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 46,
+    "id": "abbf61348785ce65fc83850b9c79e8eff28e5843d6452d0f2ae8b566263e9dd1",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "DickbuttRewardsDistributor.nextProposalAllowedAt() (src/DickbuttRewardsDistributor.sol#397-399) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lastProposalAt == 0 (src/DickbuttRewardsDistributor.sol#398)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 47,
+    "id": "b1ecc86d5d0492ea2fa1c55580bb4218383f837e37dc74a3665689622e2d7be5",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.extendLock(uint256) (src/AerodromeVammHarvester.sol#135-140) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(newUnlockTime > block.timestamp && newUnlockTime <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeVammHarvester.sol#138)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 48,
+    "id": "b80b836923c253d185d67604d95bcf2816b9184c92e1d19845baa719bfe80181",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeVammHarvester.withdrawLiquidity(address,uint256) (src/AerodromeVammHarvester.sol#143-150) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(block.timestamp >= unlockTime,still locked) (src/AerodromeVammHarvester.sol#145)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 49,
+    "id": "c5f8bf4aca770e3143284a93f87104cacbdc0944a50d66c6da36345e05273807",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "FeeSplitter.setPriceFloor(uint256,uint256) (src/FeeSplitter.sol#163-169) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(expiresAt > block.timestamp && expiresAt - block.timestamp <= MAX_FLOOR_LIFETIME,bad expiry) (src/FeeSplitter.sol#165)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 50,
+    "id": "caf4cf5c7537a7dc5518b40f5bf0bca1b19f43925d7efbec87a0ee1f732cecef",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "LockerHarvester.harvest() (src/LockerHarvester.sol#113-118) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(lastHarvestAt == 0 || block.timestamp >= lastHarvestAt + minInterval,too soon) (src/LockerHarvester.sol#114)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 51,
+    "id": "d109f8a76a45d7768e2b6116c70b15f2fbd73a1f31f0494921d41287f20388c0",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeFeeHarvester.extendLock(uint256) (src/AerodromeFeeHarvester.sol#213-220) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(newUnlockTime > block.timestamp && newUnlockTime <= block.timestamp + 100 * 31536000,invalid unlock time) (src/AerodromeFeeHarvester.sol#216-218)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 52,
+    "id": "e1b20659ca878b40a8469392d9dd15867ffb820c801405b7cba3f662c5ad8678",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeFeeHarvester.harvest() (src/AerodromeFeeHarvester.sol#133-152) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(lastHarvestAt == 0 || block.timestamp >= lastHarvestAt + minInterval,too soon) (src/AerodromeFeeHarvester.sol#134)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 53,
+    "id": "e9099d0f9241c713cc4937462286baf7eb8312e8b94a27ff9f98302917868d42",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "AerodromeFeeHarvester.withdrawPosition(address) (src/AerodromeFeeHarvester.sol#224-230) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(block.timestamp >= unlockTime,still locked) (src/AerodromeFeeHarvester.sol#226)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 54,
+    "id": "ede45fe861d132dd728a831991652f473f605633f2a3663d3ee0a4bcb9f61037",
+    "detector": "timestamp",
+    "scanner_severity": "Low",
+    "scanner_confidence": "Medium",
+    "description": "SpcxcSwapExecutor.processWeth(uint256,uint256) (src/SpcxcSwapExecutor.sol#112-131) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- require(bool,string)(deadline >= block.timestamp,deadline already passed) (src/SpcxcSwapExecutor.sol#113)\n\t- require(bool,string)(minSpcxcPerWeth > 0 && block.timestamp <= priceFloorExpiresAt,price floor expired) (src/SpcxcSwapExecutor.sol#114)\n\t- require(bool,string)(! hasSwapped || block.timestamp - lastSwapAt >= minSwapInterval,cooldown active) (src/SpcxcSwapExecutor.sol#115)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Time is used for explicit cooldown, expiry, proposal or lock boundaries, not randomness/price truth. Inclusive boundaries are exercised in unit/fork tests. Sequencer availability and timestamp progression affect liveness; six-hour scheduling is not exact wall-clock delivery. Some reported active/proof checks are taint propagation from activation time."
+  },
+  {
+    "index": 55,
+    "id": "71c433b18143d68e54c99749d0b0c3c522b73ce77cd40e944a50f9994458a635",
+    "detector": "pragma",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "2 different versions of Solidity are used:\n\t- Version constraint ^0.8.20 is used by:\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/access/Ownable.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/access/Ownable2Step.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol#3)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/IERC721.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/Context.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/cryptography/MerkleProof.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/introspection/ERC165.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/math/Math.sol#4)\n\t\t-^0.8.20 (node_modules/@openzeppelin/contracts/utils/math/SignedMath.sol#4)\n\t- Version constraint ^0.8.24 is used by:\n\t\t-^0.8.24 (script/SepoliaSupport.sol#2)\n\t\t-^0.8.24 (src/AerodromeFeeHarvester.sol#2)\n\t\t-^0.8.24 (src/AerodromeVammHarvester.sol#2)\n\t\t-^0.8.24 (src/DickbuttRewardsDistributor.sol#2)\n\t\t-^0.8.24 (src/FeeSplitter.sol#2)\n\t\t-^0.8.24 (src/LegacyFeeHarvester.sol#2)\n\t\t-^0.8.24 (src/LockerHarvester.sol#2)\n\t\t-^0.8.24 (src/SpcxcSwapExecutor.sol#2)\n\t\t-^0.8.24 (src/SplitsFeeRouter.sol#2)\n\t\t-^0.8.24 (src/SplitsV2Interfaces.sol#2)\n\t\t-^0.8.24 (test/RehearsalMocks.sol#2)\n\t\t-^0.8.24 (test/Support.sol#2)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Compatible dependency ^0.8.20 and project ^0.8.24 pragmas are compiled together by pinned solc 0.8.24, optimizer 200, viaIR. Production source hashes/bytecode are bound before deployment. Known compiler conditions assessed separately."
+  },
+  {
+    "index": 56,
+    "id": "74cab024a6e0dc70d8db33cc01e55894decb235de118a6ef3ab2aecca9223928",
+    "detector": "low-level-calls",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "Low level call in FeeSplitter.rescueETH(address,uint256) (src/FeeSplitter.sol#183-187):\n\t- (ok,None) = address(to).call{value: amount}() (src/FeeSplitter.sol#185)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "ETH rescue is onlyOwner, nonReentrant, validates recipient and checks call success. This does not rescue protected fee/reward assets. Forced ETH does not affect token accounting; administrative ETH rescue is an explicit privilege."
+  },
+  {
+    "index": 57,
+    "id": "d07ba8f49cc0775831592992ddbefae027d56a5c259fa04bf10dfb19b546e32d",
+    "detector": "low-level-calls",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "Low level call in SpcxcSwapExecutor.rescueETH(address,uint256) (src/SpcxcSwapExecutor.sol#185-189):\n\t- (ok,None) = address(to).call{value: amount}() (src/SpcxcSwapExecutor.sol#187)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "ETH rescue is onlyOwner, nonReentrant, validates recipient and checks call success. This does not rescue protected fee/reward assets. Forced ETH does not affect token accounting; administrative ETH rescue is an explicit privilege."
+  },
+  {
+    "index": 58,
+    "id": "02413643f38f304f46b1459a01b300a5ac3605a6e3995fbc8084e0ae6e94a665",
+    "detector": "missing-inheritance",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "SepoliaSwapRouter (script/SepoliaSupport.sol#23-47) should inherit from ISpcxcSwapRouter (src/SpcxcSwapExecutor.sol#12-21)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Sepolia simulation helper matches the external interface structurally without naming it in inheritance. It is excluded from production deployment. Interface compatibility is exercised in local/testnet regressions."
+  },
+  {
+    "index": 59,
+    "id": "478e835f111aed86781625b3692ebd2bfc9555fe8949f5297be00bd806d1e945",
+    "detector": "missing-inheritance",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "SepoliaPositionManager (script/SepoliaSupport.sol#173-211) should inherit from INonfungiblePositionManager (src/AerodromeFeeHarvester.sol#13-22)\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Sepolia simulation helper matches the external interface structurally without naming it in inheritance. It is excluded from production deployment. Interface compatibility is exercised in local/testnet regressions."
+  },
+  {
+    "index": 60,
+    "id": "426051a6bfe1fa324081c5a708a26ae3e2bbb9e79e43c82ed6ac8bbd6147c40e",
+    "detector": "naming-convention",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "Function IPushSplitFactoryV2.SPLIT_WALLET_IMPLEMENTATION() (src/SplitsV2Interfaces.sol#15) is not in mixedCase\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Uppercase getters intentionally match the upstream Splits ABI. Renaming would break compatibility; no security impact."
+  },
+  {
+    "index": 61,
+    "id": "9fc292f7fb342a2d36786c4b6a8049d0e79b6f1e34a29da61ccc365c2a95cb53",
+    "detector": "naming-convention",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "Function IPushSplitV2.FACTORY() (src/SplitsV2Interfaces.sol#20) is not in mixedCase\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Uppercase getters intentionally match the upstream Splits ABI. Renaming would break compatibility; no security impact."
+  },
+  {
+    "index": 62,
+    "id": "dd8b0413472f8601e4bd096357b2bebecea1ac059c877eb7ddf1a7a71f0e474a",
+    "detector": "naming-convention",
+    "scanner_severity": "Informational",
+    "scanner_confidence": "High",
+    "description": "Function IPushSplitV2.SPLITS_WAREHOUSE() (src/SplitsV2Interfaces.sol#21) is not in mixedCase\n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Uppercase getters intentionally match the upstream Splits ABI. Renaming would break compatibility; no security impact."
+  },
+  {
+    "index": 63,
+    "id": "4af57c2ba5641a793bdfb44807e569d5159c17e66e2baea0b1c1f24366432691",
+    "detector": "constable-states",
+    "scanner_severity": "Optimization",
+    "scanner_confidence": "High",
+    "description": "AerodromeFeeHarvester.destinationDelay (src/AerodromeFeeHarvester.sol#78) should be constant \n",
+    "assessment": "reviewed; no exploitable path established under documented dependencies",
+    "reason": "Historical NFT adapter stores destinationDelay=7 days with no setter. Making it constant is optional gas/style hardening, not a lock bypass. Current vAMM adapter already uses a constant."
+  }
+]

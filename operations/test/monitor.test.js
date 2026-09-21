@@ -11,7 +11,7 @@ function harness({ floor = 1n, remaining = 20n * 3600n, paused = false, balances
   rounds = [], next = 1n, lowerBound = 1n } = {}) {
   const provider = {
     getNetwork: async () => ({ chainId: 8453n }),
-    getBlock: async () => ({ timestamp: Number(NOW) }),
+    getBlock: async () => ({ number: 123, hash: '0x' + 'ef'.repeat(32), timestamp: Number(NOW) }),
     getBalance: async a => balances[a.toLowerCase()] ?? 10n ** 18n,
   };
   const executor = {
@@ -23,6 +23,8 @@ function harness({ floor = 1n, remaining = 20n * 3600n, paused = false, balances
   const distributor = {
     proposalsPaused: async () => paused,
     nextRoundId: async () => next,
+    totalReserved: async () => rounds.reduce((sum, r) => sum + (r.pendingTotal ?? 0n)
+      + (r.active ? (r.total ?? 0n) - (r.distributed ?? 0n) : 0n), 0n),
     roundInfo: async id => {
       const r = byId.get(String(id));
       return r ? [r.root ?? ZERO, r.total ?? 0n, r.distributed ?? 0n, r.active ?? false, r.closed ?? false]
@@ -130,4 +132,40 @@ test('a foreign round the guardian cancelled unpaid stops alarming; one that pai
     ...harness({ next: 3n, rounds: [{ id: 2, root: ROGUE, total: 500n, distributed: 500n, closed: true }] }),
   });
   assert.ok(drained.attention.some(c => c.name === 'unknown-commitment'), 'a foreign round that paid out is theft evidence and keeps alarming');
+});
+
+test('a recently closed round cannot hide an older stale round', async () => {
+  const result = await runMonitor(harness({ next: 3n, rounds: [
+    { id: 2, root: KNOWN, total: 100n, distributed: 100n, closed: true },
+    { id: 1, pendingRoot: KNOWN, pendingTotal: 500n, readyAt: NOW - 9n * 3600n },
+  ] }));
+  assert.ok(result.attention.some(c => c.name === 'stale-round' && c.roundId === '1'));
+});
+
+test('unpaid reservations outside the recent-round window cannot produce a healthy report', async () => {
+  const result = await runMonitor(harness({ next: 10n, rounds: [
+    { id: 1, root: KNOWN, total: 1000n, distributed: 400n, active: true },
+  ] }));
+  assert.equal(result.exitCode, 2);
+  assert.ok(result.attention.some(c => c.name === 'older-reservations' && c.uninspectedReserved === '600'));
+});
+
+test('optional journal omission does not leave a hidden unknown-root alarm or inconsistent exit status', async () => {
+  const result = await runMonitor({ ...harness({ next: 2n, rounds: [
+    { id: 1, pendingRoot: KNOWN, pendingTotal: 500n, readyAt: NOW + 3600n },
+  ] }), journalRoots: null });
+  assert.equal(result.severity, 'ok');
+  assert.equal(result.exitCode, 0);
+  assert.deepEqual(result.attention, []);
+  assert.match(result.journal, /absent/);
+  assert.ok(!result.checks.some(c => c.name === 'unknown-commitment'));
+});
+
+test('omitting the journal never suppresses overdue-round or gas alarms', async () => {
+  const result = await runMonitor({ ...harness({ next: 2n, rounds: [
+    { id: 1, pendingRoot: KNOWN, pendingTotal: 500n, readyAt: NOW - 9n * 3600n },
+  ] }), journalRoots: null });
+  assert.equal(result.severity, 'attention');
+  assert.equal(result.exitCode, 2);
+  assert.ok(result.attention.some(c => c.name === 'stale-round'));
 });

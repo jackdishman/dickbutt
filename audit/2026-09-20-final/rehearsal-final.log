@@ -1,0 +1,20 @@
+
+> dickbutt-rewards-calculator@2.0.0 rehearse
+> node script/rehearse.mjs --vamm
+
+{
+  "success": true,
+  "evidence": ".context/rehearsal-run-zGtQ3w",
+  "checks": [
+    "Three fee sources, actual immutable Splits percentages/dust, swap and rewards-vault funding verified",
+    "Real calculator journal → proposal → configured review delay → partial payout → retry → closure → reconciliation verified",
+    "Repeated keeper execution sends no duplicate payments",
+    "Separate owner, ops (floor setter), keeper, proposer and guardian signers; floor setter is bounded and refused as keeper; floor bot refuses a keeper key",
+    "Guardian pause blocks proposals and the share cap/rate limit bound a bot proposer",
+    "Bootstrap period commits balances with a zero pot",
+    "A foreign root at a planned round id is reported without halting other rounds, then superseded and recredited exactly once after the guardian cancels it",
+    "Two further six-hour earning cycles produced ready proposals and keeper payments without review time travel or holder signatures",
+    "ERC-20 vAMM LP transfer and repeated claims preserve all LP principal",
+    "Exactly 6.9M DICKBUTT qualifies; one raw unit below does not; neither holder signs payout transactions"
+  ]
+}

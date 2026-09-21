@@ -17,7 +17,8 @@ contract ReservationHandler is Support {
     }
     function fund(uint96 amount) public { token.mint(address(d),amount); minted+=amount; }
     function propose(uint96 raw) external {
-        uint256 available=d.availableForNextRound(); if(available==0)return;
+        if(block.timestamp<d.nextProposalAllowedAt())return;
+        uint256 available=d.maxProposableTotal(); if(available==0)return;
         uint256 n=uint256(raw)%available+1; uint256 id=d.nextRoundId();
         address recipient=address(uint160(id+1000));
         d.proposeRound(keccak256(bytes.concat(keccak256(abi.encode(id,recipient,n)))),n);
@@ -46,7 +47,7 @@ contract ReservationHandler is Support {
 }
 contract ReservationInvariantTest is Support {
     ReservationHandler public handler;
-    function setUp() public { handler=new ReservationHandler(); }
+    function setUp() public virtual { handler=new ReservationHandler(); }
     function targetContracts() external view returns(address[] memory a) { a=new address[](1); a[0]=address(handler); }
     function invariantReservationConservationAndNoDoublePayment() public view {
         DickbuttRewardsDistributor d=handler.d(); RewardMock t=handler.token();
@@ -65,4 +66,23 @@ contract ReservationInvariantTest is Support {
         require(t.balanceOf(address(d))>=reserved,"insolvent");
         require(t.balanceOf(address(d))+paidTotal==handler.minted(),"conservation");
     }
+}
+
+// Exercise conservation under the actual production defaults as well as the unlimited lifecycle
+// fixture: capped concurrent commitments, six-hour spacing and the full 24-hour review delay.
+contract ReservationDefaultLimitsHandler is ReservationHandler {
+    constructor() { d.setRoundLimits(5000, 6 hours); }
+    function advanceTime(uint32 seconds_) external { vm.warp(block.timestamp + uint256(seconds_) % 7 days); }
+}
+
+contract ReservationDefaultLimitsInvariantTest is ReservationInvariantTest {
+    function setUp() public override { handler=new ReservationDefaultLimitsHandler(); }
+}
+
+contract ReservationZeroDelayHandler is ReservationDefaultLimitsHandler {
+    constructor() { d.setRoundDelay(0); }
+}
+
+contract ReservationZeroDelayInvariantTest is ReservationInvariantTest {
+    function setUp() public override { handler=new ReservationZeroDelayHandler(); }
 }
