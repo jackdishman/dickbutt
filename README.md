@@ -153,3 +153,11 @@ Complete recipient/multisig/keeper/floor-setter configuration, select and fund t
 ## Current internal security review
 
 See [AUDIT_REPORT.md](AUDIT_REPORT.md) and [audit-findings.json](audit-findings.json) for the 2026-09-20 candidate, repaired payout/monitoring failures, local evidence and remaining deployment prerequisites. `npm test` includes the separate audit regressions. `npm run rehearse -- --vamm` exercises signed transactions on a disposable local chain using mock assets and real forked Splits; native-token compatibility has separate fork suites. No production custody change or launch approval is implied.
+
+## Disclaimer
+
+This code is provided as-is, with no warranty of any kind. Use it at your own discretion and risk. Deploying or operating it, especially with real funds, is entirely your own responsibility — review it, test it, and get an independent audit first.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

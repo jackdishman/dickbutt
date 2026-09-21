@@ -1,6 +1,0 @@
-{"type":"transaction-submitted","action":"batch","roundId":"1","hash":"0xaa0f924a18428b46cce2eb143237a4bda9066df8aac0b3afc8465bc0ba3f6721","chainId":"84532"}
-{"type":"transaction-confirmed","action":"batch","roundId":"1","hash":"0xaa0f924a18428b46cce2eb143237a4bda9066df8aac0b3afc8465bc0ba3f6721","chainId":"84532"}
-{"type":"transaction-submitted","action":"close","roundId":"1","hash":"0x5ce2c7128767d5a41dbda0171f3c65979626fbca0326c6769aba1c248c1d9968","chainId":"84532"}
-{"type":"transaction-confirmed","action":"close","roundId":"1","hash":"0x5ce2c7128767d5a41dbda0171f3c65979626fbca0326c6769aba1c248c1d9968","chainId":"84532"}
-{"type":"keeper-complete","rounds":[{"roundId":"1","root":"0x65f41b0a29f6592628801a3a3033ecf2dfb284ef6bae75831ba260b991b991e9","total":"100799998","status":"closed","unpaid":[],"failed":[]}],"chainId":"84532"}
-{"mode":"execute","chainId":"84532","rounds":[{"roundId":"1","root":"0x65f41b0a29f6592628801a3a3033ecf2dfb284ef6bae75831ba260b991b991e9","total":"100799998","status":"closed","unpaid":[],"failed":[]}],"transactions":[{"action":"batch","roundId":"1","hash":"0xaa0f924a18428b46cce2eb143237a4bda9066df8aac0b3afc8465bc0ba3f6721"},{"action":"close","roundId":"1","hash":"0x5ce2c7128767d5a41dbda0171f3c65979626fbca0326c6769aba1c248c1d9968"}],"historyVerification":{"periods":2,"finalizedThrough":46751104}}
